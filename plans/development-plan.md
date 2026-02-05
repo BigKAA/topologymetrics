@@ -345,65 +345,65 @@ sdk-go/
 
 **Цель**: реализовать все 8 типов проверок здоровья.
 
-**Статус**: [ ] Не начата
+**Статус**: [x] Завершена
 
 ### Задачи фазы 4
 
 #### 4.1. TCP Checker (`checks/tcp.go`)
 
-- [ ] Реализация: `net.DialTimeout` → закрытие
-- [ ] Таймаут из CheckConfig
-- [ ] Unit-тест с тестовым TCP-сервером
+- [x] Реализация: `net.DialTimeout` → закрытие
+- [x] Таймаут из CheckConfig
+- [x] Unit-тест с тестовым TCP-сервером
 
 #### 4.2. HTTP Checker (`checks/http.go`)
 
-- [ ] Реализация: `http.Get` к `healthPath`
-- [ ] Настраиваемый `healthPath` (default `/health`)
-- [ ] Ожидание 2xx статуса
-- [ ] Поддержка TLS (InsecureSkipVerify — опционально)
-- [ ] Таймаут из CheckConfig
-- [ ] Unit-тест с `httptest.Server`
+- [x] Реализация: `http.Get` к `healthPath`
+- [x] Настраиваемый `healthPath` (default `/health`)
+- [x] Ожидание 2xx статуса
+- [x] Поддержка TLS (InsecureSkipVerify — опционально)
+- [x] Таймаут из CheckConfig
+- [x] Unit-тест с `httptest.Server`
 
 #### 4.3. gRPC Checker (`checks/grpc.go`)
 
-- [ ] Реализация: grpc.health.v1.Health/Check
-- [ ] Поддержка TLS и insecure
-- [ ] Таймаут из CheckConfig
-- [ ] Unit-тест с тестовым gRPC-сервером
+- [x] Реализация: grpc.health.v1.Health/Check
+- [x] Поддержка TLS и insecure
+- [x] Таймаут из CheckConfig
+- [x] Unit-тест с тестовым gRPC-сервером
 
 #### 4.4. PostgreSQL Checker (`checks/postgres.go`)
 
-- [ ] Автономный режим: создание нового соединения, `SELECT 1`
-- [ ] Интеграция с pool: принимает `*sql.DB`, `pool.QueryContext(ctx, "SELECT 1")`
-- [ ] Таймаут через context
-- [ ] Integration-тест с Docker PostgreSQL (build tag `integration`)
+- [x] Автономный режим: создание нового соединения, `SELECT 1`
+- [x] Интеграция с pool: принимает `*sql.DB`, `pool.QueryContext(ctx, "SELECT 1")`
+- [x] Таймаут через context
+- [x] Integration-тест с Docker PostgreSQL (build tag `integration`)
 
 #### 4.5. MySQL Checker (`checks/mysql.go`)
 
-- [ ] Аналогично PostgreSQL: автономный режим + интеграция с pool
-- [ ] `SELECT 1`
-- [ ] Integration-тест с Docker MySQL
+- [x] Аналогично PostgreSQL: автономный режим + интеграция с pool
+- [x] `SELECT 1`
+- [x] Integration-тест с Docker MySQL
 
 #### 4.6. Redis Checker (`checks/redis.go`)
 
-- [ ] Автономный режим: `redis.Dial` → `PING` → `Close`
-- [ ] Интеграция с pool: принимает `*redis.Client` (go-redis)
-- [ ] Таймаут через context
-- [ ] Integration-тест с Docker Redis
+- [x] Автономный режим: `redis.Dial` → `PING` → `Close`
+- [x] Интеграция с pool: принимает `*redis.Client` (go-redis)
+- [x] Таймаут через context
+- [x] Integration-тест с Docker Redis
 
 #### 4.7. AMQP Checker (`checks/amqp.go`)
 
-- [ ] Автономный режим: `amqp.Dial` → проверка → `Close`
-- [ ] Поддержка vhost
-- [ ] Таймаут
-- [ ] Integration-тест с Docker RabbitMQ
+- [x] Автономный режим: `amqp.Dial` → проверка → `Close`
+- [x] Поддержка vhost
+- [x] Таймаут
+- [x] Integration-тест с Docker RabbitMQ
 
 #### 4.8. Kafka Checker (`checks/kafka.go`)
 
-- [ ] Автономный режим: создание клиента → `Metadata` request → закрытие
-- [ ] Поддержка нескольких брокеров
-- [ ] Таймаут
-- [ ] Integration-тест с Docker Kafka
+- [x] Автономный режим: создание клиента → `Metadata` request → закрытие
+- [x] Поддержка нескольких брокеров
+- [x] Таймаут
+- [x] Integration-тест с Docker Kafka
 
 ### Артефакты фазы 4
 
@@ -440,39 +440,39 @@ sdk-go/dephealth/checks/
 
 **Цель**: реализовать Prometheus exporter и периодический запуск проверок.
 
-**Статус**: [ ] Не начата
+**Статус**: [x] Завершена
 
 ### Задачи фазы 5
 
 #### 5.1. Prometheus Exporter (`metrics.go`)
 
-- [ ] Создание Gauge `app_dependency_health` с метками
-- [ ] Создание Histogram `app_dependency_latency_seconds` с метками и бакетами
-- [ ] Регистрация в `prometheus.DefaultRegisterer` (с возможностью указать кастомный)
-- [ ] Метод `SetHealth(dep, endpoint, value)` — обновить значение gauge
-- [ ] Метод `ObserveLatency(dep, endpoint, duration)` — записать в histogram
-- [ ] Корректное формирование label values из Dependency + Endpoint
-- [ ] Unit-тесты: проверка значений метрик через `prometheus/testutil`
+- [x] Создание Gauge `app_dependency_health` с метками
+- [x] Создание Histogram `app_dependency_latency_seconds` с метками и бакетами
+- [x] Регистрация в `prometheus.DefaultRegisterer` (с возможностью указать кастомный)
+- [x] Метод `SetHealth(dep, endpoint, value)` — обновить значение gauge
+- [x] Метод `ObserveLatency(dep, endpoint, duration)` — записать в histogram
+- [x] Корректное формирование label values из Dependency + Endpoint
+- [x] Unit-тесты: проверка значений метрик через `prometheus/testutil`
 
 #### 5.2. Check Scheduler (`scheduler.go`)
 
-- [ ] Запуск горутины для каждой зависимости
-- [ ] Соблюдение `initialDelay` перед первой проверкой
-- [ ] Периодический запуск с интервалом `checkInterval`
-- [ ] Передача context с таймаутом `timeout` в каждый вызов Check
-- [ ] Логика порогов:
+- [x] Запуск горутины для каждой зависимости
+- [x] Соблюдение `initialDelay` перед первой проверкой
+- [x] Периодический запуск с интервалом `checkInterval`
+- [x] Передача context с таймаутом `timeout` в каждый вызов Check
+- [x] Логика порогов:
   - Счётчик последовательных failures/successes
   - Переключение состояния при достижении порога
-- [ ] Обновление метрик после каждой проверки
-- [ ] Graceful shutdown: отмена context → ожидание завершения горутин
-- [ ] Unit-тесты с mock-чекерами
+- [x] Обновление метрик после каждой проверки
+- [x] Graceful shutdown: отмена context → ожидание завершения горутин
+- [x] Unit-тесты с mock-чекерами
 
 #### 5.3. Интеграция метрик и планировщика
 
-- [ ] Scheduler вызывает Exporter для обновления метрик
-- [ ] Замер латентности (time.Since) при каждой проверке
-- [ ] Логирование (slog) — результаты проверок, ошибки
-- [ ] Тест: полный цикл scheduler → checker → metrics
+- [x] Scheduler вызывает Exporter для обновления метрик
+- [x] Замер латентности (time.Since) при каждой проверке
+- [x] Логирование (slog) — результаты проверок, ошибки
+- [x] Тест: полный цикл scheduler → checker → metrics
 
 ### Артефакты фазы 5
 
