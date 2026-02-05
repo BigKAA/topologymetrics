@@ -7,7 +7,7 @@
 ## Структура веток
 
 ```txt
-main                              ← основная ветка, всегда deployable
+master                              ← основная ветка, всегда deployable
  ├── feature/...                  ← новая функциональность
  ├── bugfix/...                   ← исправления багов
  ├── docs/...                     ← документация
@@ -16,19 +16,19 @@ main                              ← основная ветка, всегда 
  └── hotfix/...                   ← критические production fixes
 ```
 
-- **`main`** — единственная постоянная ветка. Всегда стабильна и готова к деплою.
-- **Feature branches** — короткоживущие ветки от `main`, мерджатся обратно в `main`.
-- **Релизы** — git tags `vX.Y.Z` на `main`. CI собирает Docker-образ и создаёт GitHub Release.
+- **`master`** — единственная постоянная ветка. Всегда стабильна и готова к деплою.
+- **Feature branches** — короткоживущие ветки от `master`, мерджатся обратно в `master`.
+- **Релизы** — git tags `vX.Y.Z` на `master`. CI собирает Docker-образ и создаёт GitHub Release.
 
 ## Workflow
 
 ### 1. Перед началом работы
 
 ```bash
-git checkout main
-git pull origin main
+git checkout master
+git pull origin master
 
-# Создать feature branch от main
+# Создать feature branch от master
 git checkout -b <type>/<short-description>
 ```
 
@@ -51,7 +51,7 @@ git checkout -b <type>/<short-description>
 
 - Делать изменения в созданной ветке
 - Можно делать промежуточные commits при необходимости
-- **Быстрые правки** (опечатки, мелкие фиксы) можно коммитить напрямую в `main`
+- **Быстрые правки** (опечатки, мелкие фиксы) можно коммитить напрямую в `master`
 
 ### 3. По завершении задачи — предложить commit
 
@@ -74,27 +74,27 @@ git checkout -b <type>/<short-description>
 - `style`: форматирование
 - `refactor`: рефакторинг
 - `test`: тесты
-- `chore`: maintenance
+- `chore`: mastertenance
 
-### 4. После commit — merge в main
+### 4. После commit — merge в master
 
 **Спросить пользователя:**
 
-> Commit создан. Выберите способ merge в `main`:
+> Commit создан. Выберите способ merge в `master`:
 >
 > **[A] Локальный merge:**
 >
 > ```bash
-> git checkout main
+> git checkout master
 > git merge --no-ff <branch-name>
-> git push origin main
+> git push origin master
 > ```
 >
 > **[B] GitHub PR:**
 >
 > ```bash
 > git push origin <branch-name>
-> gh pr create --base main --fill
+> gh pr create --base master --fill
 > ```
 
 ### 5. После merge — удалить временную ветку
@@ -109,8 +109,8 @@ git push origin --delete <branch-name>
 Когда набрана функциональность для релиза:
 
 ```bash
-git checkout main
-git pull origin main
+git checkout master
+git pull origin master
 git tag -a vX.Y.Z -m "Release vX.Y.Z"
 git push origin vX.Y.Z
 ```
@@ -138,7 +138,7 @@ git push origin v0.1.1
 
 ## Важные правила
 
-1. **`main` всегда deployable** — не мерджить сломанный код
+1. **`master` всегда deployable** — не мерджить сломанный код
 2. **Короткоживущие ветки** — merge как можно скорее
 3. **Conventional Commits** — всегда использовать правильный формат
 4. **Удалять ветки после merge** — не оставлять мусор
@@ -148,8 +148,8 @@ git push origin v0.1.1
 ## Пример полного цикла
 
 ```bash
-# 1. Обновить main
-git checkout main && git pull
+# 1. Обновить master
+git checkout master && git pull
 
 # 2. Создать feature-ветку
 git checkout -b docs/update-readme-authentication
@@ -160,10 +160,10 @@ git checkout -b docs/update-readme-authentication
 git add .
 git commit -m "docs(admin-module): add authentication documentation"
 
-# 5. Merge в main
-git checkout main
+# 5. Merge в master
+git checkout master
 git merge --no-ff docs/update-readme-authentication
-git push origin main
+git push origin master
 
 # 6. Cleanup
 git branch -d docs/update-readme-authentication
