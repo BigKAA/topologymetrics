@@ -28,44 +28,44 @@
 
 **Цель**: зафиксировать единый источник правды для всех SDK.
 
-**Статус**: [ ] Не начата
+**Статус**: [x] Завершена
 
 ### Задачи фазы 1
 
 #### 1.1. Контракт метрик (`spec/metric-contract.md`)
 
-- [ ] Определить формат метрики здоровья `app_dependency_health`
+- [x] Определить формат метрики здоровья `app_dependency_health`
   - Тип: Gauge
   - Значения: `1` (доступен), `0` (недоступен)
   - Обязательные метки: `dependency`, `type`, `host`, `port`
   - Опциональные метки: `role`, `shard`, `vhost`
   - Правила формирования значений меток (допустимые символы, длина)
-- [ ] Определить формат метрики латентности `app_dependency_latency_seconds`
+- [x] Определить формат метрики латентности `app_dependency_latency_seconds`
   - Тип: Histogram
   - Бакеты: `[0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0]`
   - Метки: идентичны `app_dependency_health`
-- [ ] Описать формат endpoint `/metrics` (OpenMetrics / Prometheus text format)
-- [ ] Привести примеры вывода `/metrics` для типовых конфигураций
-- [ ] Описать поведение при множественных endpoint-ах одной зависимости
+- [x] Описать формат endpoint `/metrics` (OpenMetrics / Prometheus text format)
+- [x] Привести примеры вывода `/metrics` для типовых конфигураций
+- [x] Описать поведение при множественных endpoint-ах одной зависимости
   (одна метрика на endpoint vs агрегация)
 
 #### 1.2. Контракт поведения (`spec/check-behavior.md`)
 
-- [ ] Зафиксировать параметры по умолчанию:
+- [x] Зафиксировать параметры по умолчанию:
   - `checkInterval`: 15s
   - `timeout`: 5s
   - `initialDelay`: 5s
   - `failureThreshold`: 1
   - `successThreshold`: 1
-- [ ] Описать жизненный цикл проверки:
+- [x] Описать жизненный цикл проверки:
   - Инициализация → `initialDelay` → первая проверка → периодические проверки
   - Поведение при старте (начальное значение метрики до первой проверки)
   - Поведение при останове (graceful shutdown)
-- [ ] Описать логику порогов (failureThreshold, successThreshold)
+- [x] Описать логику порогов (failureThreshold, successThreshold)
   - Переход healthy → unhealthy
   - Переход unhealthy → healthy
   - Начальное состояние (unknown → первая проверка)
-- [ ] Описать каждый тип проверки:
+- [x] Описать каждый тип проверки:
   - `http`: GET к `healthPath` (default `/health`), ожидание 2xx, поддержка TLS
   - `grpc`: gRPC Health Check Protocol (grpc.health.v1.Health/Check)
   - `tcp`: установка TCP-соединения и немедленное закрытие
@@ -74,10 +74,10 @@
   - `redis`: команда `PING`, ожидание `PONG`
   - `amqp`: проверка соединения с брокером (connection open/close)
   - `kafka`: Metadata request к брокеру
-- [ ] Описать два режима работы:
+- [x] Описать два режима работы:
   - Автономный: SDK создаёт временное соединение
   - Интеграция с pool: SDK использует существующий connection pool
-- [ ] Описать обработку ошибок:
+- [x] Описать обработку ошибок:
   - Таймаут → unhealthy
   - DNS resolution failure → unhealthy
   - Connection refused → unhealthy
@@ -85,23 +85,23 @@
 
 #### 1.3. Контракт конфигурации (`spec/config-contract.md`)
 
-- [ ] Описать поддерживаемые форматы ввода:
+- [x] Описать поддерживаемые форматы ввода:
   - Полный URL: `postgres://user:pass@host:port/db`
   - Отдельные параметры: `host`, `port` (env vars или прямые значения)
   - Connection string: `Host=...;Port=...;Database=...`
   - JDBC URL: `jdbc:postgresql://host:port/db`
-- [ ] Описать правила парсинга каждого формата:
+- [x] Описать правила парсинга каждого формата:
   - Извлечение `host`, `port`, `type`
   - Автоопределение `type` из URL-схемы
   - Обработка IPv6 адресов
   - Обработка URL без порта (default ports)
   - Обработка URL с несколькими хостами (кластер)
-- [ ] Таблица портов по умолчанию для каждого типа
-- [ ] Описать программный API конфигурации:
+- [x] Таблица портов по умолчанию для каждого типа
+- [x] Описать программный API конфигурации:
   - Builder pattern / Option pattern
   - Обязательные параметры: `name` (логическое имя)
   - Опциональные: `type`, `critical`, `checkInterval`, `timeout`
-- [ ] Описать конфигурацию через environment variables:
+- [x] Описать конфигурацию через environment variables:
   - Формат: `DEPHEALTH_<DEPENDENCY_NAME>_<PARAM>`
   - Пример: `DEPHEALTH_POSTGRES_MAIN_CHECK_INTERVAL=30s`
 
