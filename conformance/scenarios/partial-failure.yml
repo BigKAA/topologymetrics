@@ -1,0 +1,30 @@
+name: "partial-failure"
+description: "Реплика PostgreSQL недоступна — primary = 1, replica = 0"
+
+pre_actions:
+  - type: scale
+    kind: statefulset
+    name: postgres-replica
+    replicas: 0
+  - type: wait
+    seconds: 30
+
+checks:
+  - type: expected_dependencies
+    dependencies:
+      - dependency: postgres-primary
+        type: postgres
+        host: postgres-primary.dephealth-conformance.svc
+        port: 5432
+        value: 1
+      - dependency: postgres-replica
+        type: postgres
+        host: postgres-replica.dephealth-conformance.svc
+        port: 5432
+        value: 0
+
+post_actions:
+  - type: scale
+    kind: statefulset
+    name: postgres-replica
+    replicas: 1

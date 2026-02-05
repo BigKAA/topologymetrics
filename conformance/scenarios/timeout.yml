@@ -1,0 +1,23 @@
+name: "timeout"
+description: "Зависимость отвечает с задержкой > timeout — unhealthy"
+
+pre_actions:
+  - type: http_request
+    method: PUT
+    url: "http://http-stub.dephealth-conformance.svc:8080/admin/delay?ms=10000"
+  - type: wait
+    seconds: 30
+
+checks:
+  - type: expected_dependencies
+    dependencies:
+      - dependency: http-service
+        type: http
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        value: 0
+
+post_actions:
+  - type: http_request
+    method: PUT
+    url: "http://http-stub.dephealth-conformance.svc:8080/admin/delay?ms=0"
