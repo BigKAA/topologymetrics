@@ -1,0 +1,62 @@
+name: "basic-health"
+description: "Все endpoint-ы доступны — все метрики = 1"
+
+checks:
+  - type: metric_exists
+    metric: app_dependency_health
+
+  - type: metric_exists
+    metric: app_dependency_latency_seconds
+
+  - type: help_text
+    metric: app_dependency_health
+    expected: "Health status of a dependency (1 = healthy, 0 = unhealthy)"
+
+  - type: help_text
+    metric: app_dependency_latency_seconds
+    expected: "Latency of dependency health check in seconds"
+
+  - type: required_labels
+    metric: app_dependency_health
+
+  - type: health_values
+
+  - type: histogram_buckets
+
+  - type: expected_dependencies
+    dependencies:
+      - dependency: postgres-primary
+        type: postgres
+        host: postgres-primary.dephealth-conformance.svc
+        port: 5432
+        value: 1
+      - dependency: postgres-replica
+        type: postgres
+        host: postgres-replica.dephealth-conformance.svc
+        port: 5432
+        value: 1
+      - dependency: redis-cache
+        type: redis
+        host: redis.dephealth-conformance.svc
+        port: 6379
+        value: 1
+      - dependency: rabbitmq
+        type: amqp
+        host: rabbitmq.dephealth-conformance.svc
+        port: 5672
+        value: 1
+      - dependency: kafka-main
+        type: kafka
+        host: kafka.dephealth-conformance.svc
+        port: 9092
+        value: 1
+      - dependency: http-service
+        type: http
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        value: 1
+      - dependency: grpc-service
+        type: grpc
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        value: 1

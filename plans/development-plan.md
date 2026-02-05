@@ -124,64 +124,100 @@ spec/
 
 ## Фаза 2: Инфраструктура conformance-тестов
 
-**Цель**: создать тестовую среду и сценарии для проверки соответствия SDK спецификации.
+**Цель**: создать тестовую среду в Kubernetes и сценарии для проверки соответствия SDK спецификации.
 
-**Статус**: [ ] Не начата
+**Статус**: [x] Завершена
 
 ### Задачи фазы 2
 
-#### 2.1. Docker-compose инфраструктура
+#### 2.1. Namespace и базовая инфраструктура
 
-- [ ] Создать `conformance/docker-compose.yml` с сервисами:
-  - PostgreSQL (основная + реплика для теста partial failure)
-  - Redis (одиночный экземпляр)
-  - RabbitMQ (с management plugin для мониторинга)
-  - Kafka + Zookeeper (минимальная конфигурация)
-  - HTTP-сервер-заглушка (Go/Python, управляемый — можно включать/выключать endpoint-ы)
-  - gRPC-сервер-заглушка (реализует grpc.health.v1)
-- [ ] Healthcheck для каждого сервиса в compose
-- [ ] Общая Docker-сеть для связи между сервисами
-- [ ] Volumes для персистентности данных (при необходимости)
+- [x] Создать namespace `dephealth-conformance`
+- [x] Определить структуру каталогов k8s-манифестов
 
-#### 2.2. Управляемые заглушки
+#### 2.2. Kubernetes-манифесты зависимостей
 
-- [ ] HTTP-заглушка:
-  - `/health` — возвращает 200 (управляемо через API `/admin/toggle`)
+- [x] **PostgreSQL** (StatefulSet + Service):
+  - Primary экземпляр
+  - Replica (отдельный StatefulSet для теста partial failure)
+  - Service для каждого экземпляра
+- [x] **Redis** (Deployment + Service)
+- [x] **RabbitMQ** (Deployment + Service, с management plugin)
+- [x] **Kafka** (StatefulSet + Service, KRaft mode без Zookeeper)
+- [x] Readiness/liveness probes для каждого сервиса
+- [x] ConfigMaps и Secrets для конфигурации
+
+#### 2.3. Управляемые заглушки
+
+- [x] **HTTP-заглушка** (Deployment + Service):
+  - Dockerfile, образ в `harbor.kryukov.lan/library/dephealth-http-stub`
+  - `/health` — возвращает 200 (управляемо через `/admin/toggle`)
   - `/admin/toggle` — включить/выключить ответ health
   - `/admin/delay?ms=1000` — добавить задержку
-- [ ] gRPC-заглушка:
+- [x] **gRPC-заглушка** (Deployment + Service):
+  - Dockerfile, образ в `harbor.kryukov.lan/library/dephealth-grpc-stub`
   - grpc.health.v1.Health/Check — управляемый статус
-  - Admin API для переключения состояния
+  - Admin HTTP API для переключения состояния
 
-#### 2.3. Conformance runner (`conformance/runner/`)
+#### 2.4. Conformance runner (`conformance/runner/`)
 
-- [ ] Скрипт `verify.py` (Python):
-  - Запрос `GET /metrics` к тестовому сервису
+- [x] Скрипт `verify.py` (Python):
+  - Запрос `GET /metrics` к тестовому сервису (через Service DNS)
   - Парсинг Prometheus text format
   - Проверка наличия метрик с правильными именами
   - Проверка значений меток
   - Проверка значений метрик (0 или 1)
   - Проверка наличия histogram бакетов
-- [ ] Утилиты для управления инфраструктурой:
-  - Остановка/запуск контейнеров
+- [x] Утилиты для управления инфраструктурой (`utils.py`):
+  - Масштабирование Deployments/StatefulSets через kubectl
   - Ожидание стабилизации метрик (несколько циклов проверок)
+  - Проверка readiness подов перед запуском тестов
 
-#### 2.4. Тестовые сценарии (`conformance/scenarios/`)
+#### 2.5. Тестовые сценарии (`conformance/scenarios/`)
 
-- [ ] `basic-health.yml` — все endpoint-ы доступны → все метрики = 1
-- [ ] `partial-failure.yml` — 1 из 2 реплик PG недоступна → правильные метки
-- [ ] `full-failure.yml` — остановить Redis → метрика = 0
-- [ ] `recovery.yml` — восстановить Redis → метрика возвращается в 1
-- [ ] `latency.yml` — проверить наличие histogram с правильными бакетами
-- [ ] `labels.yml` — проверить правильность всех меток (host, port, type, dependency)
-- [ ] `timeout.yml` — зависимость отвечает с задержкой > timeout → unhealthy
-- [ ] `initial-state.yml` — поведение до первой проверки (после initialDelay)
+- [x] `basic-health.yml` — все endpoint-ы доступны → все метрики = 1
+- [x] `partial-failure.yml` — масштабировать реплику PG в 0 → правильные метки
+- [x] `full-failure.yml` — масштабировать Redis в 0 → метрика = 0
+- [x] `recovery.yml` — масштабировать Redis обратно в 1 → метрика возвращается в 1
+- [x] `latency.yml` — проверить наличие histogram с правильными бакетами
+- [x] `labels.yml` — проверить правильность всех меток (host, port, type, dependency)
+- [x] `timeout.yml` — включить задержку в заглушке > timeout → unhealthy
+- [x] `initial-state.yml` — поведение до первой проверки (после initialDelay)
+
+#### 2.6. Скрипт оркестрации
+
+- [x] `conformance/run.sh` — скрипт для полного цикла conformance:
+  - `kubectl apply` — деплой инфраструктуры
+  - Ожидание readiness всех подов
+  - Деплой тестового сервиса (SDK под тестом)
+  - Запуск runner для каждого сценария
+  - Сбор результатов
+  - Опциональная очистка
 
 ### Артефакты фазы 2
 
 ```text
 conformance/
-├── docker-compose.yml
+├── k8s/
+│   ├── namespace.yml
+│   ├── postgres/
+│   │   ├── primary-statefulset.yml
+│   │   ├── replica-statefulset.yml
+│   │   └── service.yml
+│   ├── redis/
+│   │   ├── deployment.yml
+│   │   └── service.yml
+│   ├── rabbitmq/
+│   │   ├── deployment.yml
+│   │   └── service.yml
+│   ├── kafka/
+│   │   ├── statefulset.yml
+│   │   └── service.yml
+│   └── stubs/
+│       ├── http-stub-deployment.yml
+│       ├── http-stub-service.yml
+│       ├── grpc-stub-deployment.yml
+│       └── grpc-stub-service.yml
 ├── stubs/
 │   ├── http-stub/
 │   │   ├── Dockerfile
@@ -189,6 +225,11 @@ conformance/
 │   └── grpc-stub/
 │       ├── Dockerfile
 │       └── main.go
+├── runner/
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── verify.py
+│   └── utils.py
 ├── scenarios/
 │   ├── basic-health.yml
 │   ├── partial-failure.yml
@@ -198,18 +239,17 @@ conformance/
 │   ├── labels.yml
 │   ├── timeout.yml
 │   └── initial-state.yml
-└── runner/
-    ├── requirements.txt
-    ├── verify.py
-    └── utils.py
+└── run.sh
 ```
 
 ### Критерии завершения фазы 2
 
-- `docker-compose up` поднимает всю инфраструктуру без ошибок
-- Заглушки управляемы через API
+- `kubectl apply` разворачивает всю инфраструктуру в namespace `dephealth-conformance`
+- Все поды переходят в Ready
+- Заглушки управляемы через HTTP API (внутри кластера)
 - Runner корректно парсит Prometheus-метрики
 - Сценарии описаны в YAML с ожидаемыми результатами
+- `run.sh` выполняет полный цикл: деплой → тесты → результаты
 
 ---
 

@@ -1,0 +1,29 @@
+name: "recovery"
+description: "Redis восстановлен после отказа — метрика возвращается в 1"
+
+pre_actions:
+  - type: scale
+    kind: deployment
+    name: redis
+    replicas: 0
+  - type: wait
+    seconds: 30
+  - type: scale
+    kind: deployment
+    name: redis
+    replicas: 1
+  - type: wait_ready
+    kind: deployment
+    name: redis
+    timeout: 60
+  - type: wait
+    seconds: 30
+
+checks:
+  - type: expected_dependencies
+    dependencies:
+      - dependency: redis-cache
+        type: redis
+        host: redis.dephealth-conformance.svc
+        port: 6379
+        value: 1

@@ -1,0 +1,12 @@
+name: "labels"
+description: "Проверить правильность всех меток (dependency, type, host, port)"
+
+checks:
+  - type: required_labels
+    metric: app_dependency_health
+
+  - type: required_labels
+    metric: app_dependency_latency_seconds
+
+  - type: label_values
+    metric: app_dependency_health

@@ -1,0 +1,25 @@
+name: "full-failure"
+description: "Redis полностью недоступен — метрика = 0"
+
+pre_actions:
+  - type: scale
+    kind: deployment
+    name: redis
+    replicas: 0
+  - type: wait
+    seconds: 30
+
+checks:
+  - type: expected_dependencies
+    dependencies:
+      - dependency: redis-cache
+        type: redis
+        host: redis.dephealth-conformance.svc
+        port: 6379
+        value: 0
+
+post_actions:
+  - type: scale
+    kind: deployment
+    name: redis
+    replicas: 1

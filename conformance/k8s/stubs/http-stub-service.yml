@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: http-stub
+  namespace: dephealth-conformance
+  labels:
+    app: http-stub
+spec:
+  selector:
+    app: http-stub
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http
+  type: ClusterIP
