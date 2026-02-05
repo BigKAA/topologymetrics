@@ -257,26 +257,26 @@ conformance/
 
 **Цель**: реализовать core-абстракции и парсер конфигураций.
 
-**Статус**: [ ] Не начата
+**Статус**: [x] Завершена
 
 ### Задачи фазы 3
 
 #### 3.1. Инициализация Go-модуля
 
-- [ ] Создать `sdk-go/` с `go.mod`
-  - Имя модуля: `github.com/company/dephealth` (уточнить namespace)
-- [ ] Настроить `.golangci.yml` (линтер)
-- [ ] Создать базовую структуру каталогов
+- [x] Создать `sdk-go/` с `go.mod`
+  - Имя модуля: `github.com/company/dephealth`
+- [x] Настроить `.golangci.yml` (линтер)
+- [x] Создать базовую структуру каталогов
 
 #### 3.2. Core-абстракции (`sdk-go/dephealth/`)
 
-- [ ] `dependency.go`:
+- [x] `dependency.go`:
   - Структура `Dependency`: `Name`, `Type`, `Critical`, `Endpoints`, `CheckConfig`
   - Структура `Endpoint`: `Host`, `Port`, `Metadata` (map[string]string)
   - Структура `CheckConfig`: `Interval`, `Timeout`, `InitialDelay`,
     `FailureThreshold`, `SuccessThreshold`
   - Значения по умолчанию из спецификации
-- [ ] `checker.go`:
+- [x] `checker.go`:
   - Интерфейс `HealthChecker`:
 
     ```go
@@ -290,25 +290,25 @@ conformance/
 
 #### 3.3. Парсер конфигураций (`sdk-go/dephealth/parser.go`)
 
-- [ ] Функция `ParseURL(rawURL string) (host, port, connType string, err error)`
+- [x] Функция `ParseURL(rawURL string) ([]ParsedConnection, error)`
   - Поддержка схем: `postgres://`, `postgresql://`, `redis://`, `rediss://`,
     `amqp://`, `amqps://`, `http://`, `https://`, `grpc://`, `kafka://`
   - Извлечение host, port из URL
   - Автоопределение type из схемы
   - Обработка default ports (postgres:5432, redis:6379, etc.)
   - Обработка IPv6: `[::1]:5432`
-- [ ] Функция `ParseConnectionString(connStr string) (host, port string, err error)`
+- [x] Функция `ParseConnectionString(connStr string) (host, port string, err error)`
   - Формат `Key=Value;Key=Value`
   - Поиск ключей: `Host`, `Server`, `Data Source`, `Address`
   - Поиск ключей порта: `Port`
-- [ ] Функция `ParseJDBC(jdbcURL string) (host, port, connType string, err error)`
+- [x] Функция `ParseJDBC(jdbcURL string) ([]ParsedConnection, error)`
   - Формат `jdbc:postgresql://host:port/db`
-- [ ] Функция `ParseParams(host, port string) (Endpoint, error)`
+- [x] Функция `ParseParams(host, port string) (Endpoint, error)`
   - Прямые параметры (host + port)
 
 #### 3.4. Unit-тесты для парсера
 
-- [ ] `parser_test.go`:
+- [x] `parser_test.go`:
   - Тесты для каждого формата URL (все схемы)
   - Тесты для connection string (разные форматы ключей)
   - Тесты для JDBC URL
