@@ -13,7 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY sdk-python/pyproject.toml sdk-python/pyproject.toml
 COPY sdk-python/dephealth/ sdk-python/dephealth/
 COPY sdk-python/dephealth_fastapi/ sdk-python/dephealth_fastapi/
-RUN pip install --no-cache-dir ./sdk-python
+RUN pip install --no-cache-dir "./sdk-python[fastapi]"
 
 # ---
 FROM python:3.12-slim
