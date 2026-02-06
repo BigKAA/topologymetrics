@@ -221,7 +221,7 @@ cd sdk-go && go test ./... -tags integration
 | 5 | Go SDK: метрики и планировщик | Завершена |
 | 6 | Go SDK: публичный API и contrib | Завершена |
 | 7 | Тестовый сервис на Go | Завершена |
-| 8 | Conformance-прогон Go SDK | В планах |
+| 8 | Conformance-прогон Go SDK | Завершена |
 | 9 | Документация и CI/CD | В планах |
 | 10 | Grafana дашборды и алерты | В планах |
 
