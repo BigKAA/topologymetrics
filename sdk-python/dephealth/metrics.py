@@ -18,7 +18,7 @@ class MetricsExporter:
 
         self._health = Gauge(
             "app_dependency_health",
-            "Health status of a dependency endpoint (1=healthy, 0=unhealthy)",
+            "Health status of a dependency (1 = healthy, 0 = unhealthy)",
             labelnames=_LABEL_NAMES,
             registry=reg,
         )

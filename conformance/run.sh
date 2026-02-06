@@ -142,6 +142,8 @@ run_lang_tests() {
     local metrics_url="$2"
     local svc_name
     svc_name="$(get_service_name "$lang")"
+    local deployment_name
+    deployment_name="$(get_deployment_name "$lang")"
 
     local local_url="$metrics_url"
 
@@ -170,7 +172,8 @@ run_lang_tests() {
 
         if python3 "$SCRIPT_DIR/runner/verify.py" \
             --scenario "$scenario_file" \
-            --metrics-url "$local_url"; then
+            --metrics-url "$local_url" \
+            --pod-label "$deployment_name"; then
             passed=$((passed + 1))
             log_info "[$lang] Сценарий $name: ${GREEN}PASSED${NC}"
         else
