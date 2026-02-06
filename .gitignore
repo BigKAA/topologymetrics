@@ -10,6 +10,12 @@ coverage.out
 coverage.html
 vendor/
 
+# Build binaries
+test-services/go-service/go-service
+conformance/test-service/test-service
+conformance/stubs/grpc-stub/grpc-stub
+conformance/stubs/http-stub/http-stub
+
 # IDE
 .idea/
 .vscode/
