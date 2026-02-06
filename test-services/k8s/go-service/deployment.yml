@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-service
+  namespace: dephealth-test
+  labels:
+    app: go-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: go-service
+  template:
+    metadata:
+      labels:
+        app: go-service
+    spec:
+      containers:
+        - name: go-service
+          image: harbor.kryukov.lan/library/dephealth-test-go:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: PORT
+              value: "8080"
+            - name: DATABASE_URL
+              value: "postgres://dephealth:dephealth-test-pass@postgres:5432/dephealth?sslmode=disable"
+            - name: REDIS_URL
+              value: "redis://redis:6379/0"
+            - name: HTTP_STUB_URL
+              value: "http://http-stub:8080"
+            - name: GRPC_STUB_HOST
+              value: "grpc-stub"
+            - name: GRPC_STUB_PORT
+              value: "9090"
+            - name: CHECK_INTERVAL
+              valueFrom:
+                configMapKeyRef:
+                  name: go-service-config
+                  key: CHECK_INTERVAL
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 64Mi

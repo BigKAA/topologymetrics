@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grpc-stub
+  namespace: dephealth-test
+  labels:
+    app: grpc-stub
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grpc-stub
+  template:
+    metadata:
+      labels:
+        app: grpc-stub
+    spec:
+      containers:
+        - name: grpc-stub
+          image: harbor.kryukov.lan/library/dephealth-grpc-stub:latest
+          ports:
+            - containerPort: 9090
+              name: grpc
+            - containerPort: 8080
+              name: admin
+          env:
+            - name: GRPC_PORT
+              value: "9090"
+            - name: ADMIN_PORT
+              value: "8080"
+          readinessProbe:
+            httpGet:
+              path: /admin/status
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /admin/status
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 32Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grpc-stub
+  namespace: dephealth-test
+  labels:
+    app: grpc-stub
+spec:
+  selector:
+    app: grpc-stub
+  ports:
+    - port: 9090
+      targetPort: 9090
+      name: grpc
+    - port: 8080
+      targetPort: 8080
+      name: admin
+  type: ClusterIP

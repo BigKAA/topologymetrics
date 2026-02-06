@@ -590,36 +590,36 @@ sdk-go/dephealth/
 
 **Цель**: создать пилотный микросервис, использующий Go SDK, для запуска в Docker/Kubernetes.
 
-**Статус**: [ ] Не начата
+**Статус**: [x] Завершена
 
 ### Задачи фазы 7
 
 #### 7.1. Тестовый сервис (`test-services/go-service/`)
 
-- [ ] Простой HTTP-сервис с endpoint-ами:
+- [x] Простой HTTP-сервис с endpoint-ами:
   - `GET /` — основной endpoint (возвращает JSON со статусом)
   - `GET /metrics` — Prometheus-метрики (promhttp.Handler)
   - `GET /health` — health check (для Kubernetes probes)
   - `GET /health/dependencies` — детальный статус зависимостей
-- [ ] Использует dephealth SDK для мониторинга:
+- [x] Использует dephealth SDK для мониторинга:
   - PostgreSQL (через `*sql.DB` — contrib/sqldb)
   - Redis (через go-redis — contrib/redispool)
   - HTTP-заглушка (автономный режим)
   - gRPC-заглушка (автономный режим)
-- [ ] Конфигурация через environment variables:
-  - `DATABASE_URL`, `REDIS_URL`, `HTTP_STUB_URL`, `GRPC_STUB_URL`
-- [ ] Graceful shutdown (SIGTERM/SIGINT)
-- [ ] Structured logging (slog)
+- [x] Конфигурация через environment variables:
+  - `DATABASE_URL`, `REDIS_URL`, `HTTP_STUB_URL`, `GRPC_STUB_HOST`, `GRPC_STUB_PORT`
+- [x] Graceful shutdown (SIGTERM/SIGINT)
+- [x] Structured logging (slog)
 
 #### 7.2. Dockerfile
 
-- [ ] Multi-stage build: Go build → scratch/alpine
-- [ ] Минимальный образ (< 30 MB)
-- [ ] Публикация в `harbor.kryukov.lan/library/dephealth-test-go`
+- [x] Multi-stage build: Go build → alpine
+- [x] Минимальный образ (< 30 MB)
+- [x] Публикация в `harbor.kryukov.lan/library/dephealth-test-go`
 
 #### 7.3. Docker Compose для локальной разработки
 
-- [ ] `test-services/docker-compose.yml`:
+- [ ] `test-services/docker-compose.yml` (отложено — не требуется для пилота):
   - go-service
   - PostgreSQL
   - Redis
@@ -629,23 +629,24 @@ sdk-go/dephealth/
 
 #### 7.4. Kubernetes-манифесты
 
-- [ ] `test-services/k8s/` — манифесты для деплоя в тестовый кластер:
+- [x] `test-services/k8s/` — манифесты для деплоя в тестовый кластер:
   - Namespace: `dephealth-test`
   - Deployment для go-service
   - Service (ClusterIP)
   - HTTPRoute (Gateway API) — для доступа через `test1.kryukov.lan`
   - ConfigMap для конфигурации
-  - PostgreSQL (StatefulSet или helm chart)
-  - Redis (Deployment или helm chart)
+  - PostgreSQL (StatefulSet с NFS storage)
+  - Redis (Deployment)
   - HTTP/gRPC заглушки (Deployments)
 
 #### 7.5. Верификация
 
-- [ ] Запуск через docker-compose: `docker-compose up`
-- [ ] Проверка `/metrics` — метрики корректны
-- [ ] Проверка `/health/dependencies` — статус зависимостей
-- [ ] Деплой в Kubernetes, проверка через Gateway API
-- [ ] Настройка VictoriaMetrics scrape для сбора метрик
+- [ ] Запуск через docker-compose: `docker-compose up` (отложено)
+- [x] Проверка `/metrics` — 4 метрики `app_dependency_health` = 1 + histogram latency
+- [x] Проверка `/health/dependencies` — JSON со всеми 4 зависимостями
+- [x] Деплой в Kubernetes, проверка через Gateway API (`test1.kryukov.lan`)
+- [x] Toggle stub → метрика = 0, восстановление → метрика = 1
+- [ ] Настройка VictoriaMetrics scrape для сбора метрик (вынесено в Фазу 10)
 
 ### Артефакты фазы 7
 
