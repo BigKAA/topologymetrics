@@ -24,6 +24,11 @@ Thumbs.db
 # Serena
 .serena/
 
+# Python
+.venv/
+__pycache__/
+*.pyc
+
 # Environment
 .env
 .env.*

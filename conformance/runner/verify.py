@@ -11,7 +11,9 @@
 
 import argparse
 import logging
+import subprocess
 import sys
+import time
 from dataclasses import dataclass
 
 import requests
@@ -262,6 +264,68 @@ def check_expected_dependencies(
     return results
 
 
+def execute_action(action: dict, namespace: str = "dephealth-conformance") -> None:
+    """Выполнить одно действие из pre_actions/post_actions."""
+    action_type = action["type"]
+
+    if action_type == "wait":
+        seconds = action["seconds"]
+        logger.info("ожидание %d секунд...", seconds)
+        time.sleep(seconds)
+
+    elif action_type == "scale":
+        kind = action["kind"]
+        name = action["name"]
+        replicas = action["replicas"]
+        logger.info("масштабирование %s/%s → %d реплик", kind, name, replicas)
+        subprocess.run(
+            ["kubectl", "-n", namespace, "scale", kind, name, f"--replicas={replicas}"],
+            check=True, capture_output=True, text=True,
+        )
+
+    elif action_type == "wait_ready":
+        kind = action["kind"]
+        name = action["name"]
+        timeout = action.get("timeout", 120)
+        logger.info("ожидание readiness %s/%s (timeout=%ds)", kind, name, timeout)
+        subprocess.run(
+            ["kubectl", "-n", namespace, "rollout", "status",
+             f"{kind}/{name}", f"--timeout={timeout}s"],
+            check=True, capture_output=True, text=True,
+        )
+
+    elif action_type == "http_request":
+        method = action.get("method", "GET")
+        url = action["url"]
+        logger.info("HTTP %s %s (через kubectl exec)", method, url)
+        # Находим pod test-service
+        result = subprocess.run(
+            ["kubectl", "-n", namespace, "get", "pods",
+             "-l", "app=conformance-test-service",
+             "-o", "jsonpath={.items[0].metadata.name}"],
+            check=True, capture_output=True, text=True,
+        )
+        pod_name = result.stdout.strip()
+        subprocess.run(
+            ["kubectl", "-n", namespace, "exec", pod_name, "--",
+             "curl", "-s", "-X", method, url],
+            check=True, capture_output=True, text=True,
+        )
+
+    else:
+        logger.warning("неизвестный тип действия: %s", action_type)
+
+
+def execute_actions(actions: list[dict], label: str) -> None:
+    """Выполнить список действий (pre_actions или post_actions)."""
+    if not actions:
+        return
+    logger.info("выполнение %s (%d действий)", label, len(actions))
+    for i, action in enumerate(actions, 1):
+        logger.info("  [%d/%d] %s", i, len(actions), action.get("type", "?"))
+        execute_action(action)
+
+
 def load_scenario(path: str) -> dict:
     """Загрузить сценарий из YAML-файла."""
     with open(path) as f:
@@ -271,6 +335,14 @@ def load_scenario(path: str) -> dict:
 def run_scenario(scenario: dict, metrics_url: str) -> list[CheckResult]:
     """Выполнить все проверки из сценария."""
     results = []
+
+    # Выполнить pre_actions
+    pre_actions = scenario.get("pre_actions", [])
+    if pre_actions:
+        try:
+            execute_actions(pre_actions, "pre_actions")
+        except Exception as e:
+            return [CheckResult("pre_actions", False, f"ошибка pre_actions: {e}")]
 
     # Получить метрики
     try:
@@ -345,7 +417,6 @@ def main():
     passed = 0
     failed = 0
     for r in results:
-        status = "PASS" if r.passed else "FAIL"
         symbol = "+" if r.passed else "-"
         print(f"  [{symbol}] {r.name}: {r.message}")
         if r.passed:
@@ -354,6 +425,14 @@ def main():
             failed += 1
 
     print(f"\nИтого: {passed} passed, {failed} failed из {len(results)}")
+
+    # Выполнить post_actions (всегда, даже при ошибках)
+    post_actions = scenario.get("post_actions", [])
+    if post_actions:
+        try:
+            execute_actions(post_actions, "post_actions")
+        except Exception as e:
+            logger.error("ошибка post_actions: %s", e)
 
     if failed > 0:
         sys.exit(1)

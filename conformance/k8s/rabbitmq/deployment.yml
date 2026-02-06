@@ -33,15 +33,17 @@ spec:
               command:
                 - rabbitmq-diagnostics
                 - check_port_connectivity
-            initialDelaySeconds: 15
+            initialDelaySeconds: 20
             periodSeconds: 10
+            timeoutSeconds: 10
           livenessProbe:
             exec:
               command:
                 - rabbitmq-diagnostics
                 - status
-            initialDelaySeconds: 30
-            periodSeconds: 15
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
           resources:
             requests:
               cpu: 100m

@@ -678,40 +678,37 @@ test-services/
 
 **Цель**: прогнать все conformance-сценарии, исправить найденные проблемы.
 
-**Статус**: [ ] Не начата
+**Статус**: [x] Завершена
 
 ### Задачи фазы 8
 
-#### 8.1. Подготовка тестового сервиса для conformance
+#### 8.1. Подготовка conformance test service
 
-- [ ] Адаптировать тестовый Go-сервис под conformance-инфраструктуру
-  - Подключение ко всем сервисам из `conformance/docker-compose.yml`
-  - Конфигурация через environment variables
-- [ ] Добавить тестовый сервис в `conformance/docker-compose.yml`
+- [x] Создать `conformance/test-service/main.go` — Go-сервис с 7 зависимостями
+- [x] Создать `conformance/test-service/go.mod`, `Dockerfile`
+- [x] Создать k8s-манифесты `conformance/k8s/test-service/`
+- [x] Исправить StorageClass (`nfs-client`) в StatefulSet postgres и kafka
+- [x] Исправить RabbitMQ probe timeouts (1s → 10s)
+- [x] Исправить AMQP URL (guest:guest → dephealth:dephealth-test-pass)
+- [x] Обновить `verify.py` — поддержка `pre_actions`/`post_actions`
+- [x] Обновить `run.sh` — деплой test-service, автоматический port-forward
 
 #### 8.2. Прогон сценариев
 
-- [ ] Запустить `basic-health.yml` → проверить все метрики = 1
-- [ ] Запустить `partial-failure.yml` → остановить одну реплику PG
-- [ ] Запустить `full-failure.yml` → остановить Redis
-- [ ] Запустить `recovery.yml` → восстановить Redis
-- [ ] Запустить `latency.yml` → проверить histogram
-- [ ] Запустить `labels.yml` → проверить все метки
-- [ ] Запустить `timeout.yml` → задержка в заглушке
-- [ ] Запустить `initial-state.yml` → поведение до первой проверки
+- [x] `basic-health.yml` — 14/14 PASSED (все 7 зависимостей = 1)
+- [x] `labels.yml` — 3/3 PASSED (все метки корректны)
+- [x] `latency.yml` — 3/3 PASSED (histogram бакеты присутствуют)
+- [x] `initial-state.yml` — 1/1 PASSED (значения 0 или 1)
+- [x] `partial-failure.yml` — 2/2 PASSED (primary=1, replica=0)
+- [x] `full-failure.yml` — 1/1 PASSED (redis-cache=0)
+- [x] `recovery.yml` — 1/1 PASSED (redis-cache=1 после восстановления)
+- [x] `timeout.yml` — 1/1 PASSED (http-service=0 при задержке 10s)
 
-#### 8.3. Исправления
+#### 8.3. Исправления в процессе
 
-- [ ] Исправить все найденные несоответствия спецификации
-- [ ] Обновить спецификацию, если обнаружены неточности или упущения
-- [ ] Повторно прогнать все сценарии
-
-#### 8.4. Обновление спецификации (при необходимости)
-
-- [ ] Если в процессе обнаружены edge cases, не описанные в спецификации:
-  - Добавить описание в spec/
-  - Добавить соответствующий conformance-сценарий
-  - Убедиться, что SDK проходит новый сценарий
+- [x] RabbitMQ probe timeout: `timeoutSeconds: 10`, `initialDelaySeconds: 60`
+- [x] AMQP credentials: соответствие `RABBITMQ_DEFAULT_USER/PASS`
+- [x] Спецификация не требовала обновлений — SDK полностью соответствует
 
 ### Критерии завершения фазы 8
 

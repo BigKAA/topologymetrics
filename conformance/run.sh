@@ -62,6 +62,7 @@ kubectl apply -f "$SCRIPT_DIR/k8s/redis/"
 kubectl apply -f "$SCRIPT_DIR/k8s/rabbitmq/"
 kubectl apply -f "$SCRIPT_DIR/k8s/kafka/"
 kubectl apply -f "$SCRIPT_DIR/k8s/stubs/"
+kubectl apply -f "$SCRIPT_DIR/k8s/test-service/"
 
 # 2. Ожидание readiness всех подов
 log_info "Ожидание readiness подов..."
@@ -73,24 +74,22 @@ for resource in \
     "deployment/rabbitmq" \
     "statefulset/kafka" \
     "deployment/http-stub" \
-    "deployment/grpc-stub"; do
+    "deployment/grpc-stub" \
+    "deployment/conformance-test-service"; do
     log_info "  Ожидание $resource..."
     kubectl -n "$NAMESPACE" rollout status "$resource" --timeout=120s
 done
 
 log_info "Все поды готовы"
 
-# 3. Проверка наличия тестового сервиса
-# Тестовый сервис должен быть задеплоен отдельно (Фаза 7)
-# Здесь ожидаем, что он уже запущен или будет запущен пользователем
-
+# 3. Port-forward к тестовому сервису (если URL не задан)
 if [ -z "$METRICS_URL" ]; then
-    log_warn "URL метрик не указан. Укажите --metrics-url или задеплойте тестовый сервис."
-    log_info "Пример: ./run.sh --metrics-url http://test-service.dephealth-conformance.svc:8080/metrics"
-    log_info ""
-    log_info "Инфраструктура развёрнута. Подождите деплоя тестового сервиса и запустите снова."
-    CLEANUP=false
-    exit 0
+    log_info "Запуск port-forward к conformance-test-service..."
+    kubectl -n "$NAMESPACE" port-forward svc/conformance-test-service 8888:8080 &
+    PORT_FORWARD_PID=$!
+    sleep 3
+    METRICS_URL="http://localhost:8888/metrics"
+    log_info "METRICS_URL=$METRICS_URL (pid=$PORT_FORWARD_PID)"
 fi
 
 # 4. Запуск сценариев
