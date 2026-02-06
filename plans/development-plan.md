@@ -950,42 +950,42 @@ deploy/
 
 #### 11.1. Makefile для Go SDK (`sdk-go/Makefile`)
 
-- [ ] Цели: `build`, `test`, `test-coverage`, `lint`, `fmt`, `clean`
-- [ ] Каждая цель — `docker run` с монтированием `sdk-go/` и Go-кэшем:
+- [x] Цели: `build`, `test`, `test-coverage`, `lint`, `fmt`, `clean`
+- [x] Каждая цель — `docker run` с монтированием `sdk-go/` и Go-кэшем:
   - Docker volume: `dephealth-go-cache` (`/go/pkg/mod` + build cache)
   - Образ: `golang:1.25-alpine` (или `golang:1.25`)
-- [ ] Цели для Docker-образов:
+- [x] Цели для Docker-образов:
   - `image` — собрать Docker-образ тестового сервиса (`test-services/go-service/`)
   - `push` — загрузить в `harbor.kryukov.lan/library/dephealth-test-go:latest`
-- [ ] Переменные: `REGISTRY`, `IMAGE_TAG`, `GO_VERSION`
-- [ ] Проверка: `cd sdk-go && make test` работает без локального Go
+- [x] Переменные: `REGISTRY`, `IMAGE_TAG`, `GO_VERSION`
+- [x] Проверка: `cd sdk-go && make test` работает без локального Go
 
 #### 11.2. Конвенции Makefile (`plans/makefile-conventions.md`)
 
-- [ ] Документ с правилами для всех SDK Makefile:
+- [x] Документ с правилами для всех SDK Makefile:
   - Обязательные цели: `build`, `test`, `test-coverage`, `lint`, `fmt`, `image`, `push`, `clean`
   - Формат переменных: `REGISTRY`, `IMAGE_TAG`, `<LANG>_VERSION`
   - Docker volume naming: `dephealth-{lang}-cache`
   - Docker-образы сборки: `golang:X`, `python:X`, `maven:X`, `mcr.microsoft.com/dotnet/sdk:X`
   - Формат `Dockerfile.dev` — среда для тестов/линтинга
   - Registry: `harbor.kryukov.lan/library/dephealth-test-{lang}:latest`
-- [ ] Примеры вызовов для каждого языка
+- [x] Примеры вызовов для каждого языка
 
 #### 11.3. Подготовка scrape-конфигурации VictoriaMetrics
 
-- [ ] Добавить закомментированные scrape-targets для будущих сервисов:
+- [x] Добавить закомментированные scrape-targets для будущих сервисов:
   - `python-service.dephealth-test.svc:8080/metrics`
   - `java-service.dephealth-test.svc:8080/metrics`
   - `csharp-service.dephealth-test.svc:8080/metrics`
-- [ ] Обновить `deploy/monitoring/victoriametrics/scrape-config.yml`
+- [x] Обновить `deploy/monitoring/victoriametrics/scrape-config.yml`
 
 #### 11.4. Обновление `conformance/run.sh`
 
-- [ ] Добавить параметр `--lang go|python|java|csharp|all`
-- [ ] При `--lang go` — текущее поведение (без изменений)
-- [ ] При `--lang all` — последовательный прогон всех языков
-- [ ] Каждый язык: свой тестовый сервис в `conformance/test-service-{lang}/`
-- [ ] Существующий `conformance/test-service/` — Go (не переименовываем)
+- [x] Добавить параметр `--lang go|python|java|csharp|all`
+- [x] При `--lang go` — текущее поведение (без изменений)
+- [x] При `--lang all` — последовательный прогон всех языков
+- [x] Каждый язык: свой тестовый сервис в `conformance/test-service-{lang}/`
+- [x] Существующий `conformance/test-service/` — Go (не переименовываем)
 
 ### Артефакты фазы 11
 
