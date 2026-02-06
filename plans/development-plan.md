@@ -1013,7 +1013,7 @@ conformance/
 
 ---
 
-## Фаза 12: Python SDK — Core + Checkers
+## Фаза 12: Python SDK — Core + Checkers ✅
 
 **Цель**: реализовать ядро Python SDK — абстракции, парсер, все 8 чекеров, Prometheus exporter, планировщик.
 
@@ -1023,27 +1023,24 @@ conformance/
 
 #### 12.1. Инициализация проекта (`sdk-python/`)
 
-- [ ] `pyproject.toml` — пакет `dephealth`:
+- [x] `pyproject.toml` — пакет `dephealth`:
   - Зависимости: `prometheus-client`, `aiohttp` (для HTTP checker)
   - Опциональные: `asyncpg`, `aiomysql`, `redis[hiredis]`, `aio-pika`, `aiokafka`, `grpcio`
   - Dev-зависимости: `pytest`, `pytest-asyncio`, `pytest-cov`, `ruff`, `mypy`
-- [ ] `Dockerfile.dev` — Python среда для тестов:
-  - Базовый образ: `python:3.12-slim`
-  - Установка всех зависимостей (включая опциональные)
-  - Установка `ruff` и `mypy`
-- [ ] `Makefile` — по конвенциям из фазы 11:
+- [x] ~~`Dockerfile.dev`~~ — не нужен, используется `python:3.12-slim` напрямую через Makefile
+- [x] `Makefile` — по конвенциям из фазы 11:
   - Docker volume: `dephealth-python-cache` (pip cache)
   - Цели: `build`, `test`, `test-coverage`, `lint`, `fmt`, `clean`
 
 #### 12.2. Core-абстракции (`sdk-python/dephealth/`)
 
-- [ ] `dependency.py`:
+- [x] `dependency.py`:
   - Dataclass `Dependency`: `name`, `type`, `critical`, `endpoints`, `check_config`
   - Dataclass `Endpoint`: `host`, `port`, `metadata` (dict)
   - Dataclass `CheckConfig`: `interval`, `timeout`, `initial_delay`,
     `failure_threshold`, `success_threshold`
   - Значения по умолчанию из спецификации (15s, 5s, 5s, 1, 1)
-- [ ] `checker.py`:
+- [x] `checker.py`:
   - Protocol `HealthChecker`:
 
     ```python
@@ -1056,49 +1053,49 @@ conformance/
 
 #### 12.3. Парсер конфигураций (`sdk-python/dephealth/parser.py`)
 
-- [ ] Функция `parse_url(raw_url: str) -> list[ParsedConnection]`
+- [x] Функция `parse_url(raw_url: str) -> list[ParsedConnection]`
   - Поддержка схем: `postgres://`, `postgresql://`, `redis://`, `rediss://`,
     `amqp://`, `amqps://`, `http://`, `https://`, `grpc://`, `kafka://`
   - Извлечение host, port, автоопределение type
   - Default ports (postgres:5432, redis:6379, и т.д.)
   - IPv6: `[::1]:5432`
-- [ ] Функция `parse_connection_string(conn_str: str) -> tuple[str, str]`
-- [ ] Функция `parse_jdbc(jdbc_url: str) -> list[ParsedConnection]`
-- [ ] Функция `parse_params(host: str, port: str) -> Endpoint`
-- [ ] Unit-тесты: `tests/test_parser.py`
+- [x] Функция `parse_connection_string(conn_str: str) -> tuple[str, str]`
+- [x] Функция `parse_jdbc(jdbc_url: str) -> list[ParsedConnection]`
+- [x] Функция `parse_params(host: str, port: str) -> Endpoint`
+- [x] Unit-тесты: `tests/test_parser.py`
 
 #### 12.4. Health Checkers (`sdk-python/dephealth/checks/`)
 
-- [ ] `tcp.py` — TCPChecker: `asyncio.open_connection` → закрытие
-- [ ] `http.py` — HTTPChecker: `aiohttp.ClientSession.get` к healthPath, ожидание 2xx
-- [ ] `grpc.py` — GRPCChecker: `grpc.aio` Health/Check
-- [ ] `postgres.py` — PostgresChecker:
+- [x] `tcp.py` — TCPChecker: `asyncio.open_connection` → закрытие
+- [x] `http.py` — HTTPChecker: `aiohttp.ClientSession.get` к healthPath, ожидание 2xx
+- [x] `grpc.py` — GRPCChecker: `grpc.aio` Health/Check
+- [x] `postgres.py` — PostgresChecker:
   - Автономный: `asyncpg.connect` → `SELECT 1` → закрытие
   - Pool-режим: принимает `asyncpg.Pool`
-- [ ] `mysql.py` — MySQLChecker:
+- [x] `mysql.py` — MySQLChecker:
   - Автономный: `aiomysql.connect` → `SELECT 1` → закрытие
   - Pool-режим: принимает `aiomysql.Pool`
-- [ ] `redis.py` — RedisChecker:
+- [x] `redis.py` — RedisChecker:
   - Автономный: `redis.asyncio.Redis.from_url` → `PING` → закрытие
   - Pool-режим: принимает `redis.asyncio.Redis`
-- [ ] `amqp.py` — AMQPChecker: `aio_pika.connect_robust` → закрытие
-- [ ] `kafka.py` — KafkaChecker: `aiokafka.AIOKafkaClient` → metadata → закрытие
-- [ ] Unit-тесты для каждого чекера: `tests/test_checks/`
+- [x] `amqp.py` — AMQPChecker: `aio_pika.connect_robust` → закрытие
+- [x] `kafka.py` — KafkaChecker: `aiokafka.AIOKafkaClient` → metadata → закрытие
+- [x] Unit-тесты для каждого чекера: `tests/test_checks/`
   - Мок-серверы через `pytest-asyncio`
 
 #### 12.5. Prometheus Exporter (`sdk-python/dephealth/metrics.py`)
 
-- [ ] Класс `MetricsExporter`:
+- [x] Класс `MetricsExporter`:
   - Gauge `app_dependency_health` с метками `dependency`, `type`, `host`, `port`
   - Histogram `app_dependency_latency_seconds` с теми же метками
   - Бакеты: `[0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0]`
   - Методы: `set_health(dep, endpoint, value)`, `observe_latency(dep, endpoint, duration)`
   - Поддержка `CollectorRegistry` (кастомный или default)
-- [ ] Unit-тесты: `tests/test_metrics.py`
+- [x] Unit-тесты: `tests/test_metrics.py`
 
 #### 12.6. Check Scheduler (`sdk-python/dephealth/scheduler.py`)
 
-- [ ] Класс `CheckScheduler`:
+- [x] Класс `CheckScheduler`:
   - Двойная поддержка: asyncio (основной) и threading (fallback)
   - asyncio: `asyncio.create_task` для каждой зависимости
   - threading: `threading.Timer` для среды без event loop
@@ -1107,11 +1104,11 @@ conformance/
   - Обновление метрик после каждой проверки
   - `start()` / `stop()` — запуск/остановка
   - `health() -> dict[str, bool]` — текущее состояние
-- [ ] Unit-тесты: `tests/test_scheduler.py`
+- [x] Unit-тесты: `tests/test_scheduler.py`
 
 #### 12.7. Публичный API (`sdk-python/dephealth/api.py`)
 
-- [ ] Класс `DependencyHealth`:
+- [x] Класс `DependencyHealth`:
   - Конструктор с опциями:
 
     ```python
@@ -1129,13 +1126,13 @@ conformance/
   - `async start()` / `async stop()` (asyncio)
   - `start_sync()` / `stop_sync()` (threading fallback)
   - `health() -> dict[str, bool]`
-- [ ] Unit-тесты: `tests/test_api.py`
+- [x] Unit-тесты: `tests/test_api.py`
 
 #### 12.8. Линтинг и типизация
 
-- [ ] `ruff check .` — без ошибок
-- [ ] `mypy dephealth/ --strict` — без ошибок (или минимум)
-- [ ] `make lint` проходит в Docker
+- [x] `ruff check .` — без ошибок
+- [x] `mypy dephealth/ --strict` — без ошибок (или минимум)
+- [x] `make lint` проходит в Docker
 
 ### Артефакты фазы 12
 
