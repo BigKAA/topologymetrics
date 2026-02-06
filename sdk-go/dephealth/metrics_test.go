@@ -7,13 +7,12 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
-
 )
 
 func newTestExporter(t *testing.T, opts ...MetricsOption) (*MetricsExporter, *prometheus.Registry) {
 	t.Helper()
 	reg := prometheus.NewRegistry()
-	allOpts := append([]MetricsOption{WithRegisterer(reg)}, opts...)
+	allOpts := append([]MetricsOption{WithMetricsRegisterer(reg)}, opts...)
 	m, err := NewMetricsExporter(allOpts...)
 	if err != nil {
 		t.Fatalf("не удалось создать MetricsExporter: %v", err)
@@ -124,7 +123,7 @@ func TestMetricsExporter_OptionalLabels_Sorted(t *testing.T) {
 
 func TestMetricsExporter_InvalidLabel(t *testing.T) {
 	reg := prometheus.NewRegistry()
-	_, err := NewMetricsExporter(WithRegisterer(reg), WithOptionalLabels("invalid"))
+	_, err := NewMetricsExporter(WithMetricsRegisterer(reg), WithOptionalLabels("invalid"))
 	if err == nil {
 		t.Fatal("ожидали ошибку для недопустимой метки, получили nil")
 	}
@@ -163,13 +162,13 @@ func TestMetricsExporter_DeleteMetrics(t *testing.T) {
 
 func TestMetricsExporter_DuplicateRegister(t *testing.T) {
 	reg := prometheus.NewRegistry()
-	_, err := NewMetricsExporter(WithRegisterer(reg))
+	_, err := NewMetricsExporter(WithMetricsRegisterer(reg))
 	if err != nil {
 		t.Fatalf("первая регистрация не должна вернуть ошибку: %v", err)
 	}
 
 	// Повторная регистрация должна вернуть ошибку.
-	_, err = NewMetricsExporter(WithRegisterer(reg))
+	_, err = NewMetricsExporter(WithMetricsRegisterer(reg))
 	if err == nil {
 		t.Fatal("ожидали ошибку при повторной регистрации, получили nil")
 	}

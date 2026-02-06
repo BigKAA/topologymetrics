@@ -44,9 +44,9 @@ type metricsConfig struct {
 	optionalLabels []string
 }
 
-// WithRegisterer задаёт кастомный prometheus.Registerer.
+// WithMetricsRegisterer задаёт кастомный prometheus.Registerer.
 // По умолчанию используется prometheus.DefaultRegisterer.
-func WithRegisterer(r prometheus.Registerer) MetricsOption {
+func WithMetricsRegisterer(r prometheus.Registerer) MetricsOption {
 	return func(c *metricsConfig) {
 		c.registerer = r
 	}

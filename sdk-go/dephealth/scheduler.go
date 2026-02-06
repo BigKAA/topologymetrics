@@ -17,9 +17,9 @@ var (
 
 // endpointState хранит состояние проверки конкретного endpoint.
 type endpointState struct {
-	mu                  sync.Mutex
-	healthy             *bool // nil = UNKNOWN (до первой проверки)
-	consecutiveFailures int
+	mu                   sync.Mutex
+	healthy              *bool // nil = UNKNOWN (до первой проверки)
+	consecutiveFailures  int
 	consecutiveSuccesses int
 }
 
@@ -29,6 +29,7 @@ type Scheduler struct {
 	metrics *MetricsExporter
 	logger  *slog.Logger
 
+	states  map[string]*endpointState // ключ: "name:host:port"
 	cancel  context.CancelFunc
 	wg      sync.WaitGroup
 	started bool
@@ -49,8 +50,8 @@ type schedulerConfig struct {
 	logger *slog.Logger
 }
 
-// WithLogger задаёт логгер для планировщика.
-func WithLogger(l *slog.Logger) SchedulerOption {
+// WithSchedulerLogger задаёт логгер для планировщика.
+func WithSchedulerLogger(l *slog.Logger) SchedulerOption {
 	return func(c *schedulerConfig) {
 		c.logger = l
 	}
@@ -104,10 +105,14 @@ func (s *Scheduler) Start(ctx context.Context) error {
 
 	ctx, s.cancel = context.WithCancel(ctx)
 
+	s.states = make(map[string]*endpointState)
 	for _, sd := range s.deps {
 		for _, ep := range sd.dep.Endpoints {
+			key := sd.dep.Name + ":" + ep.Host + ":" + ep.Port
+			st := &endpointState{}
+			s.states[key] = st
 			s.wg.Add(1)
-			go s.runEndpointLoop(ctx, sd.dep, ep, sd.checker)
+			go s.runEndpointLoop(ctx, sd.dep, ep, sd.checker, st)
 		}
 	}
 
@@ -130,18 +135,33 @@ func (s *Scheduler) Stop() {
 	s.wg.Wait()
 }
 
-// Health возвращает текущее состояние всех зависимостей.
-// Ключ — "dependency:host:port", значение — true/false/nil(unknown).
+// Health возвращает текущее состояние всех endpoint-ов.
+// Ключ — "dependency:host:port", значение — true (healthy) / false (unhealthy).
+// Endpoint-ы в состоянии UNKNOWN (до первой проверки) не включаются в результат.
 func (s *Scheduler) Health() map[string]bool {
-	// Реализация будет дополнена при необходимости в Фазе 6.
-	return nil
+	s.mu.Lock()
+	states := s.states
+	s.mu.Unlock()
+
+	if states == nil {
+		return nil
+	}
+
+	result := make(map[string]bool, len(states))
+	for key, st := range states {
+		st.mu.Lock()
+		if st.healthy != nil {
+			result[key] = *st.healthy
+		}
+		st.mu.Unlock()
+	}
+	return result
 }
 
 // runEndpointLoop — основной цикл проверки одного endpoint.
-func (s *Scheduler) runEndpointLoop(ctx context.Context, dep Dependency, ep Endpoint, checker HealthChecker) {
+func (s *Scheduler) runEndpointLoop(ctx context.Context, dep Dependency, ep Endpoint, checker HealthChecker, state *endpointState) {
 	defer s.wg.Done()
 
-	state := &endpointState{}
 	logAttrs := []slog.Attr{
 		slog.String("dependency", dep.Name),
 		slog.String("type", string(dep.Type)),

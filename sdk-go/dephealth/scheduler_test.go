@@ -37,7 +37,7 @@ func (p *panicChecker) Check(_ context.Context, _ Endpoint) error {
 
 func (p *panicChecker) Type() string { return "panic" }
 
-func testDep(name string, interval, timeout, initialDelay time.Duration) Dependency {
+func testDep(name string, interval, timeout, initialDelay time.Duration) Dependency { //nolint:unparam // name параметризован для читаемости тестов
 	return Dependency{
 		Name: name,
 		Type: TypeTCP,
@@ -74,7 +74,7 @@ func testDepWithThresholds(name string, failThreshold, successThreshold int) Dep
 func newTestScheduler(t *testing.T) (*Scheduler, *prometheus.Registry) {
 	t.Helper()
 	reg := prometheus.NewRegistry()
-	metrics, err := NewMetricsExporter(WithRegisterer(reg))
+	metrics, err := NewMetricsExporter(WithMetricsRegisterer(reg))
 	if err != nil {
 		t.Fatalf("не удалось создать MetricsExporter: %v", err)
 	}
@@ -227,7 +227,7 @@ func TestScheduler_UnhealthyMetric(t *testing.T) {
 
 func TestScheduler_FailureThreshold(t *testing.T) {
 	reg := prometheus.NewRegistry()
-	metrics, _ := NewMetricsExporter(WithRegisterer(reg))
+	metrics, _ := NewMetricsExporter(WithMetricsRegisterer(reg))
 	sched := NewScheduler(metrics)
 
 	callCount := atomic.Int64{}
@@ -274,7 +274,7 @@ func TestScheduler_FailureThreshold(t *testing.T) {
 
 func TestScheduler_Recovery(t *testing.T) {
 	reg := prometheus.NewRegistry()
-	metrics, _ := NewMetricsExporter(WithRegisterer(reg))
+	metrics, _ := NewMetricsExporter(WithMetricsRegisterer(reg))
 	sched := NewScheduler(metrics)
 
 	shouldFail := atomic.Bool{}
@@ -377,7 +377,7 @@ func TestScheduler_PanicRecovery(t *testing.T) {
 
 func TestScheduler_MultipleEndpoints(t *testing.T) {
 	reg := prometheus.NewRegistry()
-	metrics, _ := NewMetricsExporter(WithRegisterer(reg))
+	metrics, _ := NewMetricsExporter(WithMetricsRegisterer(reg))
 	sched := NewScheduler(metrics)
 
 	checker := &mockChecker{}
@@ -474,5 +474,43 @@ func TestScheduler_ValidAdd(t *testing.T) {
 
 	if err := sched.Add(dep, &mockChecker{}); err != nil {
 		t.Errorf("ожидали nil для валидной зависимости, получили: %v", err)
+	}
+}
+
+func TestScheduler_Health(t *testing.T) {
+	sched, _ := newTestScheduler(t)
+
+	checker := &mockChecker{} // Всегда healthy.
+	dep := testDep("test-dep", 100*time.Millisecond, 50*time.Millisecond, 0)
+	addTestDep(sched, dep, checker)
+	_ = sched.Start(context.Background())
+
+	// Ждём первую проверку.
+	time.Sleep(150 * time.Millisecond)
+
+	health := sched.Health()
+	if len(health) != 1 {
+		t.Fatalf("ожидали 1 запись в Health(), получили %d", len(health))
+	}
+
+	key := "test-dep:127.0.0.1:1234"
+	val, ok := health[key]
+	if !ok {
+		t.Fatalf("ключ %q не найден в Health()", key)
+	}
+	if !val {
+		t.Errorf("ожидали healthy=true для %q, получили false", key)
+	}
+
+	sched.Stop()
+}
+
+func TestScheduler_Health_BeforeStart(t *testing.T) {
+	sched, _ := newTestScheduler(t)
+
+	// До Start — Health() должен вернуть nil.
+	health := sched.Health()
+	if health != nil {
+		t.Errorf("ожидали nil до Start(), получили %v", health)
 	}
 }

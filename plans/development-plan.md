@@ -498,14 +498,14 @@ sdk-go/dephealth/
 
 **Цель**: создать удобный публичный API (Option pattern) и contrib-интеграции.
 
-**Статус**: [ ] Не начата
+**Статус**: [x] Завершена
 
 ### Задачи фазы 6
 
-#### 6.1. Публичный API (`dephealth.go`)
+#### 6.1. Публичный API (`dephealth.go`, `options.go`)
 
-- [ ] Функция `New(opts ...DependencyOption) *DepHealth`
-- [ ] Option pattern для конфигурации:
+- [x] Функция `New(opts ...Option) (*DepHealth, error)`
+- [x] Option pattern для конфигурации:
 
   ```go
   dephealth.HTTP("payment-service", dephealth.FromURL(url), dephealth.Critical(true))
@@ -518,7 +518,7 @@ sdk-go/dephealth/
   dephealth.MySQL("mysql-main", dephealth.FromURL(url))
   ```
 
-- [ ] Глобальные опции:
+- [x] Глобальные опции:
 
   ```go
   dephealth.WithCheckInterval(30 * time.Second)
@@ -527,50 +527,62 @@ sdk-go/dephealth/
   dephealth.WithLogger(slog.Default())
   ```
 
-- [ ] Методы `DepHealth`:
+- [x] Методы `DepHealth`:
   - `Start(ctx context.Context) error` — запуск scheduler
   - `Stop()` — graceful shutdown
   - `Health() map[string]bool` — текущее состояние (для readiness)
-- [ ] Пример использования в godoc
+- [x] Checker-обёртки (DependencyOption) для всех типов
+- [x] AddDependency — хелпер для contrib-модулей
+- [x] RegisterCheckerFactory — реестр фабрик чекеров (без import cycle)
 
 #### 6.2. Contrib: database/sql (`contrib/sqldb/`)
 
-- [ ] `FromDB(name string, db *sql.DB, opts ...dephealth.DependencyOption) dephealth.DependencyOption`
-- [ ] Извлечение host/port из DSN (если доступен)
-- [ ] Использование `db.PingContext` или `db.QueryContext("SELECT 1")`
-- [ ] Unit-тесты
+- [x] `FromDB(name string, db *sql.DB, opts ...dephealth.DependencyOption) dephealth.Option`
+- [x] `FromMySQLDB(name string, db *sql.DB, opts ...dephealth.DependencyOption) dephealth.Option`
+- [x] Использует `checks.NewPostgresChecker(checks.WithPostgresDB(db))`
+- [x] Unit-тесты с go-sqlmock
 
 #### 6.3. Contrib: go-redis (`contrib/redispool/`)
 
-- [ ] `FromClient(name string, client *redis.Client, opts ...dephealth.DependencyOption) dephealth.DependencyOption`
-- [ ] Извлечение host/port из Options
-- [ ] Использование `client.Ping`
-- [ ] Unit-тесты
+- [x] `FromClient(name string, client *redis.Client, opts ...dephealth.DependencyOption) dephealth.Option`
+- [x] Автоматическое извлечение host/port из `client.Options().Addr`
+- [x] Использует `checks.NewRedisChecker(checks.WithRedisClient(client))`
+- [x] Unit-тесты с miniredis
+
+#### 6.4. Инфраструктурные изменения
+
+- [x] `WithRegisterer` → `WithMetricsRegisterer` в metrics.go
+- [x] `WithLogger` → `WithSchedulerLogger` в scheduler.go
+- [x] `Scheduler.Health()` — реализация через states map
+- [x] `checks/factories.go` — регистрация фабрик чекеров из пакета checks
 
 ### Артефакты фазы 6
 
 ```text
-sdk-go/
-├── dephealth/
-│   ├── dephealth.go
-│   ├── dephealth_test.go
-│   └── options.go
+sdk-go/dephealth/
+├── dephealth.go          # Публичный API: DepHealth, New(), Start(), Stop(), Health()
+├── dephealth_test.go     # 16 тестов публичного API
+├── options.go            # Option, DependencyOption, фабрики, checker-обёртки
+├── checks/
+│   └── factories.go      # RegisterCheckerFactory — мост между dephealth и checks
 └── contrib/
     ├── sqldb/
-    │   ├── sqldb.go
-    │   └── sqldb_test.go
+    │   ├── sqldb.go       # FromDB, FromMySQLDB
+    │   └── sqldb_test.go  # 3 теста
     └── redispool/
-        ├── redispool.go
-        └── redispool_test.go
+        ├── redispool.go   # FromClient
+        └── redispool_test.go  # 3 теста
 ```
 
 ### Критерии завершения фазы 6
 
-- API удобен и соответствует примерам из `sdk-architecture.md`
-- Option pattern работает корректно
-- Contrib-модули компилируются и тестируются независимо
-- godoc-документация понятна
-- golangci-lint без предупреждений
+- [x] API удобен и соответствует примерам из `sdk-architecture.md`
+- [x] Option pattern работает корректно
+- [x] Contrib-модули компилируются и тестируются независимо
+- [x] `go build ./...` — без ошибок
+- [x] `go test ./... -short` — 81 тест, все проходят
+- [x] `go vet ./...` — без предупреждений
+- [x] `golangci-lint run` — без предупреждений
 
 ---
 

@@ -71,22 +71,31 @@ app_dependency_latency_seconds_bucket{dependency="postgres-main",type="postgres"
 ## Структура репозитория
 
 ```text
-spec/                   # Единая спецификация (контракты метрик, поведения, конфигурации)
-conformance/            # Conformance-тесты (Kubernetes, сценарии, runner)
-sdk-go/                 # Go SDK (пилотный язык)
-plans/                  # Планы разработки
+spec/                           # Единая спецификация (контракты метрик, поведения, конфигурации)
+conformance/                    # Conformance-тесты (Kubernetes, сценарии, runner)
+sdk-go/                         # Go SDK (пилотный язык)
+  dephealth/                    #   Core: абстракции, парсер, метрики, планировщик, публичный API
+  dephealth/checks/             #   Чекеры: TCP, HTTP, gRPC, Postgres, MySQL, Redis, AMQP, Kafka
+  dephealth/contrib/sqldb/      #   Contrib: интеграция с *sql.DB (Postgres/MySQL pool)
+  dephealth/contrib/redispool/  #   Contrib: интеграция с *redis.Client
+plans/                          # Планы разработки
 ```
 
 Планируемые SDK: Go (в разработке), Java, C#, Python.
 
 ## Go SDK
 
-Пилотный SDK на Go. Текущее состояние: ядро, все чекеры, метрики и планировщик реализованы.
+Пилотный SDK на Go. Публичный API, все 8 чекеров, метрики, планировщик и contrib-модули реализованы.
 
-### Быстрый старт (целевой API)
+### Быстрый старт
 
 ```go
-checker := dephealth.New(
+import (
+    "github.com/company/dephealth/dephealth"
+    _ "github.com/company/dephealth/dephealth/checks" // регистрация чекеров
+)
+
+dh, err := dephealth.New(
     dephealth.HTTP("payment-service",
         dephealth.FromURL(os.Getenv("PAYMENT_SERVICE_URL")),
         dephealth.Critical(true),
@@ -99,25 +108,61 @@ checker := dephealth.New(
         dephealth.FromURL(os.Getenv("REDIS_URL")),
     ),
 )
+if err != nil {
+    log.Fatal(err)
+}
 
-checker.Start(ctx)
-defer checker.Stop()
+dh.Start(ctx)
+defer dh.Stop()
 
 http.Handle("/metrics", promhttp.Handler())
 ```
 
+### Интеграция с connection pool
+
+```go
+import (
+    "github.com/company/dephealth/dephealth/contrib/sqldb"
+    "github.com/company/dephealth/dephealth/contrib/redispool"
+)
+
+dh, err := dephealth.New(
+    // PostgreSQL через существующий *sql.DB
+    sqldb.FromDB("postgres-main", db,
+        dephealth.FromParams("pg.svc", "5432"),
+        dephealth.Critical(true),
+    ),
+    // Redis через существующий *redis.Client (host:port извлекается автоматически)
+    redispool.FromClient("redis-cache", redisClient),
+)
+```
+
+### Глобальные опции
+
+```go
+dh, err := dephealth.New(
+    dephealth.WithCheckInterval(30 * time.Second),
+    dephealth.WithTimeout(3 * time.Second),
+    dephealth.WithRegisterer(customRegisterer),
+    dephealth.WithLogger(slog.Default()),
+    // ...зависимости
+)
+```
+
 ### Реализованные компоненты
 
+- **Public API** (`sdk-go/dephealth/dephealth.go`, `options.go`) — `DepHealth`, `New()`, Option pattern
 - **Core** (`sdk-go/dephealth/`) — `Dependency`, `Endpoint`, `CheckConfig`, `HealthChecker` interface
 - **Parser** (`sdk-go/dephealth/parser.go`) — парсинг URL, connection string, JDBC, прямых параметров
 - **Checkers** (`sdk-go/dephealth/checks/`) — TCP, HTTP, gRPC, PostgreSQL, MySQL, Redis, AMQP, Kafka
 - **Metrics** (`sdk-go/dephealth/metrics.go`) — Prometheus Gauge + Histogram, functional options
 - **Scheduler** (`sdk-go/dephealth/scheduler.go`) — горутина на endpoint, пороги, graceful shutdown
+- **Contrib** (`sdk-go/dephealth/contrib/`) — `sqldb` (PostgreSQL/MySQL pool), `redispool` (go-redis pool)
 
 ### Сборка и тесты
 
 ```bash
-# Unit-тесты
+# Unit-тесты (81 тест)
 cd sdk-go && go test ./... -short
 
 # Линтер
@@ -174,7 +219,7 @@ cd sdk-go && go test ./... -tags integration
 | 3 | Go SDK: ядро и парсер | Завершена |
 | 4 | Go SDK: чекеры (8 типов) | Завершена |
 | 5 | Go SDK: метрики и планировщик | Завершена |
-| 6 | Go SDK: публичный API и contrib | В планах |
+| 6 | Go SDK: публичный API и contrib | Завершена |
 | 7 | Тестовый сервис на Go | В планах |
 | 8 | Conformance-прогон Go SDK | В планах |
 | 9 | Документация и CI/CD | В планах |
