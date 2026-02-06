@@ -1,0 +1,8 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+prometheus-client>=0.20
+aiohttp>=3.9
+asyncpg>=0.29
+redis[hiredis]>=5.0
+grpcio>=1.60
+grpcio-health-checking>=1.60

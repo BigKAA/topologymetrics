@@ -43,7 +43,7 @@ DOCKER_RUN = docker run --rm \
 # Установка пакета с dev-зависимостями
 PIP_INSTALL = pip install -q -e ".[dev]" 2>/dev/null
 
-.PHONY: build test test-coverage lint fmt image push pull clean help
+.PHONY: build test test-coverage lint fmt image push image-conformance push-conformance pull clean help
 
 ## build: проверка сборки пакета
 build:
@@ -67,7 +67,7 @@ test-coverage:
 lint:
 	$(call remove_old,lint)
 	$(DOCKER_RUN) --name $(CN)-lint $(PY_IMAGE) \
-		sh -c '$(PIP_INSTALL) && ruff check . && ruff format --check . && mypy dephealth/ --strict'
+		sh -c '$(PIP_INSTALL) && ruff check . && ruff format --check . && mypy dephealth/ dephealth_fastapi/ --strict'
 
 ## fmt: автоформатирование кода
 fmt:
@@ -82,9 +82,20 @@ image:
 		-f $(DOCKERFILE) \
 		$(PROJECT_ROOT)
 
-## push: загрузка образа в registry
+## push: загрузка образа тестового сервиса в registry
 push:
 	docker push $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
+
+## image-conformance: сборка Docker-образа conformance-сервиса
+image-conformance:
+	docker build \
+		-t $(REGISTRY)/dephealth-conformance-python:$(IMAGE_TAG) \
+		-f $(PROJECT_ROOT)/conformance/test-service-python/Dockerfile \
+		$(PROJECT_ROOT)
+
+## push-conformance: загрузка conformance-образа в registry
+push-conformance:
+	docker push $(REGISTRY)/dephealth-conformance-python:$(IMAGE_TAG)
 
 ## pull: скачать необходимые Docker-образы
 pull:
