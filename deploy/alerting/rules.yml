@@ -1,0 +1,135 @@
+# Правила алертинга dephealth
+# Совместимы с PrometheusRule (Prometheus Operator) и VMRule (VictoriaMetrics Operator).
+#
+# Применение:
+#   kubectl apply -f rules.yml
+#
+# Или как часть Helm-чарта / kustomize.
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: dephealth-alerts
+  labels:
+    app: dephealth
+    prometheus: kube-prometheus
+    role: alert-rules
+spec:
+  groups:
+    - name: dephealth.rules
+      rules:
+
+        # ── DependencyDown ────────────────────────────────────────
+        # Полный отказ зависимости: все endpoint-ы недоступны.
+        # Severity: critical
+        - alert: DependencyDown
+          expr: |
+            min by (job, namespace, dependency, type) (
+              app_dependency_health
+            ) == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: >-
+              Зависимость {{ $labels.dependency }} ({{ $labels.type }})
+              недоступна в сервисе {{ $labels.job }}
+            description: >-
+              Все endpoint-ы зависимости {{ $labels.dependency }}
+              типа {{ $labels.type }} в сервисе {{ $labels.job }}
+              (namespace: {{ $labels.namespace }}) недоступны
+              более 1 минуты.
+            runbook_url: ""
+
+        # ── DependencyDegraded ────────────────────────────────────
+        # Частичная деградация: часть endpoint-ов недоступна,
+        # но хотя бы один работает (актуально для кластерных зависимостей).
+        # Severity: warning
+        - alert: DependencyDegraded
+          expr: |
+            (
+              count by (job, namespace, dependency, type) (
+                app_dependency_health == 0
+              )
+              > 0
+            )
+            and
+            (
+              count by (job, namespace, dependency, type) (
+                app_dependency_health == 1
+              )
+              > 0
+            )
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: >-
+              Зависимость {{ $labels.dependency }} ({{ $labels.type }})
+              частично деградирована в сервисе {{ $labels.job }}
+            description: >-
+              Часть endpoint-ов зависимости {{ $labels.dependency }}
+              типа {{ $labels.type }} в сервисе {{ $labels.job }}
+              (namespace: {{ $labels.namespace }}) недоступна
+              более 2 минут. Не все реплики отвечают.
+            runbook_url: ""
+
+        # ── DependencyHighLatency ─────────────────────────────────
+        # Высокая латентность: p99 проверки > 1 секунды.
+        # Severity: warning
+        - alert: DependencyHighLatency
+          expr: |
+            histogram_quantile(0.99,
+              rate(app_dependency_latency_seconds_bucket[5m])
+            ) > 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: >-
+              Высокая латентность зависимости {{ $labels.dependency }}
+              ({{ $labels.type }}) в сервисе {{ $labels.job }}
+            description: >-
+              P99 латентность проверки зависимости {{ $labels.dependency }}
+              типа {{ $labels.type }} в сервисе {{ $labels.job }}
+              (namespace: {{ $labels.namespace }}) превышает 1 секунду
+              в течение 5 минут. Текущее значение: {{ $value | humanizeDuration }}.
+            runbook_url: ""
+
+        # ── DependencyFlapping ────────────────────────────────────
+        # Частые переключения статуса (flapping): более 4 изменений за 15 минут.
+        # Severity: info
+        - alert: DependencyFlapping
+          expr: |
+            changes(app_dependency_health[15m]) > 4
+          for: 0m
+          labels:
+            severity: info
+          annotations:
+            summary: >-
+              Зависимость {{ $labels.dependency }} ({{ $labels.type }})
+              нестабильна в сервисе {{ $labels.job }}
+            description: >-
+              Статус зависимости {{ $labels.dependency }} типа {{ $labels.type }}
+              в сервисе {{ $labels.job }} (namespace: {{ $labels.namespace }})
+              менялся {{ $value }} раз за последние 15 минут.
+              Возможна нестабильность сети или зависимости.
+            runbook_url: ""
+
+        # ── DependencyAbsent ──────────────────────────────────────
+        # Метрика отсутствует: сервис перестал экспортировать метрики.
+        # Severity: warning
+        - alert: DependencyAbsent
+          expr: |
+            absent(app_dependency_health{job=~".+"})
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: >-
+              Метрики dephealth отсутствуют
+            description: >-
+              Ни один сервис не экспортирует метрику app_dependency_health
+              в течение 5 минут. Возможные причины: сервисы не запущены,
+              scrape-конфигурация некорректна, или dephealth не инициализирован.
+            runbook_url: ""

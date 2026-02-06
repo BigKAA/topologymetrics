@@ -1,0 +1,47 @@
+# Grafana Dashboard Provisioning
+#
+# Этот файл монтируется в Grafana как ConfigMap.
+# Grafana автоматически загружает дашборды из указанного каталога.
+#
+# Пример деплоя:
+#
+#   1. Создать ConfigMap с дашбордами:
+#      kubectl create configmap dephealth-dashboards \
+#        --from-file=deploy/grafana/dashboards/ \
+#        -n monitoring
+#
+#   2. Создать ConfigMap с provisioning:
+#      kubectl create configmap dephealth-provisioning \
+#        --from-file=deploy/grafana/provisioning/dashboards.yml \
+#        -n monitoring
+#
+#   3. Смонтировать в Grafana:
+#      - dephealth-provisioning → /etc/grafana/provisioning/dashboards/dephealth.yml
+#      - dephealth-dashboards   → /var/lib/grafana/dashboards/dephealth/
+#
+#   Или использовать Grafana Helm chart:
+#     grafana:
+#       dashboardProviders:
+#         dashboardproviders.yaml:
+#           apiVersion: 1
+#           providers:
+#             - name: dephealth
+#               folder: dephealth
+#               type: file
+#               options:
+#                 path: /var/lib/grafana/dashboards/dephealth
+
+apiVersion: 1
+
+providers:
+  - name: dephealth
+    orgId: 1
+    folder: dephealth
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards/dephealth
+      foldersFromFilesStructure: false

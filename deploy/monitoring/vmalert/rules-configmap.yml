@@ -1,0 +1,84 @@
+# Правила алертинга для VMAlert.
+# Содержимое идентично deploy/alerting/rules.yml, но в формате ConfigMap
+# для монтирования в VMAlert.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vmalert-rules
+  namespace: dephealth-monitoring
+  labels:
+    app: vmalert
+data:
+  dephealth.yml: |
+    groups:
+      - name: dephealth.rules
+        rules:
+
+          # Полный отказ зависимости: все endpoint-ы недоступны.
+          - alert: DependencyDown
+            expr: |
+              min by (job, namespace, dependency, type) (
+                app_dependency_health
+              ) == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Зависимость {{ $labels.dependency }} ({{ $labels.type }}) недоступна в сервисе {{ $labels.job }}"
+              description: "Все endpoint-ы зависимости {{ $labels.dependency }} типа {{ $labels.type }} в сервисе {{ $labels.job }} (namespace: {{ $labels.namespace }}) недоступны более 1 минуты."
+
+          # Частичная деградация: часть endpoint-ов недоступна.
+          - alert: DependencyDegraded
+            expr: |
+              (
+                count by (job, namespace, dependency, type) (
+                  app_dependency_health == 0
+                ) > 0
+              )
+              and
+              (
+                count by (job, namespace, dependency, type) (
+                  app_dependency_health == 1
+                ) > 0
+              )
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Зависимость {{ $labels.dependency }} ({{ $labels.type }}) частично деградирована в сервисе {{ $labels.job }}"
+              description: "Часть endpoint-ов зависимости {{ $labels.dependency }} типа {{ $labels.type }} в сервисе {{ $labels.job }} (namespace: {{ $labels.namespace }}) недоступна более 2 минут."
+
+          # Высокая латентность: p99 > 1 секунды.
+          - alert: DependencyHighLatency
+            expr: |
+              histogram_quantile(0.99,
+                rate(app_dependency_latency_seconds_bucket[5m])
+              ) > 1
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Высокая латентность зависимости {{ $labels.dependency }} ({{ $labels.type }}) в сервисе {{ $labels.job }}"
+              description: "P99 латентность проверки зависимости {{ $labels.dependency }} превышает 1 секунду в течение 5 минут."
+
+          # Частые переключения статуса (flapping).
+          - alert: DependencyFlapping
+            expr: |
+              changes(app_dependency_health[15m]) > 4
+            for: 0m
+            labels:
+              severity: info
+            annotations:
+              summary: "Зависимость {{ $labels.dependency }} ({{ $labels.type }}) нестабильна в сервисе {{ $labels.job }}"
+              description: "Статус зависимости {{ $labels.dependency }} менялся {{ $value }} раз за последние 15 минут."
+
+          # Метрики отсутствуют.
+          - alert: DependencyAbsent
+            expr: |
+              absent(app_dependency_health{job=~".+"})
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Метрики dephealth отсутствуют"
+              description: "Ни один сервис не экспортирует метрику app_dependency_health в течение 5 минут."
