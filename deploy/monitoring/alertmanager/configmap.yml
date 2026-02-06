@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: dephealth-monitoring
+  labels:
+    app: alertmanager
+data:
+  alertmanager.yml: |
+    global:
+      resolve_timeout: 5m
+
+    route:
+      receiver: default
+      group_by: ['alertname', 'namespace', 'job', 'dependency']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+
+      routes:
+        # Critical — немедленная доставка
+        - matchers:
+            - severity = "critical"
+          receiver: default
+          group_wait: 10s
+          repeat_interval: 1h
+
+        # Info — тихий приёмник (только в UI)
+        - matchers:
+            - severity = "info"
+          receiver: "null"
+
+    receivers:
+      # Основной приёмник: webhook для тестовой верификации.
+      # В production заменить на Slack/PagerDuty/email.
+      - name: default
+        webhook_configs:
+          - url: http://localhost:9094/webhook
+            send_resolved: true
+
+      # Тихий приёмник — алерты видны только в UI.
+      - name: "null"
+
+    # Правила подавления каскадных алертов (из inhibition-rules.yml).
+    inhibit_rules:
+      # DependencyDown подавляет DependencyDegraded
+      - source_matchers:
+          - alertname = "DependencyDown"
+        target_matchers:
+          - alertname = "DependencyDegraded"
+        equal: ['job', 'namespace', 'dependency']
+
+      # DependencyDown подавляет DependencyHighLatency
+      - source_matchers:
+          - alertname = "DependencyDown"
+        target_matchers:
+          - alertname = "DependencyHighLatency"
+        equal: ['job', 'namespace', 'dependency']
+
+      # DependencyDown подавляет DependencyFlapping
+      - source_matchers:
+          - alertname = "DependencyDown"
+        target_matchers:
+          - alertname = "DependencyFlapping"
+        equal: ['job', 'namespace', 'dependency']
+
+      # DependencyDegraded подавляет DependencyFlapping
+      - source_matchers:
+          - alertname = "DependencyDegraded"
+        target_matchers:
+          - alertname = "DependencyFlapping"
+        equal: ['job', 'namespace', 'dependency']
+
+      # Каскадное подавление: critical подавляет warning для той же зависимости
+      - source_matchers:
+          - alertname = "DependencyDown"
+          - severity = "critical"
+        target_matchers:
+          - severity = "warning"
+        equal: ['namespace', 'dependency']

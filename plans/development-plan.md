@@ -792,7 +792,7 @@ README.md
 
 **Цель**: создать дашборды, правила алертинга, развернуть стек мониторинга и верифицировать на тестовом кластере.
 
-**Статус**: [ ] В процессе (10.1–10.3 завершены; 10.4–10.5 не начаты)
+**Статус**: [ ] В процессе (10.1–10.4 завершены; 10.5 не начата)
 
 ### Задачи фазы 10
 
@@ -833,26 +833,25 @@ README.md
 Установка и настройка в namespace `dephealth-monitoring`.
 Все компоненты в одноподовом (single-node) режиме для тестирования.
 
-- [ ] **VictoriaMetrics** (single-node):
-  - Helm chart `victoria-metrics-single` или StatefulSet-манифест
-  - Хранение: PVC на `nfs-client` StorageClass
-  - Retention: 7 дней (достаточно для тестов)
+- [x] **VictoriaMetrics** (single-node):
+  - StatefulSet-манифест, PVC на `nfs-client` StorageClass
+  - Хранение: 2Gi, retention: 7 дней
   - Scrape config: тестовый сервис Go (`dephealth-test` namespace)
   - Endpoint: `http://victoriametrics:8428`
-- [ ] **VMAlert** (или Prometheus-compatible alerting):
-  - Загрузка правил из `deploy/alerting/rules.yml`
+- [x] **VMAlert**:
+  - Загрузка правил из ConfigMap (5 алертов)
   - Отправка алертов в Alertmanager
-- [ ] **Alertmanager** (single-pod):
+- [x] **Alertmanager** (single-pod):
   - Deployment + Service
-  - Конфигурация: `inhibit_rules` из `deploy/alerting/inhibition-rules.yml`
+  - Конфигурация: `inhibit_rules` (5 правил подавления)
   - Receiver: `webhook` (для тестовой верификации) + `null` (silence)
   - Web UI для просмотра алертов
-- [ ] **Grafana** (single-pod):
-  - Helm chart или Deployment
-  - Provisioning: datasource → VictoriaMetrics, dashboards → ConfigMap
-  - Доступ через Gateway API (`HTTPRoute` на тестовый домен)
+- [x] **Grafana** (single-pod):
+  - Deployment с provisioning через ConfigMaps
+  - Datasource → VictoriaMetrics, dashboards → ConfigMap
+  - Доступ через Gateway API (`grafana.kryukov.lan`)
   - Три дашборда dephealth загружены автоматически
-- [ ] **Scrape-конфигурация**:
+- [x] **Scrape-конфигурация**:
   - VictoriaMetrics scrape target: `go-service.dephealth-test.svc:8080/metrics`
   - Интервал scrape: 15s
   - Метки: `namespace`, `job` (имя сервиса)

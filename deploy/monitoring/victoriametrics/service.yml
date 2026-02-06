@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: victoriametrics
+  namespace: dephealth-monitoring
+  labels:
+    app: victoriametrics
+spec:
+  type: ClusterIP
+  selector:
+    app: victoriametrics
+  ports:
+    - name: http
+      port: 8428
+      targetPort: 8428
