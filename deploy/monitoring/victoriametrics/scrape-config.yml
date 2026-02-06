@@ -33,6 +33,36 @@ data:
       #         namespace: dephealth-conformance
       #         service: test-service
 
+      # Тестовый Python-сервис (namespace dephealth-test)
+      # Раскомментировать после реализации Python SDK:
+      # - job_name: dephealth-test-python
+      #   static_configs:
+      #     - targets:
+      #         - python-service.dephealth-test.svc:8080
+      #       labels:
+      #         namespace: dephealth-test
+      #         service: python-service
+
+      # Тестовый Java-сервис (namespace dephealth-test)
+      # Раскомментировать после реализации Java SDK:
+      # - job_name: dephealth-test-java
+      #   static_configs:
+      #     - targets:
+      #         - java-service.dephealth-test.svc:8080
+      #       labels:
+      #         namespace: dephealth-test
+      #         service: java-service
+
+      # Тестовый C#-сервис (namespace dephealth-test)
+      # Раскомментировать после реализации C# SDK:
+      # - job_name: dephealth-test-csharp
+      #   static_configs:
+      #     - targets:
+      #         - csharp-service.dephealth-test.svc:8080
+      #       labels:
+      #         namespace: dephealth-test
+      #         service: csharp-service
+
       # VictoriaMetrics self-monitoring
       - job_name: victoriametrics
         static_configs:
