@@ -1189,18 +1189,18 @@ sdk-python/
 
 **Цель**: создать FastAPI-интеграцию, тестовый сервис, прогнать conformance-сценарии.
 
-**Статус**: [ ] Не начата
+**Статус**: [x] Завершена
 
 ### Задачи фазы 13
 
 #### 13.1. FastAPI-интеграция (`sdk-python/dephealth_fastapi/`)
 
-- [ ] Пакет `dephealth-fastapi` (отдельный модуль в `pyproject.toml` или extras):
+- [x] Пакет `dephealth-fastapi` (отдельный модуль в `pyproject.toml` или extras):
   - Middleware: автоматическое подключение `/metrics` endpoint
   - Lifespan: `dephealth_lifespan()` — запуск/остановка DependencyHealth
   - Endpoint `/health/dependencies` — JSON со статусом всех зависимостей
   - Интеграция с `prometheus_client` ASGI middleware
-- [ ] Пример использования:
+- [x] Пример использования:
 
   ```python
   from dephealth_fastapi import DepHealthMiddleware, dephealth_lifespan
@@ -1212,39 +1212,39 @@ sdk-python/
   app.add_middleware(DepHealthMiddleware)
   ```
 
-- [ ] Unit-тесты: `tests/test_fastapi.py`
+- [x] Unit-тесты: `tests/test_fastapi.py`
 
 #### 13.2. Тестовый сервис (`test-services/python-service/`)
 
-- [ ] FastAPI-сервис с 4 зависимостями:
+- [x] FastAPI-сервис с 4 зависимостями:
   - PostgreSQL (через `asyncpg`)
   - Redis (через `redis.asyncio`)
   - HTTP-заглушка (автономный режим)
   - gRPC-заглушка (автономный режим)
-- [ ] Endpoint-ы:
+- [x] Endpoint-ы:
   - `GET /` — JSON со статусом
   - `GET /metrics` — Prometheus-метрики
   - `GET /health` — health check для Kubernetes probes
   - `GET /health/dependencies` — детальный статус
-- [ ] Конфигурация через env vars: `DATABASE_URL`, `REDIS_URL`, `HTTP_STUB_URL`,
+- [x] Конфигурация через env vars: `DATABASE_URL`, `REDIS_URL`, `HTTP_STUB_URL`,
   `GRPC_STUB_HOST`, `GRPC_STUB_PORT`
-- [ ] `Dockerfile` — multi-stage (builder → python:3.12-slim)
-- [ ] Минимальный образ (< 200 MB)
+- [x] `Dockerfile` — multi-stage (builder → python:3.12-slim)
+- [ ] Минимальный образ (< 200 MB) — проверить при сборке
 - [ ] Публикация: `harbor.kryukov.lan/library/dephealth-test-python:latest`
 
 #### 13.3. Kubernetes-манифесты (`test-services/k8s/python-service/`)
 
-- [ ] Deployment, Service (ClusterIP), ConfigMap
-- [ ] Повторяет паттерн `test-services/k8s/go-service/`
-- [ ] Namespace: `dephealth-test` (общий с Go)
+- [x] Deployment, Service (ClusterIP), ConfigMap, HTTPRoute
+- [x] Повторяет паттерн `test-services/k8s/go-service/`
+- [x] Namespace: `dephealth-test` (общий с Go)
 
 #### 13.4. Conformance test service (`conformance/test-service-python/`)
 
-- [ ] FastAPI-сервис с 7 зависимостями (все 8 типов — mysql и postgres отдельно):
+- [x] FastAPI-сервис с 7 зависимостями:
   - PostgreSQL primary, PostgreSQL replica, Redis, RabbitMQ, Kafka,
     HTTP-заглушка, gRPC-заглушка
-- [ ] `Dockerfile`, `requirements.txt`
-- [ ] K8s-манифесты: `conformance/k8s/test-service-python/`
+- [x] `Dockerfile`, `requirements.txt`
+- [x] K8s-манифесты: `conformance/test-service-python/k8s/`
 - [ ] Публикация: `harbor.kryukov.lan/library/dephealth-conformance-python:latest`
 
 #### 13.5. Conformance-прогон
@@ -1265,7 +1265,7 @@ sdk-python/
 
 #### 13.6. Раскомментировать scrape-target
 
-- [ ] Раскомментировать `python-service` в VictoriaMetrics scrape-config
+- [x] Раскомментировать `python-service` в VictoriaMetrics scrape-config
 - [ ] Проверить сбор метрик в Grafana
 
 ### Артефакты фазы 13

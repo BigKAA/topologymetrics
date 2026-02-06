@@ -34,14 +34,13 @@ data:
       #         service: test-service
 
       # Тестовый Python-сервис (namespace dephealth-test)
-      # Раскомментировать после реализации Python SDK:
-      # - job_name: dephealth-test-python
-      #   static_configs:
-      #     - targets:
-      #         - python-service.dephealth-test.svc:8080
-      #       labels:
-      #         namespace: dephealth-test
-      #         service: python-service
+      - job_name: dephealth-test-python
+        static_configs:
+          - targets:
+              - python-service.dephealth-test.svc:8080
+            labels:
+              namespace: dephealth-test
+              service: python-service
 
       # Тестовый Java-сервис (namespace dephealth-test)
       # Раскомментировать после реализации Java SDK:
