@@ -18,7 +18,7 @@ type DepHealth struct {
 // Для использования встроенных фабрик (HTTP, Postgres, Redis и т.д.)
 // необходимо импортировать пакет checks:
 //
-//	import _ "github.com/company/dephealth/dephealth/checks"
+//	import _ "github.com/BigKAA/topologymetrics/dephealth/checks"
 func New(opts ...Option) (*DepHealth, error) {
 	cfg := config{
 		registerer: prometheus.DefaultRegisterer,

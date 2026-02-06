@@ -1,4 +1,4 @@
-module github.com/company/dephealth
+module github.com/BigKAA/topologymetrics
 
 go 1.25.6
 

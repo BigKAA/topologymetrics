@@ -1,4 +1,4 @@
-module github.com/company/dephealth/conformance/stubs/grpc-stub
+module github.com/BigKAA/topologymetrics/conformance/stubs/grpc-stub
 
 go 1.25.6
 

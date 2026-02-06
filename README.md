@@ -91,8 +91,8 @@ plans/                          # Планы разработки
 
 ```go
 import (
-    "github.com/company/dephealth/dephealth"
-    _ "github.com/company/dephealth/dephealth/checks" // регистрация чекеров
+    "github.com/BigKAA/topologymetrics/dephealth"
+    _ "github.com/BigKAA/topologymetrics/dephealth/checks" // регистрация чекеров
 )
 
 dh, err := dephealth.New(
@@ -122,8 +122,8 @@ http.Handle("/metrics", promhttp.Handler())
 
 ```go
 import (
-    "github.com/company/dephealth/dephealth/contrib/sqldb"
-    "github.com/company/dephealth/dephealth/contrib/redispool"
+    "github.com/BigKAA/topologymetrics/dephealth/contrib/sqldb"
+    "github.com/BigKAA/topologymetrics/dephealth/contrib/redispool"
 )
 
 dh, err := dephealth.New(

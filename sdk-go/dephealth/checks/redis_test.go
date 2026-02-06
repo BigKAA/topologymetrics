@@ -7,7 +7,7 @@ import (
 	"github.com/alicebob/miniredis/v2"
 	"github.com/redis/go-redis/v9"
 
-	"github.com/company/dephealth/dephealth"
+	"github.com/BigKAA/topologymetrics/dephealth"
 )
 
 func TestRedisChecker_Check_PoolMode(t *testing.T) {

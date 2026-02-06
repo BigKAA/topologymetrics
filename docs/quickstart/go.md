@@ -5,7 +5,7 @@
 ## Установка
 
 ```bash
-go get github.com/company/dephealth@latest
+go get github.com/BigKAA/topologymetrics@latest
 ```
 
 ## Минимальный пример
@@ -23,10 +23,10 @@ import (
     "os/signal"
     "syscall"
 
-    "github.com/company/dephealth/dephealth"
+    "github.com/BigKAA/topologymetrics/dephealth"
     "github.com/prometheus/client_golang/prometheus/promhttp"
 
-    _ "github.com/company/dephealth/dephealth/checks" // регистрация чекеров
+    _ "github.com/BigKAA/topologymetrics/dephealth/checks" // регистрация чекеров
 )
 
 func main() {
@@ -120,9 +120,9 @@ dh, err := dephealth.New(
 import (
     "database/sql"
 
-    "github.com/company/dephealth/dephealth"
-    "github.com/company/dephealth/dephealth/contrib/sqldb"
-    _ "github.com/company/dephealth/dephealth/checks"
+    "github.com/BigKAA/topologymetrics/dephealth"
+    "github.com/BigKAA/topologymetrics/dephealth/contrib/sqldb"
+    _ "github.com/BigKAA/topologymetrics/dephealth/checks"
     _ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -140,7 +140,7 @@ dh, err := dephealth.New(
 ### MySQL через `*sql.DB`
 
 ```go
-import "github.com/company/dephealth/dephealth/contrib/sqldb"
+import "github.com/BigKAA/topologymetrics/dephealth/contrib/sqldb"
 
 db, _ := sql.Open("mysql", "user:pass@tcp(mysql.svc:3306)/mydb")
 
@@ -156,7 +156,7 @@ dh, err := dephealth.New(
 
 ```go
 import (
-    "github.com/company/dephealth/dephealth/contrib/redispool"
+    "github.com/BigKAA/topologymetrics/dephealth/contrib/redispool"
     "github.com/redis/go-redis/v9"
 )
 

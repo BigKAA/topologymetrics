@@ -12,7 +12,7 @@
 ## Шаг 1. Установка зависимостей
 
 ```bash
-go get github.com/company/dephealth@latest
+go get github.com/BigKAA/topologymetrics@latest
 ```
 
 ## Шаг 2. Импорт пакетов
@@ -21,10 +21,10 @@ go get github.com/company/dephealth@latest
 
 ```go
 import (
-    "github.com/company/dephealth/dephealth"
+    "github.com/BigKAA/topologymetrics/dephealth"
 
     // Регистрация встроенных чекеров — обязательный blank import
-    _ "github.com/company/dephealth/dephealth/checks"
+    _ "github.com/BigKAA/topologymetrics/dephealth/checks"
 )
 ```
 
@@ -32,8 +32,8 @@ import (
 
 ```go
 import (
-    "github.com/company/dephealth/dephealth/contrib/sqldb"     // для *sql.DB
-    "github.com/company/dephealth/dephealth/contrib/redispool"  // для *redis.Client
+    "github.com/BigKAA/topologymetrics/dephealth/contrib/sqldb"     // для *sql.DB
+    "github.com/BigKAA/topologymetrics/dephealth/contrib/redispool"  // для *redis.Client
 )
 ```
 
@@ -243,7 +243,7 @@ dh, _ := dephealth.New(
 **Решение**: добавьте blank import:
 
 ```go
-import _ "github.com/company/dephealth/dephealth/checks"
+import _ "github.com/BigKAA/topologymetrics/dephealth/checks"
 ```
 
 ### Метрики не появляются на `/metrics`

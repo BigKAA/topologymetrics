@@ -7,7 +7,7 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 
-	"github.com/company/dephealth/dephealth"
+	"github.com/BigKAA/topologymetrics/dephealth"
 )
 
 // AMQPOption configures the AMQPChecker.

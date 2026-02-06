@@ -8,7 +8,7 @@ import (
 	"google.golang.org/grpc"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 
-	"github.com/company/dephealth/dephealth"
+	"github.com/BigKAA/topologymetrics/dephealth"
 )
 
 // testHealthServer implements the gRPC Health service for testing.

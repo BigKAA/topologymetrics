@@ -264,7 +264,7 @@ conformance/
 #### 3.1. Инициализация Go-модуля
 
 - [x] Создать `sdk-go/` с `go.mod`
-  - Имя модуля: `github.com/company/dephealth`
+  - Имя модуля: `github.com/BigKAA/topologymetrics`
 - [x] Настроить `.golangci.yml` (линтер)
 - [x] Создать базовую структуру каталогов
 
@@ -729,7 +729,7 @@ test-services/
 #### 9.1. Документация
 
 - [x] `docs/quickstart/go.md` — быстрый старт для Go
-  - Установка: `go get github.com/company/dephealth`
+  - Установка: `go get github.com/BigKAA/topologymetrics`
   - Минимальный пример (5 строк)
   - Пример с несколькими зависимостями
   - Пример с contrib-модулями

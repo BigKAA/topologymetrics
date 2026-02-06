@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/company/dephealth/dephealth"
+	"github.com/BigKAA/topologymetrics/dephealth"
 )
 
 func TestHTTPChecker_Check_Success(t *testing.T) {

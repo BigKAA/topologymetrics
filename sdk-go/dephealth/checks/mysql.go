@@ -8,7 +8,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql" // MySQL driver
 
-	"github.com/company/dephealth/dephealth"
+	"github.com/BigKAA/topologymetrics/dephealth"
 )
 
 // MySQLOption configures the MySQLChecker.

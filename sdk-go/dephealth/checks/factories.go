@@ -1,6 +1,6 @@
 package checks
 
-import "github.com/company/dephealth/dephealth"
+import "github.com/BigKAA/topologymetrics/dephealth"
 
 func init() {
 	dephealth.RegisterCheckerFactory(dephealth.TypeHTTP, newHTTPFromConfig)

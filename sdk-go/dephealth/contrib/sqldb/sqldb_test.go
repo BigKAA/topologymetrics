@@ -6,8 +6,8 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/company/dephealth/dephealth"
-	_ "github.com/company/dephealth/dephealth/checks" // регистрация фабрик
+	"github.com/BigKAA/topologymetrics/dephealth"
+	_ "github.com/BigKAA/topologymetrics/dephealth/checks" // регистрация фабрик
 )
 
 func TestFromDB(t *testing.T) {

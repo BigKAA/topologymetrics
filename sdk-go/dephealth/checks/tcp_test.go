@@ -5,7 +5,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/company/dephealth/dephealth"
+	"github.com/BigKAA/topologymetrics/dephealth"
 )
 
 func TestTCPChecker_Check_Success(t *testing.T) {

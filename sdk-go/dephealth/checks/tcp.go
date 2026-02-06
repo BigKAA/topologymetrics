@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/company/dephealth/dephealth"
+	"github.com/BigKAA/topologymetrics/dephealth"
 )
 
 // TCPChecker performs health checks by establishing a TCP connection.

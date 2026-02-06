@@ -5,8 +5,8 @@ package sqldb
 import (
 	"database/sql"
 
-	"github.com/company/dephealth/dephealth"
-	"github.com/company/dephealth/dephealth/checks"
+	"github.com/BigKAA/topologymetrics/dephealth"
+	"github.com/BigKAA/topologymetrics/dephealth/checks"
 )
 
 // FromDB создаёт Option для мониторинга PostgreSQL через существующий *sql.DB.

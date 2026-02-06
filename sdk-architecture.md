@@ -213,9 +213,9 @@ SDK автоматически извлекает `host` и `port` из любо
 
 **Модули**:
 
-- `github.com/company/dephealth` — ядро
-- `github.com/company/dephealth/contrib/sqldb` — интеграция с `database/sql`
-- `github.com/company/dephealth/contrib/redispool` — интеграция с `go-redis`
+- `github.com/BigKAA/topologymetrics` — ядро
+- `github.com/BigKAA/topologymetrics/contrib/sqldb` — интеграция с `database/sql`
+- `github.com/BigKAA/topologymetrics/contrib/redispool` — интеграция с `go-redis`
 
 **API инициализации**:
 
@@ -223,8 +223,8 @@ SDK автоматически извлекает `host` и `port` из любо
 package main
 
 import (
-    "github.com/company/dephealth"
-    "github.com/company/dephealth/contrib/sqldb"
+    "github.com/BigKAA/topologymetrics"
+    "github.com/BigKAA/topologymetrics/contrib/sqldb"
 )
 
 func main() {
@@ -289,9 +289,9 @@ dephealth/
 
 **Модули (Maven)**:
 
-- `com.company:dephealth-core` — ядро, проверки, Prometheus-метрики
-- `com.company:dephealth-spring-boot-starter` — Spring Boot auto-configuration
-- `com.company:dephealth-micrometer` — мост для Micrometer (если используется вместо Prometheus напрямую)
+- `com.github.bigkaa:dephealth-core` — ядро, проверки, Prometheus-метрики
+- `com.github.bigkaa:dephealth-spring-boot-starter` — Spring Boot auto-configuration
+- `com.github.bigkaa:dephealth-micrometer` — мост для Micrometer (если используется вместо Prometheus напрямую)
 
 **API инициализации (Spring Boot)**:
 
@@ -358,7 +358,7 @@ public class OrderServiceApplication {
 ```text
 sdk-java/
 ├── dephealth-core/
-│   └── src/main/java/com/company/dephealth/
+│   └── src/main/java/com/github/bigkaa/dephealth/
 │       ├── DependencyHealth.java        # Builder, основной API
 │       ├── Dependency.java              # Модель зависимости
 │       ├── Endpoint.java                # Модель endpoint-а
@@ -376,14 +376,14 @@ sdk-java/
 │           └── KafkaChecker.java
 │
 ├── dephealth-spring-boot/
-│   └── src/main/java/com/company/dephealth/spring/
+│   └── src/main/java/com/github/bigkaa/dephealth/spring/
 │       ├── DependencyHealthAutoConfiguration.java
 │       ├── DependencyHealthIndicator.java  # → /actuator/health
 │       ├── DependencyReadinessContributor.java
 │       └── EnableDependencyHealth.java     # Аннотация
 │
 └── dephealth-micrometer/
-    └── src/main/java/com/company/dephealth/micrometer/
+    └── src/main/java/com/github/bigkaa/dephealth/micrometer/
         └── MicrometerExporter.java     # Мост: пишет метрики через MeterRegistry
 ```
 

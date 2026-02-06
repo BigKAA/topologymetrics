@@ -7,8 +7,8 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/company/dephealth/dephealth"
-	"github.com/company/dephealth/dephealth/checks"
+	"github.com/BigKAA/topologymetrics/dephealth"
+	"github.com/BigKAA/topologymetrics/dephealth/checks"
 )
 
 // FromClient создаёт Option для мониторинга Redis через существующий *redis.Client.

@@ -7,7 +7,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/company/dephealth/dephealth"
+	"github.com/BigKAA/topologymetrics/dephealth"
 )
 
 // HTTPOption configures the HTTPChecker.

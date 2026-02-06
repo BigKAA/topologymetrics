@@ -20,7 +20,7 @@ linters:
 
 linters-settings:
   goimports:
-    local-prefixes: github.com/company/dephealth
+    local-prefixes: github.com/BigKAA/topologymetrics
 
 issues:
   exclude-use-default: false

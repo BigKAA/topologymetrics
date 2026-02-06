@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/company/dephealth/dephealth"
+	"github.com/BigKAA/topologymetrics/dephealth"
 )
 
 func TestAMQPChecker_Check_ConnectionRefused(t *testing.T) {
