@@ -380,9 +380,10 @@
         "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
         "query": "label_values(app_dependency_health, job)",
         "refresh": 2,
-        "includeAll": false,
+        "includeAll": true,
+        "allValue": ".*",
         "multi": false,
-        "current": {},
+        "current": { "selected": true, "text": "All", "value": "$__all" },
         "hide": 0,
         "label": "Сервис"
       }

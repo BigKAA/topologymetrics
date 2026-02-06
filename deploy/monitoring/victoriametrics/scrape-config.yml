@@ -24,13 +24,14 @@ data:
               service: go-service
 
       # Conformance test-service (namespace dephealth-conformance)
-      - job_name: dephealth-conformance
-        static_configs:
-          - targets:
-              - test-service.dephealth-conformance.svc:8080
-            labels:
-              namespace: dephealth-conformance
-              service: test-service
+      # Раскомментировать при запуске conformance-тестов:
+      # - job_name: dephealth-conformance
+      #   static_configs:
+      #     - targets:
+      #         - test-service.dephealth-conformance.svc:8080
+      #       labels:
+      #         namespace: dephealth-conformance
+      #         service: test-service
 
       # VictoriaMetrics self-monitoring
       - job_name: victoriametrics
