@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: alertmanager
-          image: prom/alertmanager:v0.28.1
+          image: harbor.kryukov.lan/library/alertmanager:v0.28.1
           args:
             - --config.file=/config/alertmanager.yml
             - --storage.path=/data

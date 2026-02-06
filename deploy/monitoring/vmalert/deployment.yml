@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: vmalert
-          image: victoriametrics/vmalert:v1.108.1
+          image: harbor.kryukov.lan/library/vmalert:v1.108.1
           args:
             - -datasource.url=http://victoriametrics:8428
             - -remoteRead.url=http://victoriametrics:8428

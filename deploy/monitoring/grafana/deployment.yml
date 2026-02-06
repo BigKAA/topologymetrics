@@ -19,7 +19,7 @@ spec:
         fsGroup: 472
       containers:
         - name: grafana
-          image: grafana/grafana:11.6.0
+          image: harbor.kryukov.lan/library/grafana:11.6.0
           ports:
             - containerPort: 3000
               name: http
@@ -73,6 +73,10 @@ spec:
               mountPath: /var/lib/grafana/dashboards/dephealth/dependency-map.json
               subPath: dependency-map.json
               readOnly: true
+            - name: dashboards-services
+              mountPath: /var/lib/grafana/dashboards/dephealth/services.json
+              subPath: services.json
+              readOnly: true
             # Data (ephemeral для тестов)
             - name: data
               mountPath: /var/lib/grafana
@@ -92,5 +96,8 @@ spec:
         - name: dashboards-dependency-map
           configMap:
             name: grafana-dashboard-dependency-map
+        - name: dashboards-services
+          configMap:
+            name: grafana-dashboard-services
         - name: data
           emptyDir: {}
