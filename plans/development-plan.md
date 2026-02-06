@@ -588,7 +588,7 @@ sdk-go/dephealth/
 
 ## Фаза 7: Тестовый сервис на Go
 
-**Цель**: создать пилотный микросервис, использующий Go SDK, для запуска в Docker/Kubernetes.
+**Цель**: создать пилотный микросервис, использующий Go SDK, для запуска в Kubernetes.
 
 **Статус**: [x] Завершена
 
@@ -617,17 +617,7 @@ sdk-go/dephealth/
 - [x] Минимальный образ (< 30 MB)
 - [x] Публикация в `harbor.kryukov.lan/library/dephealth-test-go`
 
-#### 7.3. Docker Compose для локальной разработки
-
-- [ ] `test-services/docker-compose.yml` (отложено — не требуется для пилота):
-  - go-service
-  - PostgreSQL
-  - Redis
-  - HTTP-заглушка
-  - gRPC-заглушка
-- [ ] Все сервисы связаны через Docker-сеть
-
-#### 7.4. Kubernetes-манифесты
+#### 7.3. Kubernetes-манифесты
 
 - [x] `test-services/k8s/` — манифесты для деплоя в тестовый кластер:
   - Namespace: `dephealth-test`
@@ -639,9 +629,8 @@ sdk-go/dephealth/
   - Redis (Deployment)
   - HTTP/gRPC заглушки (Deployments)
 
-#### 7.5. Верификация
+#### 7.4. Верификация
 
-- [ ] Запуск через docker-compose: `docker-compose up` (отложено)
 - [x] Проверка `/metrics` — 4 метрики `app_dependency_health` = 1 + histogram latency
 - [x] Проверка `/health/dependencies` — JSON со всеми 4 зависимостями
 - [x] Деплой в Kubernetes, проверка через Gateway API (`test1.kryukov.lan`)
@@ -657,7 +646,6 @@ test-services/
 │   ├── go.mod
 │   ├── go.sum
 │   └── Dockerfile
-├── docker-compose.yml
 └── k8s/
     ├── namespace.yml
     ├── go-service/
@@ -666,9 +654,11 @@ test-services/
     │   ├── httproute.yml
     │   └── configmap.yml
     ├── postgres/
-    │   └── statefulset.yml
+    │   ├── statefulset.yml
+    │   └── service.yml
     ├── redis/
-    │   └── deployment.yml
+    │   ├── deployment.yml
+    │   └── service.yml
     └── stubs/
         ├── http-stub.yml
         └── grpc-stub.yml
@@ -676,7 +666,7 @@ test-services/
 
 ### Критерии завершения фазы 7
 
-- Тестовый сервис запускается в Docker и Kubernetes
+- Тестовый сервис запускается в Kubernetes
 - `/metrics` возвращает корректные Prometheus-метрики
 - Все зависимости мониторятся (PG, Redis, HTTP, gRPC)
 - Остановка зависимости → метрика переходит в 0
