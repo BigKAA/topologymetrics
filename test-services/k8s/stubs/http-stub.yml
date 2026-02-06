@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: http-stub
+  namespace: dephealth-test
+  labels:
+    app: http-stub
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: http-stub
+  template:
+    metadata:
+      labels:
+        app: http-stub
+    spec:
+      containers:
+        - name: http-stub
+          image: harbor.kryukov.lan/library/dephealth-http-stub:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: PORT
+              value: "8080"
+          readinessProbe:
+            httpGet:
+              path: /admin/status
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /admin/status
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 32Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: http-stub
+  namespace: dephealth-test
+  labels:
+    app: http-stub
+spec:
+  selector:
+    app: http-stub
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http
+  type: ClusterIP
