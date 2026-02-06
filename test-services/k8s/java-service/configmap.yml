@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: java-service-config
+  namespace: dephealth-test
+  labels:
+    app: java-service
+data:
+  DEPHEALTH_INTERVAL: "10s"

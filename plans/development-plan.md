@@ -1311,7 +1311,7 @@ conformance/
 
 ---
 
-## Фаза 14: Java SDK — Core + Spring Boot + Conformance
+## Фаза 14: Java SDK — Core + Spring Boot + Conformance ✅
 
 **Цель**: реализовать полный Java SDK — ядро, 8 чекеров, Spring Boot starter, Micrometer bridge,
 тестовый сервис и conformance-прогон.

@@ -43,14 +43,14 @@ data:
               service: python-service
 
       # Тестовый Java-сервис (namespace dephealth-test)
-      # Раскомментировать после реализации Java SDK:
-      # - job_name: dephealth-test-java
-      #   static_configs:
-      #     - targets:
-      #         - java-service.dephealth-test.svc:8080
-      #       labels:
-      #         namespace: dephealth-test
-      #         service: java-service
+      - job_name: dephealth-test-java
+        metrics_path: /actuator/prometheus
+        static_configs:
+          - targets:
+              - java-service.dephealth-test.svc:8080
+            labels:
+              namespace: dephealth-test
+              service: java-service
 
       # Тестовый C#-сервис (namespace dephealth-test)
       # Раскомментировать после реализации C# SDK:
