@@ -858,32 +858,32 @@ README.md
 
 #### 10.5. Верификация и тестирование
 
-- [ ] **Метрики доступны в VictoriaMetrics**:
+- [x] **Метрики доступны в VictoriaMetrics**:
   - Запрос `app_dependency_health` возвращает данные
   - Все 4 зависимости тестового сервиса видны (postgres, redis, http-stub, grpc-stub)
   - Histogram `app_dependency_latency_seconds` содержит бакеты
-- [ ] **Дашборды отображают данные**:
+- [x] **Дашборды отображают данные**:
   - Overview: таблица заполнена, stat-панели показывают числа
   - Service Detail: timeline и heatmap отображают историю
   - Dependency Map: Node Graph показывает связи (или текстовая панель с инструкцией)
-- [ ] **Тестирование алертов — DependencyDown**:
+- [x] **Тестирование алертов — DependencyDown**:
   - Масштабировать Redis в 0 (`kubectl scale deployment redis --replicas=0`)
   - Подождать 1 минуту → алерт `DependencyDown` (critical) в Alertmanager
   - Проверить: дашборд Overview показывает Redis = DOWN (красный)
-- [ ] **Тестирование алертов — DependencyDegraded**:
+- [x] **Тестирование алертов — DependencyDegraded**:
   - Если есть replica PG — масштабировать в 0
   - Подождать 2 минуты → алерт `DependencyDegraded` (warning)
-- [ ] **Тестирование алертов — DependencyHighLatency**:
+- [x] **Тестирование алертов — DependencyHighLatency**:
   - Включить задержку в HTTP-заглушке: `/admin/delay?ms=2000`
   - Подождать 5 минут → алерт `DependencyHighLatency` (warning)
-- [ ] **Тестирование алертов — DependencyFlapping**:
+- [x] **Тестирование алертов — DependencyFlapping**:
   - Быстро переключать HTTP-заглушку: `/admin/toggle` каждые 30 секунд × 6 раз
   - Подождать → алерт `DependencyFlapping` (info)
-- [ ] **Тестирование подавления каскадов**:
+- [x] **Тестирование подавления каскадов**:
   - Масштабировать Redis в 0 → `DependencyDown` = active
   - Проверить: `DependencyFlapping` и `DependencyHighLatency` для Redis подавлены
   - Проверить inhibition-rules в Alertmanager UI
-- [ ] **Восстановление**:
+- [x] **Восстановление**:
   - Масштабировать Redis обратно в 1
   - Подождать → алерт `DependencyDown` = resolved
   - Дашборд Overview: Redis = UP (зелёный)
