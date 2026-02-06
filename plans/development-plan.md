@@ -790,9 +790,9 @@ README.md
 
 ## Фаза 10: Grafana дашборды и алерты
 
-**Цель**: создать дашборды и правила алертинга для визуализации метрик.
+**Цель**: создать дашборды, правила алертинга, развернуть стек мониторинга и верифицировать на тестовом кластере.
 
-**Статус**: [x] Завершена
+**Статус**: [ ] В процессе (10.1–10.3 завершены; 10.4–10.5 не начаты)
 
 ### Задачи фазы 10
 
@@ -824,11 +824,70 @@ README.md
   - Подавление каскадных алертов: если корневая зависимость down,
     гасить алерты от зависимых сервисов
 
-#### 10.3. Деплой мониторинга
+#### 10.3. Деплой мониторинга (provisioning)
 
 - [x] ConfigMap / provisioning для Grafana дашбордов
-- [ ] Деплой правил алертинга в VictoriaMetrics / Prometheus — *при наличии кластера*
-- [ ] Верификация на тестовом кластере — *при наличии кластера*
+
+#### 10.4. Стек мониторинга в Kubernetes
+
+Установка и настройка в namespace `dephealth-monitoring`.
+Все компоненты в одноподовом (single-node) режиме для тестирования.
+
+- [ ] **VictoriaMetrics** (single-node):
+  - Helm chart `victoria-metrics-single` или StatefulSet-манифест
+  - Хранение: PVC на `nfs-client` StorageClass
+  - Retention: 7 дней (достаточно для тестов)
+  - Scrape config: тестовый сервис Go (`dephealth-test` namespace)
+  - Endpoint: `http://victoriametrics:8428`
+- [ ] **VMAlert** (или Prometheus-compatible alerting):
+  - Загрузка правил из `deploy/alerting/rules.yml`
+  - Отправка алертов в Alertmanager
+- [ ] **Alertmanager** (single-pod):
+  - Deployment + Service
+  - Конфигурация: `inhibit_rules` из `deploy/alerting/inhibition-rules.yml`
+  - Receiver: `webhook` (для тестовой верификации) + `null` (silence)
+  - Web UI для просмотра алертов
+- [ ] **Grafana** (single-pod):
+  - Helm chart или Deployment
+  - Provisioning: datasource → VictoriaMetrics, dashboards → ConfigMap
+  - Доступ через Gateway API (`HTTPRoute` на тестовый домен)
+  - Три дашборда dephealth загружены автоматически
+- [ ] **Scrape-конфигурация**:
+  - VictoriaMetrics scrape target: `go-service.dephealth-test.svc:8080/metrics`
+  - Интервал scrape: 15s
+  - Метки: `namespace`, `job` (имя сервиса)
+
+#### 10.5. Верификация и тестирование
+
+- [ ] **Метрики доступны в VictoriaMetrics**:
+  - Запрос `app_dependency_health` возвращает данные
+  - Все 4 зависимости тестового сервиса видны (postgres, redis, http-stub, grpc-stub)
+  - Histogram `app_dependency_latency_seconds` содержит бакеты
+- [ ] **Дашборды отображают данные**:
+  - Overview: таблица заполнена, stat-панели показывают числа
+  - Service Detail: timeline и heatmap отображают историю
+  - Dependency Map: Node Graph показывает связи (или текстовая панель с инструкцией)
+- [ ] **Тестирование алертов — DependencyDown**:
+  - Масштабировать Redis в 0 (`kubectl scale deployment redis --replicas=0`)
+  - Подождать 1 минуту → алерт `DependencyDown` (critical) в Alertmanager
+  - Проверить: дашборд Overview показывает Redis = DOWN (красный)
+- [ ] **Тестирование алертов — DependencyDegraded**:
+  - Если есть replica PG — масштабировать в 0
+  - Подождать 2 минуты → алерт `DependencyDegraded` (warning)
+- [ ] **Тестирование алертов — DependencyHighLatency**:
+  - Включить задержку в HTTP-заглушке: `/admin/delay?ms=2000`
+  - Подождать 5 минут → алерт `DependencyHighLatency` (warning)
+- [ ] **Тестирование алертов — DependencyFlapping**:
+  - Быстро переключать HTTP-заглушку: `/admin/toggle` каждые 30 секунд × 6 раз
+  - Подождать → алерт `DependencyFlapping` (info)
+- [ ] **Тестирование подавления каскадов**:
+  - Масштабировать Redis в 0 → `DependencyDown` = active
+  - Проверить: `DependencyFlapping` и `DependencyHighLatency` для Redis подавлены
+  - Проверить inhibition-rules в Alertmanager UI
+- [ ] **Восстановление**:
+  - Масштабировать Redis обратно в 1
+  - Подождать → алерт `DependencyDown` = resolved
+  - Дашборд Overview: Redis = UP (зелёный)
 
 ### Артефакты фазы 10
 
@@ -841,17 +900,38 @@ deploy/
 │   │   └── dependency-map.json
 │   └── provisioning/
 │       └── dashboards.yml
-└── alerting/
-    ├── rules.yml
-    └── inhibition-rules.yml
+├── alerting/
+│   ├── rules.yml
+│   └── inhibition-rules.yml
+└── monitoring/
+    ├── namespace.yml
+    ├── victoriametrics/
+    │   ├── statefulset.yml
+    │   ├── service.yml
+    │   └── scrape-config.yml
+    ├── vmalert/
+    │   ├── deployment.yml
+    │   └── service.yml
+    ├── alertmanager/
+    │   ├── deployment.yml
+    │   ├── service.yml
+    │   └── configmap.yml
+    └── grafana/
+        ├── deployment.yml
+        ├── service.yml
+        ├── httproute.yml
+        └── configmap-datasource.yml
 ```
 
 ### Критерии завершения фазы 10
 
-- Дашборды отображают данные от тестового сервиса
-- Алерты срабатывают при остановке зависимости
-- Каскадное подавление работает корректно
-- Дашборды задеплоены в тестовый кластер
+- VictoriaMetrics собирает метрики от тестового сервиса
+- Grafana дашборды отображают данные
+- Алерты срабатывают при остановке зависимости (DependencyDown)
+- Алерты срабатывают при деградации (DependencyDegraded)
+- Алерты срабатывают при высокой латентности (DependencyHighLatency)
+- Каскадное подавление работает корректно в Alertmanager
+- Восстановление зависимости → алерт resolved, дашборд обновлён
 
 ---
 
