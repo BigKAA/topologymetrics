@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FindBugsFilter>
+    <!--
+    EI_EXPOSE_REP / EI_EXPOSE_REP2: Storing/returning references to mutable external objects.
+    Это намеренное поведение для Builder pattern (DataSource, JedisPool, MeterRegistry и т.д.) —
+    SDK принимает внешние объекты по ссылке и использует их напрямую.
+    -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+</FindBugsFilter>

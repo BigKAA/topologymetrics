@@ -1,0 +1,47 @@
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,dependencies
+  endpoint:
+    health:
+      show-details: always
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+dephealth:
+  interval: ${CHECK_INTERVAL:10}s
+  timeout: 5s
+  dependencies:
+    postgres-primary:
+      type: postgres
+      url: ${PRIMARY_DATABASE_URL:postgres://localhost:5432/dephealth}
+      critical: true
+    postgres-replica:
+      type: postgres
+      url: ${REPLICA_DATABASE_URL:postgres://localhost:5433/dephealth}
+    redis-cache:
+      type: redis
+      url: ${REDIS_URL:redis://localhost:6379/0}
+      critical: true
+    rabbitmq:
+      type: amqp
+      url: ${RABBITMQ_URL:amqp://guest:guest@localhost:5672/}
+      timeout: 10s
+    kafka-main:
+      type: kafka
+      host: ${KAFKA_HOST:localhost}
+      port: ${KAFKA_PORT:9092}
+    http-service:
+      type: http
+      url: ${HTTP_STUB_URL:http://localhost:8081}
+      health-path: /health
+    grpc-service:
+      type: grpc
+      host: ${GRPC_STUB_HOST:localhost}
+      port: ${GRPC_STUB_PORT:9090}

@@ -91,6 +91,14 @@ get_service_name() {
     esac
 }
 
+get_metrics_path() {
+    local lang="$1"
+    case "$lang" in
+        java) echo "/actuator/prometheus" ;;
+        *)    echo "/metrics" ;;
+    esac
+}
+
 # Деплой общей инфраструктуры (БД, кэши, стабы)
 deploy_infra() {
     log_info "Деплой инфраструктуры в namespace $NAMESPACE"
@@ -150,11 +158,13 @@ run_lang_tests() {
     # Port-forward, если URL не задан
     if [ -z "$local_url" ]; then
         local port=$((8888 + RANDOM % 1000))
+        local metrics_path
+        metrics_path="$(get_metrics_path "$lang")"
         log_info "Запуск port-forward к $svc_name (порт $port)..."
         kubectl -n "$NAMESPACE" port-forward "svc/$svc_name" "$port:8080" &
         PORT_FORWARD_PID=$!
         sleep 3
-        local_url="http://localhost:$port/metrics"
+        local_url="http://localhost:$port${metrics_path}"
         log_info "METRICS_URL=$local_url (pid=$PORT_FORWARD_PID)"
     fi
 

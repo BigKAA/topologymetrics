@@ -1,0 +1,37 @@
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,dependencies
+  endpoint:
+    health:
+      show-details: always
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+dephealth:
+  interval: ${DEPHEALTH_INTERVAL:15s}
+  timeout: ${DEPHEALTH_TIMEOUT:5s}
+  dependencies:
+    postgres-main:
+      type: postgres
+      url: ${POSTGRES_URL:postgres://localhost:5432/testdb}
+      username: ${POSTGRES_USERNAME:}
+      password: ${POSTGRES_PASSWORD:}
+      critical: true
+    redis-cache:
+      type: redis
+      url: ${REDIS_URL:redis://localhost:6379}
+    http-service:
+      type: http
+      url: ${HTTP_SERVICE_URL:http://localhost:8081}
+      health-path: ${HTTP_HEALTH_PATH:/health}
+    grpc-service:
+      type: grpc
+      host: ${GRPC_SERVICE_HOST:localhost}
+      port: ${GRPC_SERVICE_PORT:50051}
