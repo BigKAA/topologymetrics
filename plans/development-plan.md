@@ -19,8 +19,12 @@
 | 8 | Conformance-прогон Go SDK | Прохождение всех сценариев | Фазы 2, 7 |
 | 9 | Документация и CI/CD | `docs/`, GitHub Actions, Makefile | Фаза 8 |
 | 10 | Grafana дашборды и алерты | `deploy/grafana/`, `deploy/alerting/` | Фаза 8 |
-
-> Фазы 11–16 (Java, C#, Python SDK) планируются после стабилизации Go SDK и спецификации.
+| 11 | Инфраструктура контейнерной разработки | Makefile Go SDK, конвенции, Docker-инфраструктура | Фаза 10 |
+| 12 | Python SDK — Core + Checkers | `sdk-python/` — ядро, парсер, 8 чекеров, метрики, планировщик | Фаза 11 |
+| 13 | Python SDK — FastAPI + Conformance | `dephealth-fastapi`, тестовый сервис, conformance-прогон | Фаза 12 |
+| 14 | Java SDK — Core + Spring Boot + Conformance | `sdk-java/` — ядро, чекеры, Spring Boot, conformance-прогон | Фаза 11 |
+| 15 | C# SDK — Core + ASP.NET + Conformance | `sdk-csharp/` — ядро, чекеры, ASP.NET, conformance-прогон | Фаза 11 |
+| 16 | Кросс-языковая документация + Релиз v1.0 | docs для всех языков, финальный прогон, публикация | Фазы 13, 14, 15 |
 
 ---
 
@@ -934,58 +938,881 @@ deploy/
 
 ---
 
-## Фазы 11–16: SDK для остальных языков (план верхнего уровня)
+## Фаза 11: Инфраструктура контейнерной разработки
 
-> Детальное планирование — после стабилизации Go SDK и спецификации.
+**Цель**: создать единый Makefile-интерфейс для сборки/тестирования SDK через Docker (без локальных компиляторов), задокументировать конвенции и подготовить scrape-конфигурацию для будущих сервисов.
 
-### Фаза 11: Java SDK — Core
+**Статус**: [ ] Не начата
 
-- Модули: `dephealth-core` (Maven)
-- Абстракции: `Dependency`, `Endpoint`, `HealthChecker` (interface)
-- Чекеры: HTTP, gRPC, TCP, JDBC, Redis, AMQP, Kafka
-- Prometheus exporter (simpleclient)
-- Check scheduler (ScheduledExecutorService)
-- Unit-тесты и integration-тесты
+### Задачи фазы 11
 
-### Фаза 12: Java SDK — Spring Boot Integration
+#### 11.1. Makefile для Go SDK (`sdk-go/Makefile`)
 
-- Модуль: `dephealth-spring-boot-starter`
-- Auto-configuration: `@EnableDependencyHealth`
-- Интеграция с Spring Boot Actuator (`/actuator/health/dependencies`)
-- Micrometer bridge (`dephealth-micrometer`)
-- Conformance-прогон
+- [ ] Цели: `build`, `test`, `test-coverage`, `lint`, `fmt`, `clean`
+- [ ] Каждая цель — `docker run` с монтированием `sdk-go/` и Go-кэшем:
+  - Docker volume: `dephealth-go-cache` (`/go/pkg/mod` + build cache)
+  - Образ: `golang:1.25-alpine` (или `golang:1.25`)
+- [ ] Цели для Docker-образов:
+  - `image` — собрать Docker-образ тестового сервиса (`test-services/go-service/`)
+  - `push` — загрузить в `harbor.kryukov.lan/library/dephealth-test-go:latest`
+- [ ] Переменные: `REGISTRY`, `IMAGE_TAG`, `GO_VERSION`
+- [ ] Проверка: `cd sdk-go && make test` работает без локального Go
 
-### Фаза 13: C# SDK
+#### 11.2. Конвенции Makefile (`plans/makefile-conventions.md`)
 
-- NuGet-пакеты: `DepHealth.Core`, `DepHealth.AspNetCore`, `DepHealth.EntityFramework`
-- Аналогичная структура: абстракции → чекеры → метрики → scheduler
-- ASP.NET middleware, IHealthCheck
-- prometheus-net интеграция
-- Conformance-прогон
+- [ ] Документ с правилами для всех SDK Makefile:
+  - Обязательные цели: `build`, `test`, `test-coverage`, `lint`, `fmt`, `image`, `push`, `clean`
+  - Формат переменных: `REGISTRY`, `IMAGE_TAG`, `<LANG>_VERSION`
+  - Docker volume naming: `dephealth-{lang}-cache`
+  - Docker-образы сборки: `golang:X`, `python:X`, `maven:X`, `mcr.microsoft.com/dotnet/sdk:X`
+  - Формат `Dockerfile.dev` — среда для тестов/линтинга
+  - Registry: `harbor.kryukov.lan/library/dephealth-test-{lang}:latest`
+- [ ] Примеры вызовов для каждого языка
 
-### Фаза 14: Python SDK
+#### 11.3. Подготовка scrape-конфигурации VictoriaMetrics
 
-- PyPI-пакеты: `dephealth`, `dephealth-fastapi`, `dephealth-django`
-- Двойная поддержка: async (asyncio) и sync (threading)
-- prometheus_client интеграция
-- FastAPI lifespan + middleware
-- Django app + management command
-- Conformance-прогон
+- [ ] Добавить закомментированные scrape-targets для будущих сервисов:
+  - `python-service.dephealth-test.svc:8080/metrics`
+  - `java-service.dephealth-test.svc:8080/metrics`
+  - `csharp-service.dephealth-test.svc:8080/metrics`
+- [ ] Обновить `deploy/monitoring/victoriametrics/scrape-config.yml`
 
-### Фаза 15: Кросс-языковая документация
+#### 11.4. Обновление `conformance/run.sh`
 
-- Quickstart для каждого языка
-- Migration guide для каждого языка
-- Единый README с примерами для всех языков
-- Comparison matrix: возможности каждого SDK
+- [ ] Добавить параметр `--lang go|python|java|csharp|all`
+- [ ] При `--lang go` — текущее поведение (без изменений)
+- [ ] При `--lang all` — последовательный прогон всех языков
+- [ ] Каждый язык: свой тестовый сервис в `conformance/test-service-{lang}/`
+- [ ] Существующий `conformance/test-service/` — Go (не переименовываем)
 
-### Фаза 16: Релиз v1.0
+### Артефакты фазы 11
 
-- Финальный conformance-прогон для всех SDK
-- Публикация пакетов (Go modules, Maven Central, NuGet, PyPI)
-- Создание тега `v1.0.0`
-- Release notes
-- Анонс
+```text
+sdk-go/
+└── Makefile                          # Docker-обёртки для build/test/lint
+
+plans/
+└── makefile-conventions.md           # Конвенции Makefile для всех SDK
+
+deploy/monitoring/victoriametrics/
+└── scrape-config.yml                 # + закомментированные targets
+
+conformance/
+└── run.sh                            # + параметр --lang
+```
+
+### Критерии завершения фазы 11
+
+- `cd sdk-go && make test` проходит без локального Go
+- `cd sdk-go && make lint` проходит без локального golangci-lint
+- `cd sdk-go && make image` собирает Docker-образ тестового сервиса
+- `conformance/run.sh --lang go` работает как раньше
+- `plans/makefile-conventions.md` содержит правила и примеры для всех 4 языков
+
+---
+
+## Фаза 12: Python SDK — Core + Checkers
+
+**Цель**: реализовать ядро Python SDK — абстракции, парсер, все 8 чекеров, Prometheus exporter, планировщик.
+
+**Статус**: [ ] Не начата
+
+### Задачи фазы 12
+
+#### 12.1. Инициализация проекта (`sdk-python/`)
+
+- [ ] `pyproject.toml` — пакет `dephealth`:
+  - Зависимости: `prometheus-client`, `aiohttp` (для HTTP checker)
+  - Опциональные: `asyncpg`, `aiomysql`, `redis[hiredis]`, `aio-pika`, `aiokafka`, `grpcio`
+  - Dev-зависимости: `pytest`, `pytest-asyncio`, `pytest-cov`, `ruff`, `mypy`
+- [ ] `Dockerfile.dev` — Python среда для тестов:
+  - Базовый образ: `python:3.12-slim`
+  - Установка всех зависимостей (включая опциональные)
+  - Установка `ruff` и `mypy`
+- [ ] `Makefile` — по конвенциям из фазы 11:
+  - Docker volume: `dephealth-python-cache` (pip cache)
+  - Цели: `build`, `test`, `test-coverage`, `lint`, `fmt`, `clean`
+
+#### 12.2. Core-абстракции (`sdk-python/dephealth/`)
+
+- [ ] `dependency.py`:
+  - Dataclass `Dependency`: `name`, `type`, `critical`, `endpoints`, `check_config`
+  - Dataclass `Endpoint`: `host`, `port`, `metadata` (dict)
+  - Dataclass `CheckConfig`: `interval`, `timeout`, `initial_delay`,
+    `failure_threshold`, `success_threshold`
+  - Значения по умолчанию из спецификации (15s, 5s, 5s, 1, 1)
+- [ ] `checker.py`:
+  - Protocol `HealthChecker`:
+
+    ```python
+    class HealthChecker(Protocol):
+        async def check(self, endpoint: Endpoint) -> None: ...
+        def type(self) -> str: ...
+    ```
+
+  - Исключения: `CheckTimeoutError`, `ConnectionRefusedError`, `UnhealthyError`
+
+#### 12.3. Парсер конфигураций (`sdk-python/dephealth/parser.py`)
+
+- [ ] Функция `parse_url(raw_url: str) -> list[ParsedConnection]`
+  - Поддержка схем: `postgres://`, `postgresql://`, `redis://`, `rediss://`,
+    `amqp://`, `amqps://`, `http://`, `https://`, `grpc://`, `kafka://`
+  - Извлечение host, port, автоопределение type
+  - Default ports (postgres:5432, redis:6379, и т.д.)
+  - IPv6: `[::1]:5432`
+- [ ] Функция `parse_connection_string(conn_str: str) -> tuple[str, str]`
+- [ ] Функция `parse_jdbc(jdbc_url: str) -> list[ParsedConnection]`
+- [ ] Функция `parse_params(host: str, port: str) -> Endpoint`
+- [ ] Unit-тесты: `tests/test_parser.py`
+
+#### 12.4. Health Checkers (`sdk-python/dephealth/checks/`)
+
+- [ ] `tcp.py` — TCPChecker: `asyncio.open_connection` → закрытие
+- [ ] `http.py` — HTTPChecker: `aiohttp.ClientSession.get` к healthPath, ожидание 2xx
+- [ ] `grpc.py` — GRPCChecker: `grpc.aio` Health/Check
+- [ ] `postgres.py` — PostgresChecker:
+  - Автономный: `asyncpg.connect` → `SELECT 1` → закрытие
+  - Pool-режим: принимает `asyncpg.Pool`
+- [ ] `mysql.py` — MySQLChecker:
+  - Автономный: `aiomysql.connect` → `SELECT 1` → закрытие
+  - Pool-режим: принимает `aiomysql.Pool`
+- [ ] `redis.py` — RedisChecker:
+  - Автономный: `redis.asyncio.Redis.from_url` → `PING` → закрытие
+  - Pool-режим: принимает `redis.asyncio.Redis`
+- [ ] `amqp.py` — AMQPChecker: `aio_pika.connect_robust` → закрытие
+- [ ] `kafka.py` — KafkaChecker: `aiokafka.AIOKafkaClient` → metadata → закрытие
+- [ ] Unit-тесты для каждого чекера: `tests/test_checks/`
+  - Мок-серверы через `pytest-asyncio`
+
+#### 12.5. Prometheus Exporter (`sdk-python/dephealth/metrics.py`)
+
+- [ ] Класс `MetricsExporter`:
+  - Gauge `app_dependency_health` с метками `dependency`, `type`, `host`, `port`
+  - Histogram `app_dependency_latency_seconds` с теми же метками
+  - Бакеты: `[0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0]`
+  - Методы: `set_health(dep, endpoint, value)`, `observe_latency(dep, endpoint, duration)`
+  - Поддержка `CollectorRegistry` (кастомный или default)
+- [ ] Unit-тесты: `tests/test_metrics.py`
+
+#### 12.6. Check Scheduler (`sdk-python/dephealth/scheduler.py`)
+
+- [ ] Класс `CheckScheduler`:
+  - Двойная поддержка: asyncio (основной) и threading (fallback)
+  - asyncio: `asyncio.create_task` для каждой зависимости
+  - threading: `threading.Timer` для среды без event loop
+  - `initial_delay` перед первой проверкой
+  - Логика порогов (failure_threshold, success_threshold)
+  - Обновление метрик после каждой проверки
+  - `start()` / `stop()` — запуск/остановка
+  - `health() -> dict[str, bool]` — текущее состояние
+- [ ] Unit-тесты: `tests/test_scheduler.py`
+
+#### 12.7. Публичный API (`sdk-python/dephealth/api.py`)
+
+- [ ] Класс `DependencyHealth`:
+  - Конструктор с опциями:
+
+    ```python
+    dh = DependencyHealth(
+        http_check("payment", url="http://payment:8080"),
+        postgres_check("db", url="postgres://..."),
+        redis_check("cache", url="redis://..."),
+        check_interval=timedelta(seconds=30),
+        timeout=timedelta(seconds=10),
+    )
+    ```
+
+  - Фабрики: `http_check()`, `grpc_check()`, `tcp_check()`, `postgres_check()`,
+    `mysql_check()`, `redis_check()`, `amqp_check()`, `kafka_check()`
+  - `async start()` / `async stop()` (asyncio)
+  - `start_sync()` / `stop_sync()` (threading fallback)
+  - `health() -> dict[str, bool]`
+- [ ] Unit-тесты: `tests/test_api.py`
+
+#### 12.8. Линтинг и типизация
+
+- [ ] `ruff check .` — без ошибок
+- [ ] `mypy dephealth/ --strict` — без ошибок (или минимум)
+- [ ] `make lint` проходит в Docker
+
+### Артефакты фазы 12
+
+```text
+sdk-python/
+├── pyproject.toml
+├── Dockerfile.dev
+├── Makefile
+├── dephealth/
+│   ├── __init__.py
+│   ├── dependency.py
+│   ├── checker.py
+│   ├── parser.py
+│   ├── metrics.py
+│   ├── scheduler.py
+│   ├── api.py
+│   └── checks/
+│       ├── __init__.py
+│       ├── tcp.py
+│       ├── http.py
+│       ├── grpc.py
+│       ├── postgres.py
+│       ├── mysql.py
+│       ├── redis.py
+│       ├── amqp.py
+│       └── kafka.py
+└── tests/
+    ├── test_parser.py
+    ├── test_metrics.py
+    ├── test_scheduler.py
+    ├── test_api.py
+    └── test_checks/
+        ├── test_tcp.py
+        ├── test_http.py
+        ├── test_grpc.py
+        ├── test_postgres.py
+        ├── test_mysql.py
+        ├── test_redis.py
+        ├── test_amqp.py
+        └── test_kafka.py
+```
+
+### Критерии завершения фазы 12
+
+- `cd sdk-python && make test` — все тесты проходят в Docker
+- `cd sdk-python && make lint` — ruff + mypy без ошибок
+- `cd sdk-python && make test-coverage` — покрытие парсера и чекеров > 80%
+- Публичный API удобен и аналогичен Go SDK
+- Двойная поддержка asyncio/threading работает
+
+---
+
+## Фаза 13: Python SDK — FastAPI + Conformance
+
+**Цель**: создать FastAPI-интеграцию, тестовый сервис, прогнать conformance-сценарии.
+
+**Статус**: [ ] Не начата
+
+### Задачи фазы 13
+
+#### 13.1. FastAPI-интеграция (`sdk-python/dephealth_fastapi/`)
+
+- [ ] Пакет `dephealth-fastapi` (отдельный модуль в `pyproject.toml` или extras):
+  - Middleware: автоматическое подключение `/metrics` endpoint
+  - Lifespan: `dephealth_lifespan()` — запуск/остановка DependencyHealth
+  - Endpoint `/health/dependencies` — JSON со статусом всех зависимостей
+  - Интеграция с `prometheus_client` ASGI middleware
+- [ ] Пример использования:
+
+  ```python
+  from dephealth_fastapi import DepHealthMiddleware, dephealth_lifespan
+
+  app = FastAPI(lifespan=dephealth_lifespan(
+      http_check("payment", url="http://payment:8080"),
+      postgres_check("db", url=os.environ["DATABASE_URL"]),
+  ))
+  app.add_middleware(DepHealthMiddleware)
+  ```
+
+- [ ] Unit-тесты: `tests/test_fastapi.py`
+
+#### 13.2. Тестовый сервис (`test-services/python-service/`)
+
+- [ ] FastAPI-сервис с 4 зависимостями:
+  - PostgreSQL (через `asyncpg`)
+  - Redis (через `redis.asyncio`)
+  - HTTP-заглушка (автономный режим)
+  - gRPC-заглушка (автономный режим)
+- [ ] Endpoint-ы:
+  - `GET /` — JSON со статусом
+  - `GET /metrics` — Prometheus-метрики
+  - `GET /health` — health check для Kubernetes probes
+  - `GET /health/dependencies` — детальный статус
+- [ ] Конфигурация через env vars: `DATABASE_URL`, `REDIS_URL`, `HTTP_STUB_URL`,
+  `GRPC_STUB_HOST`, `GRPC_STUB_PORT`
+- [ ] `Dockerfile` — multi-stage (builder → python:3.12-slim)
+- [ ] Минимальный образ (< 200 MB)
+- [ ] Публикация: `harbor.kryukov.lan/library/dephealth-test-python:latest`
+
+#### 13.3. Kubernetes-манифесты (`test-services/k8s/python-service/`)
+
+- [ ] Deployment, Service (ClusterIP), ConfigMap
+- [ ] Повторяет паттерн `test-services/k8s/go-service/`
+- [ ] Namespace: `dephealth-test` (общий с Go)
+
+#### 13.4. Conformance test service (`conformance/test-service-python/`)
+
+- [ ] FastAPI-сервис с 7 зависимостями (все 8 типов — mysql и postgres отдельно):
+  - PostgreSQL primary, PostgreSQL replica, Redis, RabbitMQ, Kafka,
+    HTTP-заглушка, gRPC-заглушка
+- [ ] `Dockerfile`, `requirements.txt`
+- [ ] K8s-манифесты: `conformance/k8s/test-service-python/`
+- [ ] Публикация: `harbor.kryukov.lan/library/dephealth-conformance-python:latest`
+
+#### 13.5. Conformance-прогон
+
+- [ ] `conformance/run.sh --lang python`:
+  - Деплой инфраструктуры (общая с Go)
+  - Деплой `test-service-python`
+  - Прогон всех 8 сценариев
+- [ ] Все сценарии проходят:
+  - `basic-health.yml` — все метрики = 1
+  - `labels.yml` — метки корректны
+  - `latency.yml` — histogram бакеты присутствуют
+  - `initial-state.yml` — значения 0 или 1
+  - `partial-failure.yml` — primary=1, replica=0
+  - `full-failure.yml` — redis-cache=0
+  - `recovery.yml` — redis-cache=1 после восстановления
+  - `timeout.yml` — http-service=0 при задержке
+
+#### 13.6. Раскомментировать scrape-target
+
+- [ ] Раскомментировать `python-service` в VictoriaMetrics scrape-config
+- [ ] Проверить сбор метрик в Grafana
+
+### Артефакты фазы 13
+
+```text
+sdk-python/
+└── dephealth_fastapi/
+    ├── __init__.py
+    ├── middleware.py
+    ├── lifespan.py
+    └── endpoints.py
+
+test-services/
+├── python-service/
+│   ├── main.py
+│   ├── requirements.txt
+│   └── Dockerfile
+└── k8s/
+    └── python-service/
+        ├── deployment.yml
+        ├── service.yml
+        └── configmap.yml
+
+conformance/
+├── test-service-python/
+│   ├── main.py
+│   ├── requirements.txt
+│   └── Dockerfile
+└── k8s/
+    └── test-service-python/
+        ├── deployment.yml
+        ├── service.yml
+        └── configmap.yml
+```
+
+### Критерии завершения фазы 13
+
+- Тестовый сервис запускается в Kubernetes, `/metrics` возвращает корректные метрики
+- Все 8 conformance-сценариев проходят для Python SDK
+- Метрики идентичны Go SDK (имена, метки, HELP, бакеты)
+- FastAPI-интеграция покрыта тестами
+- VictoriaMetrics собирает метрики Python-сервиса, дашборды отображают данные
+
+---
+
+## Фаза 14: Java SDK — Core + Spring Boot + Conformance
+
+**Цель**: реализовать полный Java SDK — ядро, 8 чекеров, Spring Boot starter, Micrometer bridge,
+тестовый сервис и conformance-прогон.
+
+**Статус**: [ ] Не начата
+
+### Задачи фазы 14
+
+#### 14.1. Инициализация проекта (`sdk-java/`)
+
+- [ ] Parent POM (`sdk-java/pom.xml`):
+  - GroupId: `com.github.bigkaa`
+  - Модули: `dephealth-core`, `dephealth-spring-boot-starter`, `dephealth-micrometer`
+  - Java 17+, Maven 3.9+
+- [ ] `Dockerfile.dev` — Maven среда для тестов:
+  - Базовый образ: `maven:3.9-eclipse-temurin-17`
+  - Docker volume: `dephealth-maven-cache` (`~/.m2/repository`)
+- [ ] `Makefile` — по конвенциям из фазы 11:
+  - Цели: `build`, `test`, `test-coverage`, `lint`, `fmt`, `image`, `push`, `clean`
+  - `build` → `mvn package -DskipTests`
+  - `test` → `mvn test`
+  - `lint` → `mvn checkstyle:check` или `spotbugs`
+
+#### 14.2. Core-модуль (`sdk-java/dephealth-core/`)
+
+- [ ] Модель (`model/`):
+  - `Dependency.java`: name, type, critical, endpoints, checkConfig
+  - `Endpoint.java`: host, port, metadata (Map)
+  - `CheckConfig.java`: interval, timeout, initialDelay, failureThreshold, successThreshold
+  - Builder pattern для Dependency
+- [ ] Интерфейс `HealthChecker.java`:
+
+  ```java
+  public interface HealthChecker {
+      void check(Endpoint endpoint) throws CheckException;
+      String type();
+  }
+  ```
+
+- [ ] Исключения: `CheckTimeoutException`, `ConnectionRefusedException`, `UnhealthyException`
+
+#### 14.3. Парсер конфигураций (`sdk-java/dephealth-core/`)
+
+- [ ] `ConfigParser.java`:
+  - `parseUrl(String rawUrl) -> List<ParsedConnection>`
+  - `parseConnectionString(String connStr) -> Pair<String, String>`
+  - `parseJdbc(String jdbcUrl) -> List<ParsedConnection>`
+  - `parseParams(String host, String port) -> Endpoint`
+- [ ] Unit-тесты: все форматы, все схемы, IPv6, default ports
+
+#### 14.4. Health Checkers (`sdk-java/dephealth-core/checks/`)
+
+- [ ] `TcpChecker.java` — `Socket.connect()`
+- [ ] `HttpChecker.java` — `HttpClient.newHttpClient()`, GET к healthPath, ожидание 2xx
+- [ ] `GrpcChecker.java` — gRPC Health/Check (io.grpc)
+- [ ] `JdbcChecker.java` — `SELECT 1` через `DataSource` или новое соединение
+  - Поддержка PostgreSQL и MySQL через JDBC
+- [ ] `RedisChecker.java` — Jedis/Lettuce `PING`
+- [ ] `AmqpChecker.java` — RabbitMQ ConnectionFactory → connect → close
+- [ ] `KafkaChecker.java` — AdminClient → metadata → close
+- [ ] Unit-тесты для каждого чекера
+
+#### 14.5. Prometheus Exporter (`sdk-java/dephealth-core/`)
+
+- [ ] `PrometheusExporter.java`:
+  - Gauge `app_dependency_health` (simpleclient)
+  - Histogram `app_dependency_latency_seconds`
+  - Бакеты: `[0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0]`
+  - `setHealth()`, `observeLatency()`
+  - Поддержка `CollectorRegistry`
+- [ ] Unit-тесты
+
+#### 14.6. Check Scheduler (`sdk-java/dephealth-core/`)
+
+- [ ] `CheckScheduler.java`:
+  - `ScheduledExecutorService` для периодических проверок
+  - `initialDelay`, `checkInterval`, таймауты через `Future.get(timeout)`
+  - Логика порогов (failureThreshold, successThreshold)
+  - `start()` / `stop()` (graceful shutdown)
+  - `health() -> Map<String, Boolean>`
+- [ ] Unit-тесты с mock-чекерами
+
+#### 14.7. Spring Boot Starter (`sdk-java/dephealth-spring-boot-starter/`)
+
+- [ ] Auto-configuration:
+  - `DepHealthAutoConfiguration.java` — `@EnableConfigurationProperties`
+  - `DepHealthProperties.java` — `spring.dephealth.*` properties
+  - Автосканирование `DataSource`, `RedisTemplate`, etc.
+- [ ] `HealthIndicator` — интеграция с `/actuator/health`
+- [ ] Endpoint `/actuator/dependencies` — детальный статус
+- [ ] `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
+- [ ] Unit-тесты с `@SpringBootTest`
+
+#### 14.8. Micrometer Bridge (`sdk-java/dephealth-micrometer/`)
+
+- [ ] `MicrometerExporter.java`:
+  - Мост между `PrometheusExporter` и `MeterRegistry`
+  - Автоматическая регистрация в Spring Boot
+- [ ] Unit-тесты
+
+#### 14.9. Тестовый сервис (`test-services/java-service/`)
+
+- [ ] Spring Boot сервис с 4 зависимостями:
+  - PostgreSQL (через `DataSource` / Spring Data)
+  - Redis (через `RedisTemplate`)
+  - HTTP-заглушка (автономный)
+  - gRPC-заглушка (автономный)
+- [ ] Endpoint-ы: `/`, `/metrics`, `/health`, `/health/dependencies`
+- [ ] `Dockerfile` — multi-stage (Maven build → eclipse-temurin:17-jre-alpine)
+- [ ] Публикация: `harbor.kryukov.lan/library/dephealth-test-java:latest`
+- [ ] K8s-манифесты: `test-services/k8s/java-service/`
+
+#### 14.10. Conformance test service и прогон
+
+- [ ] `conformance/test-service-java/`:
+  - Spring Boot сервис с 7 зависимостями
+  - `Dockerfile`, `pom.xml`
+  - K8s-манифесты: `conformance/k8s/test-service-java/`
+- [ ] `conformance/run.sh --lang java`:
+  - Деплой, прогон всех 8 сценариев
+- [ ] Все сценарии проходят
+- [ ] Раскомментировать scrape-target в VictoriaMetrics
+
+### Артефакты фазы 14
+
+```text
+sdk-java/
+├── pom.xml                           # Parent POM
+├── Dockerfile.dev
+├── Makefile
+├── dephealth-core/
+│   ├── pom.xml
+│   └── src/main/java/com/github/bigkaa/dephealth/
+│       ├── model/
+│       │   ├── Dependency.java
+│       │   ├── Endpoint.java
+│       │   └── CheckConfig.java
+│       ├── HealthChecker.java
+│       ├── ConfigParser.java
+│       ├── PrometheusExporter.java
+│       ├── CheckScheduler.java
+│       └── checks/
+│           ├── TcpChecker.java
+│           ├── HttpChecker.java
+│           ├── GrpcChecker.java
+│           ├── JdbcChecker.java
+│           ├── RedisChecker.java
+│           ├── AmqpChecker.java
+│           └── KafkaChecker.java
+├── dephealth-spring-boot-starter/
+│   ├── pom.xml
+│   └── src/main/java/com/github/bigkaa/dephealth/spring/
+│       ├── DepHealthAutoConfiguration.java
+│       ├── DepHealthProperties.java
+│       └── DepHealthHealthIndicator.java
+└── dephealth-micrometer/
+    ├── pom.xml
+    └── src/main/java/com/github/bigkaa/dephealth/micrometer/
+        └── MicrometerExporter.java
+
+test-services/
+├── java-service/
+│   ├── pom.xml
+│   ├── src/main/java/.../Application.java
+│   └── Dockerfile
+└── k8s/
+    └── java-service/
+        ├── deployment.yml
+        ├── service.yml
+        └── configmap.yml
+
+conformance/
+├── test-service-java/
+│   ├── pom.xml
+│   ├── src/main/java/.../ConformanceApplication.java
+│   └── Dockerfile
+└── k8s/
+    └── test-service-java/
+        ├── deployment.yml
+        ├── service.yml
+        └── configmap.yml
+```
+
+### Критерии завершения фазы 14
+
+- `cd sdk-java && make test` — все тесты проходят в Docker
+- `cd sdk-java && make lint` — checkstyle/spotbugs без ошибок
+- Spring Boot auto-configuration корректно обнаруживает зависимости
+- Тестовый сервис запускается в Kubernetes, `/metrics` корректен
+- Все 8 conformance-сценариев проходят
+- Метрики идентичны Go и Python SDK
+- VictoriaMetrics собирает метрики, Grafana дашборды отображают данные
+
+---
+
+## Фаза 15: C# SDK — Core + ASP.NET + Conformance
+
+**Цель**: реализовать полный C# SDK — ядро, 8 чекеров, ASP.NET интеграцию,
+тестовый сервис и conformance-прогон.
+
+**Статус**: [ ] Не начата
+
+### Задачи фазы 15
+
+#### 15.1. Инициализация проекта (`sdk-csharp/`)
+
+- [ ] Solution: `DepHealth.sln`
+  - Проекты: `DepHealth.Core`, `DepHealth.AspNetCore`, `DepHealth.EntityFramework`
+  - .NET 8+
+- [ ] `Dockerfile.dev` — .NET SDK среда для тестов:
+  - Базовый образ: `mcr.microsoft.com/dotnet/sdk:8.0`
+  - Docker volume: `dephealth-dotnet-cache` (NuGet cache)
+- [ ] `Makefile` — по конвенциям из фазы 11:
+  - `build` → `dotnet build`
+  - `test` → `dotnet test`
+  - `lint` → `dotnet format --verify-no-changes`
+
+#### 15.2. Core-проект (`sdk-csharp/DepHealth.Core/`)
+
+- [ ] Модель:
+  - `Dependency.cs`: Name, Type, Critical, Endpoints, CheckConfig
+  - `Endpoint.cs`: Host, Port, Metadata (Dictionary)
+  - `CheckConfig.cs`: Interval, Timeout, InitialDelay, FailureThreshold, SuccessThreshold
+  - Builder pattern
+- [ ] Интерфейс `IHealthChecker`:
+
+  ```csharp
+  public interface IHealthChecker
+  {
+      Task CheckAsync(Endpoint endpoint, CancellationToken ct);
+      string Type { get; }
+  }
+  ```
+
+- [ ] Исключения: `CheckTimeoutException`, `ConnectionRefusedException`, `UnhealthyException`
+
+#### 15.3. Парсер конфигураций
+
+- [ ] `ConfigParser.cs`:
+  - `ParseUrl()`, `ParseConnectionString()`, `ParseJdbc()`, `ParseParams()`
+  - Аналогично Go/Python/Java
+- [ ] Unit-тесты (xUnit)
+
+#### 15.4. Health Checkers (`sdk-csharp/DepHealth.Core/Checks/`)
+
+- [ ] `TcpChecker.cs` — `TcpClient.ConnectAsync()`
+- [ ] `HttpChecker.cs` — `HttpClient.GetAsync()`, ожидание 2xx
+- [ ] `GrpcChecker.cs` — gRPC Health/Check (Grpc.HealthCheck)
+- [ ] `PostgresChecker.cs` — Npgsql `SELECT 1`
+  - Автономный: новое соединение
+  - Pool-режим: принимает `NpgsqlDataSource`
+- [ ] `MySqlChecker.cs` — MySqlConnector `SELECT 1`
+- [ ] `RedisChecker.cs` — StackExchange.Redis `PING`
+- [ ] `AmqpChecker.cs` — RabbitMQ.Client connect → close
+- [ ] `KafkaChecker.cs` — Confluent.Kafka AdminClient → metadata
+- [ ] Unit-тесты для каждого чекера (xUnit + Moq/NSubstitute)
+
+#### 15.5. Prometheus Exporter
+
+- [ ] `PrometheusExporter.cs` (prometheus-net):
+  - Gauge `app_dependency_health`
+  - Histogram `app_dependency_latency_seconds`
+  - Бакеты: `[0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0]`
+- [ ] Unit-тесты
+
+#### 15.6. Check Scheduler
+
+- [ ] `CheckScheduler.cs`:
+  - Task-based (`Task.Delay` + `CancellationToken`)
+  - `initialDelay`, `checkInterval`, таймауты
+  - Логика порогов
+  - `StartAsync()` / `StopAsync()`
+  - `Health() -> Dictionary<string, bool>`
+- [ ] Unit-тесты
+
+#### 15.7. ASP.NET интеграция (`sdk-csharp/DepHealth.AspNetCore/`)
+
+- [ ] `IHostedService` — запуск/остановка CheckScheduler с приложением
+- [ ] `IHealthCheck` — интеграция с `/health` (Microsoft.Extensions.Diagnostics.HealthChecks)
+- [ ] `ServiceCollectionExtensions`:
+
+  ```csharp
+  builder.Services.AddDepHealth(dh => {
+      dh.AddHttp("payment", "http://payment:8080");
+      dh.AddPostgres("db", connectionString);
+      dh.AddRedis("cache", "redis://...");
+  });
+  ```
+
+- [ ] Middleware: `/metrics` endpoint (prometheus-net.AspNetCore)
+- [ ] Endpoint: `/health/dependencies` — JSON
+- [ ] Unit-тесты
+
+#### 15.8. Entity Framework интеграция (`sdk-csharp/DepHealth.EntityFramework/`)
+
+- [ ] Extension: `AddNpgsql<TContext>()` — автоматический PostgreSQL checker
+- [ ] Извлечение connection string из DbContext
+- [ ] Unit-тесты
+
+#### 15.9. Тестовый сервис (`test-services/csharp-service/`)
+
+- [ ] ASP.NET Minimal API с 4 зависимостями:
+  - PostgreSQL (через Npgsql/EF)
+  - Redis (через StackExchange.Redis)
+  - HTTP-заглушка (автономный)
+  - gRPC-заглушка (автономный)
+- [ ] Endpoint-ы: `/`, `/metrics`, `/health`, `/health/dependencies`
+- [ ] `Dockerfile` — multi-stage (dotnet publish → runtime:8.0-alpine)
+- [ ] Публикация: `harbor.kryukov.lan/library/dephealth-test-csharp:latest`
+- [ ] K8s-манифесты: `test-services/k8s/csharp-service/`
+
+#### 15.10. Conformance test service и прогон
+
+- [ ] `conformance/test-service-csharp/`:
+  - ASP.NET Minimal API с 7 зависимостями
+  - `Dockerfile`, `.csproj`
+  - K8s-манифесты: `conformance/k8s/test-service-csharp/`
+- [ ] `conformance/run.sh --lang csharp`:
+  - Деплой, прогон всех 8 сценариев
+- [ ] Все сценарии проходят
+- [ ] Раскомментировать scrape-target в VictoriaMetrics
+
+### Артефакты фазы 15
+
+```text
+sdk-csharp/
+├── DepHealth.sln
+├── Dockerfile.dev
+├── Makefile
+├── DepHealth.Core/
+│   ├── DepHealth.Core.csproj
+│   ├── Models/
+│   │   ├── Dependency.cs
+│   │   ├── Endpoint.cs
+│   │   └── CheckConfig.cs
+│   ├── IHealthChecker.cs
+│   ├── ConfigParser.cs
+│   ├── PrometheusExporter.cs
+│   ├── CheckScheduler.cs
+│   └── Checks/
+│       ├── TcpChecker.cs
+│       ├── HttpChecker.cs
+│       ├── GrpcChecker.cs
+│       ├── PostgresChecker.cs
+│       ├── MySqlChecker.cs
+│       ├── RedisChecker.cs
+│       ├── AmqpChecker.cs
+│       └── KafkaChecker.cs
+├── DepHealth.AspNetCore/
+│   ├── DepHealth.AspNetCore.csproj
+│   ├── DepHealthHostedService.cs
+│   ├── DepHealthHealthCheck.cs
+│   ├── ServiceCollectionExtensions.cs
+│   └── DepHealthEndpoints.cs
+├── DepHealth.EntityFramework/
+│   ├── DepHealth.EntityFramework.csproj
+│   └── EntityFrameworkExtensions.cs
+└── tests/
+    ├── DepHealth.Core.Tests/
+    └── DepHealth.AspNetCore.Tests/
+
+test-services/
+├── csharp-service/
+│   ├── Program.cs
+│   ├── csharp-service.csproj
+│   └── Dockerfile
+└── k8s/
+    └── csharp-service/
+        ├── deployment.yml
+        ├── service.yml
+        └── configmap.yml
+
+conformance/
+├── test-service-csharp/
+│   ├── Program.cs
+│   ├── test-service-csharp.csproj
+│   └── Dockerfile
+└── k8s/
+    └── test-service-csharp/
+        ├── deployment.yml
+        ├── service.yml
+        └── configmap.yml
+```
+
+### Критерии завершения фазы 15
+
+- `cd sdk-csharp && make test` — все тесты проходят в Docker
+- `cd sdk-csharp && make lint` — dotnet format без ошибок
+- ASP.NET интеграция корректно стартует/останавливает checker
+- Тестовый сервис запускается в Kubernetes, `/metrics` корректен
+- Все 8 conformance-сценариев проходят
+- Метрики идентичны Go, Python и Java SDK
+- VictoriaMetrics собирает метрики, Grafana дашборды отображают данные
+
+---
+
+## Фаза 16: Кросс-языковая документация + Релиз v1.0
+
+**Цель**: создать документацию для всех SDK, провести финальную кросс-языковую верификацию, подготовить релиз.
+
+**Статус**: [ ] Не начата
+
+### Задачи фазы 16
+
+#### 16.1. Документация для каждого языка
+
+- [ ] `docs/quickstart/python.md` — быстрый старт Python SDK:
+  - Установка: `pip install dephealth[fastapi]`
+  - Минимальный пример (5 строк)
+  - Пример с FastAPI
+  - Конфигурация через env vars
+- [ ] `docs/quickstart/java.md` — быстрый старт Java SDK:
+  - Установка: Maven dependency
+  - Минимальный пример
+  - Пример с Spring Boot auto-configuration
+- [ ] `docs/quickstart/csharp.md` — быстрый старт C# SDK:
+  - Установка: `dotnet add package DepHealth.AspNetCore`
+  - Минимальный пример
+  - Пример с ASP.NET Minimal API
+- [ ] `docs/migration/python.md` — руководство по интеграции в существующий сервис
+- [ ] `docs/migration/java.md` — руководство по интеграции
+- [ ] `docs/migration/csharp.md` — руководство по интеграции
+
+#### 16.2. Comparison matrix
+
+- [ ] `docs/comparison.md` — все SDK side-by-side:
+  - Таблица: возможности × языки (Go, Python, Java, C#)
+  - Поддерживаемые чекеры
+  - Фреймворк-интеграции
+  - Async/sync режимы
+  - Зависимости и размеры пакетов
+
+#### 16.3. Обновление README.md
+
+- [ ] Обзор проекта — все 4 языка
+- [ ] Примеры для каждого языка (краткие)
+- [ ] Ссылки на quickstart и migration guide для каждого языка
+- [ ] Badges: CI/CD status, версии пакетов (когда опубликованы)
+
+#### 16.4. Финальный conformance-прогон
+
+- [ ] `conformance/run.sh --lang all` — все 4 SDK последовательно:
+  - Go: все 8 сценариев ✓
+  - Python: все 8 сценариев ✓
+  - Java: все 8 сценариев ✓
+  - C#: все 8 сценариев ✓
+- [ ] Кросс-языковая проверка идентичности метрик:
+  - Имена метрик (app_dependency_health, app_dependency_latency_seconds)
+  - Метки (dependency, type, host, port)
+  - HELP-строки
+  - Бакеты histogram
+  - Формат Prometheus text format
+
+#### 16.5. Подготовка к публикации
+
+- [ ] Go: `go mod tidy`, проверка `pkg.go.dev`
+- [ ] Python: `pyproject.toml` заполнен, `python -m build`, тестовый upload на TestPyPI
+- [ ] Java: `pom.xml` заполнен (SCM, developers, licenses), `mvn deploy` в staging
+- [ ] C#: `.csproj` заполнен, `dotnet pack`, тестовый push на NuGet.org (preview)
+
+#### 16.6. Релиз
+
+- [ ] `CHANGELOG.md` — описание всех изменений v1.0.0
+- [ ] Git tag `v1.0.0`
+- [ ] Release notes (GitHub Release)
+- [ ] Публикация пакетов:
+  - Go modules (git tag достаточен)
+  - PyPI: `twine upload`
+  - Maven Central: `mvn deploy -P release`
+  - NuGet: `dotnet nuget push`
+
+### Артефакты фазы 16
+
+```text
+docs/
+├── quickstart/
+│   ├── go.md          # уже есть
+│   ├── python.md
+│   ├── java.md
+│   └── csharp.md
+├── migration/
+│   ├── go.md          # уже есть
+│   ├── python.md
+│   ├── java.md
+│   └── csharp.md
+├── comparison.md
+└── specification.md   # уже есть
+
+README.md              # обновлённый
+CHANGELOG.md           # новый
+```
+
+### Критерии завершения фазы 16
+
+- Документация покрывает все 4 языка: quickstart, migration, comparison
+- `conformance/run.sh --lang all` — все 32 сценария (8 × 4 языка) проходят
+- Метрики идентичны между всеми SDK
+- README обновлён, CHANGELOG написан
+- Пакеты опубликованы (или готовы к публикации)
+- Git tag `v1.0.0` создан
 
 ---
 
@@ -999,10 +1826,16 @@ deploy/
               └── Фаза 5 (Go Metrics + Scheduler)
                     └── Фаза 6 (Go API + Contrib)
                           └── Фаза 7 (Тестовый сервис)
-                                └── Фаза 8 (Conformance-прогон) ← также зависит от Фазы 2
+                                └── Фаза 8 (Conformance-прогон) ← также от Фазы 2
                                       ├── Фаза 9 (Docs + CI/CD)
-                                      ├── Фаза 10 (Grafana + Алерты)
-                                      └── Фазы 11–16 (Остальные SDK)
+                                      └── Фаза 10 (Grafana + Алерты)
+                                            └── Фаза 11 (Инфраструктура контейнерной разработки)
+                                                  ├── Фаза 12 (Python SDK Core)
+                                                  │     └── Фаза 13 (Python FastAPI + Conformance)
+                                                  ├── Фаза 14 (Java SDK + Spring Boot + Conformance)
+                                                  └── Фаза 15 (C# SDK + ASP.NET + Conformance)
+                                                              ↓
+                                                  Фаза 16 (Документация + Релиз v1.0) ← от 13, 14, 15
 ```
 
 ---
