@@ -728,20 +728,20 @@ test-services/
 
 #### 9.1. Документация
 
-- [ ] `docs/quickstart/go.md` — быстрый старт для Go
+- [x] `docs/quickstart/go.md` — быстрый старт для Go
   - Установка: `go get github.com/company/dephealth`
   - Минимальный пример (5 строк)
   - Пример с несколькими зависимостями
   - Пример с contrib-модулями
   - Конфигурация через env vars
-- [ ] `docs/migration/go.md` — руководство по интеграции в существующий сервис
+- [x] `docs/migration/go.md` — руководство по интеграции в существующий сервис
   - Пошаговая инструкция
   - Типичные конфигурации
   - Troubleshooting
-- [ ] `docs/specification.md` — обзор спецификации (ссылки на spec/)
-- [ ] `README.md` в корне — обзор проекта, ссылки на документацию
+- [x] `docs/specification.md` — обзор спецификации (ссылки на spec/)
+- [x] `README.md` в корне — обзор проекта, ссылки на документацию
 
-#### 9.2. CI/CD (GitHub Actions)
+#### 9.2. CI/CD (GitHub Actions) — *отложено, не обязательно*
 
 - [ ] `.github/workflows/go-sdk.yml`:
   - Trigger: push/PR в `sdk-go/`
@@ -757,7 +757,7 @@ test-services/
   - `make build` — сборка всех артефактов
   - `make docker` — сборка Docker-образов
 
-#### 9.3. Линтинг и качество
+#### 9.3. Линтинг и качество — *отложено, не обязательно*
 
 - [ ] Настройка golangci-lint для Go SDK
 - [ ] markdownlint для документации (`.markdownlint.json` уже есть)
