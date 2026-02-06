@@ -1,0 +1,72 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dephealth"
+version = "0.1.0"
+description = "SDK для мониторинга зависимостей микросервисов"
+requires-python = ">=3.11"
+license = "MIT"
+
+dependencies = [
+    "prometheus-client>=0.20",
+    "aiohttp>=3.9",
+]
+
+[project.optional-dependencies]
+postgres = ["asyncpg>=0.29"]
+mysql = ["aiomysql>=0.2"]
+redis = ["redis[hiredis]>=5.0"]
+amqp = ["aio-pika>=9.4"]
+kafka = ["aiokafka>=0.10"]
+grpc = ["grpcio>=1.60", "grpcio-health-checking>=1.60"]
+all = [
+    "dephealth[postgres,mysql,redis,amqp,kafka,grpc]",
+]
+dev = [
+    "dephealth[all]",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=5.0",
+    "ruff>=0.5",
+    "mypy>=1.10",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "ANN", "B", "A", "SIM"]
+ignore = ["ANN101", "ANN102"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["dephealth"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = [
+    "asyncpg",
+    "asyncpg.*",
+    "aiomysql",
+    "aiomysql.*",
+    "aiokafka",
+    "aiokafka.*",
+    "aio_pika",
+    "aio_pika.*",
+    "grpc",
+    "grpc.*",
+    "grpc_health",
+    "grpc_health.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
