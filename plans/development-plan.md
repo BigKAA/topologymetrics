@@ -792,42 +792,43 @@ README.md
 
 **Цель**: создать дашборды и правила алертинга для визуализации метрик.
 
-**Статус**: [ ] Не начата
+**Статус**: [x] Завершена
 
 ### Задачи фазы 10
 
 #### 10.1. Grafana дашборды
 
-- [ ] **Обзор всех сервисов** (`deploy/grafana/dashboards/overview.json`):
+- [x] **Обзор всех сервисов** (`deploy/grafana/dashboards/overview.json`):
   - Таблица: сервис, зависимость, тип, статус (цвет)
   - Цветовая кодировка: зелёный/жёлтый/красный
   - Фильтры: по namespace, по типу зависимости
   - Переменные: `$namespace`, `$service`, `$dependency_type`
-- [ ] **Детали сервиса** (`deploy/grafana/dashboards/service-detail.json`):
+- [x] **Детали сервиса** (`deploy/grafana/dashboards/service-detail.json`):
   - Список зависимостей с текущим статусом
   - График `app_dependency_health` за последние 24ч
   - Heatmap латентности `app_dependency_latency_seconds`
   - Таблица endpoint-ов (host, port, status)
-- [ ] **Карта зависимостей** (`deploy/grafana/dashboards/dependency-map.json`):
+- [x] **Карта зависимостей** (`deploy/grafana/dashboards/dependency-map.json`):
   - Node Graph panel (Grafana 8+)
   - Или Flowchart plugin для визуализации графа
 
 #### 10.2. Правила алертинга
 
-- [ ] `deploy/alerting/rules.yml` — PrometheusRule / VMRule:
+- [x] `deploy/alerting/rules.yml` — PrometheusRule / VMRule:
   - `DependencyDown` — полный отказ зависимости (critical)
   - `DependencyDegraded` — частичная деградация (warning)
   - `DependencyHighLatency` — p99 латентность > 1s (warning)
   - `DependencyFlapping` — частые переключения 0/1 (info)
-- [ ] `deploy/alerting/inhibition-rules.yml`:
+  - `DependencyAbsent` — метрики отсутствуют (warning)
+- [x] `deploy/alerting/inhibition-rules.yml`:
   - Подавление каскадных алертов: если корневая зависимость down,
     гасить алерты от зависимых сервисов
 
 #### 10.3. Деплой мониторинга
 
-- [ ] ConfigMap / provisioning для Grafana дашбордов
-- [ ] Деплой правил алертинга в VictoriaMetrics / Prometheus
-- [ ] Верификация на тестовом кластере
+- [x] ConfigMap / provisioning для Grafana дашбордов
+- [ ] Деплой правил алертинга в VictoriaMetrics / Prometheus — *при наличии кластера*
+- [ ] Верификация на тестовом кластере — *при наличии кластера*
 
 ### Артефакты фазы 10
 

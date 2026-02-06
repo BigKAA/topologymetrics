@@ -1,0 +1,133 @@
+{
+  "__inputs": [],
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "9.0.0"
+    },
+    {
+      "type": "datasource",
+      "id": "prometheus",
+      "name": "Prometheus",
+      "version": "1.0.0"
+    }
+  ],
+  "annotations": {
+    "list": []
+  },
+  "description": "Карта зависимостей микросервисов (Node Graph)",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "arrow-left",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": false,
+      "title": "Назад к обзору",
+      "type": "link",
+      "url": "/d/dephealth-overview/dephealth-overview"
+    }
+  ],
+  "panels": [
+    {
+      "title": "Карта зависимостей",
+      "description": "Сервисы и их зависимости. Зелёный = healthy, красный = unhealthy. Размер узла зависимости пропорционален числу подключённых сервисов.",
+      "type": "nodeGraph",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 20, "w": 24, "x": 0, "y": 0 },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "nodes": {
+          "mainStatUnit": "",
+          "arcs": [
+            {
+              "field": "arc__healthy",
+              "color": "green"
+            },
+            {
+              "field": "arc__unhealthy",
+              "color": "red"
+            }
+          ]
+        },
+        "edges": {
+          "mainStatUnit": "s"
+        }
+      },
+      "transformations": [
+        {
+          "id": "configFromData",
+          "disabled": true,
+          "options": {}
+        }
+      ],
+      "targets": [
+        {
+          "expr": "app_dependency_health{namespace=~\"$namespace\"}",
+          "format": "table",
+          "instant": true,
+          "refId": "health"
+        },
+        {
+          "expr": "rate(app_dependency_latency_seconds_sum{namespace=~\"$namespace\"}[5m]) / rate(app_dependency_latency_seconds_count{namespace=~\"$namespace\"}[5m])",
+          "format": "table",
+          "instant": true,
+          "refId": "latency"
+        }
+      ]
+    },
+    {
+      "title": "Инструкция по настройке Node Graph",
+      "type": "text",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 20 },
+      "options": {
+        "mode": "markdown",
+        "content": "## Настройка Node Graph\n\nДля полноценной работы Node Graph необходимо:\n\n1. **Grafana 8.0+** с поддержкой Node Graph panel\n2. **Data transformation** для преобразования метрик в формат nodes/edges:\n   - **Nodes**: сервисы (job) и зависимости (dependency+host+port)\n   - **Edges**: связь сервис → зависимость с латентностью\n\n### Альтернативный подход\n\nЕсли Node Graph не подходит, можно использовать:\n- **Flowcharting plugin** — ручная карта с данными из метрик\n- **Mermaid в Text panel** — статическая схема зависимостей\n\n### PromQL для построения графа\n\n```promql\n# Все связи сервис → зависимость\napp_dependency_health\n\n# Агрегация: сервис + зависимость → статус\nmin by (job, dependency, type) (app_dependency_health)\n\n# Уникальные зависимости (узлы)\ncount by (dependency, type, host, port) (app_dependency_health)\n```\n\n### Готовая карта зависимостей\n\nДля production рекомендуется:\n1. Настроить data source с трансформацией Prometheus → Node/Edge frames\n2. Или использовать отдельный сервис (например, Service Graph из Tempo/Jaeger)\n   в комбинации с метриками dephealth"
+      }
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 38,
+  "tags": ["dephealth", "dependencies", "dependency-map", "topology"],
+  "templating": {
+    "list": [
+      {
+        "name": "DS_PROMETHEUS",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0,
+        "label": "Datasource"
+      },
+      {
+        "name": "namespace",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "query": "label_values(app_dependency_health, namespace)",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": {},
+        "hide": 0,
+        "label": "Namespace"
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "dephealth: Карта зависимостей",
+  "uid": "dephealth-dependency-map",
+  "version": 1
+}

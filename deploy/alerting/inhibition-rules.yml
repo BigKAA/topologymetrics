@@ -1,0 +1,75 @@
+# Правила подавления каскадных алертов dephealth
+#
+# Логика: если корневая зависимость (например, PostgreSQL) недоступна,
+# подавляем алерты от сервисов, которые зависят от неё, чтобы избежать
+# шквала однотипных уведомлений.
+#
+# Интеграция:
+# - Prometheus Alertmanager: включить в alertmanager.yml секцию inhibit_rules
+# - VMAlert: аналогичная конфигурация
+#
+# Пример использования в alertmanager.yml:
+#
+#   inhibit_rules:
+#     - <содержимое этого файла>
+
+# ── Подавление DependencyDegraded при DependencyDown ──────────
+# Если зависимость полностью недоступна (DependencyDown),
+# не нужен дополнительный алерт о деградации (DependencyDegraded).
+- source_matchers:
+    - alertname = "DependencyDown"
+  target_matchers:
+    - alertname = "DependencyDegraded"
+  equal:
+    - job
+    - namespace
+    - dependency
+
+# ── Подавление DependencyHighLatency при DependencyDown ───────
+# Если зависимость недоступна, латентность не релевантна.
+- source_matchers:
+    - alertname = "DependencyDown"
+  target_matchers:
+    - alertname = "DependencyHighLatency"
+  equal:
+    - job
+    - namespace
+    - dependency
+
+# ── Подавление DependencyFlapping при DependencyDown ──────────
+# Flapping не информативен, если зависимость уже полностью down.
+- source_matchers:
+    - alertname = "DependencyDown"
+  target_matchers:
+    - alertname = "DependencyFlapping"
+  equal:
+    - job
+    - namespace
+    - dependency
+
+# ── Подавление DependencyFlapping при DependencyDegraded ──────
+# Если известно о деградации, flapping является следствием.
+- source_matchers:
+    - alertname = "DependencyDegraded"
+  target_matchers:
+    - alertname = "DependencyFlapping"
+  equal:
+    - job
+    - namespace
+    - dependency
+
+# ── Каскадное подавление между сервисами ──────────────────────
+# Если инфраструктурная зависимость (severity=critical) упала,
+# подавляем warning-алерты от всех сервисов в том же namespace.
+#
+# Это работает, когда общая зависимость (PostgreSQL, Redis)
+# используется несколькими сервисами: один critical-алерт
+# вместо десятков warning от каждого сервиса.
+- source_matchers:
+    - alertname = "DependencyDown"
+    - severity = "critical"
+  target_matchers:
+    - severity = "warning"
+  equal:
+    - namespace
+    - dependency
