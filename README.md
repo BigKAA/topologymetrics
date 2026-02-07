@@ -4,6 +4,8 @@ SDK для мониторинга зависимостей микросерви�
 Prometheus-метрики о состоянии своих зависимостей (БД, кэши, очереди,
 HTTP/gRPC-сервисы). VictoriaMetrics собирает данные, Grafana визуализирует.
 
+**Поддерживаемые языки**: Go, Python, Java, C#
+
 ## Проблема
 
 Система из сотен микросервисов сталкивается с тремя проблемами:
@@ -26,6 +28,83 @@ app_dependency_latency_seconds_bucket{dependency="postgres-main",type="postgres"
 
 Из метрик автоматически строится граф зависимостей, настраивается алертинг
 с подавлением каскадов, отображается степень деградации каждого сервиса.
+
+## Быстрый старт
+
+### Go
+
+```go
+import (
+    "github.com/BigKAA/topologymetrics/dephealth"
+    _ "github.com/BigKAA/topologymetrics/dephealth/checks"
+)
+
+dh, err := dephealth.New(
+    dephealth.Postgres("postgres-main",
+        dephealth.FromURL(os.Getenv("DATABASE_URL")),
+        dephealth.Critical(true),
+    ),
+    dephealth.Redis("redis-cache",
+        dephealth.FromURL(os.Getenv("REDIS_URL")),
+    ),
+)
+dh.Start(ctx)
+defer dh.Stop()
+
+http.Handle("/metrics", promhttp.Handler())
+```
+
+### Python (FastAPI)
+
+```python
+from dephealth.api import postgres_check, redis_check
+from dephealth_fastapi import dephealth_lifespan, DepHealthMiddleware
+
+app = FastAPI(
+    lifespan=dephealth_lifespan(
+        postgres_check("postgres-main", url=os.environ["DATABASE_URL"]),
+        redis_check("redis-cache", url=os.environ["REDIS_URL"]),
+    )
+)
+app.add_middleware(DepHealthMiddleware)
+```
+
+### Java (Spring Boot)
+
+```yaml
+# application.yml
+dephealth:
+  dependencies:
+    postgres-main:
+      type: postgres
+      url: ${DATABASE_URL}
+      critical: true
+    redis-cache:
+      type: redis
+      url: ${REDIS_URL}
+```
+
+```xml
+<dependency>
+    <groupId>com.github.bigkaa</groupId>
+    <artifactId>dephealth-spring-boot-starter</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+</dependency>
+```
+
+### C# (ASP.NET Core)
+
+```csharp
+builder.Services.AddDepHealth(dh => dh
+    .AddDependency("postgres-main", DependencyType.Postgres, d => d
+        .Url(builder.Configuration["DATABASE_URL"]!)
+        .Critical(true))
+    .AddDependency("redis-cache", DependencyType.Redis, d => d
+        .Url(builder.Configuration["REDIS_URL"]!))
+);
+
+app.UseDepHealth(); // /metrics + /health/dependencies
+```
 
 ## Архитектура
 
@@ -72,104 +151,15 @@ app_dependency_latency_seconds_bucket{dependency="postgres-main",type="postgres"
 
 ```text
 spec/                           # Единая спецификация (контракты метрик, поведения, конфигурации)
-conformance/                    # Conformance-тесты (Kubernetes, сценарии, runner)
-sdk-go/                         # Go SDK (пилотный язык)
-  dephealth/                    #   Core: абстракции, парсер, метрики, планировщик, публичный API
-  dephealth/checks/             #   Чекеры: TCP, HTTP, gRPC, Postgres, MySQL, Redis, AMQP, Kafka
-  dephealth/contrib/sqldb/      #   Contrib: интеграция с *sql.DB (Postgres/MySQL pool)
-  dephealth/contrib/redispool/  #   Contrib: интеграция с *redis.Client
+conformance/                    # Conformance-тесты (Kubernetes, 8 сценариев × 4 языка)
+sdk-go/                         # Go SDK
+sdk-python/                     # Python SDK
+sdk-java/                       # Java SDK (Maven multi-module)
+sdk-csharp/                     # C# SDK (.NET 8)
+test-services/                  # Тестовые микросервисы для каждого языка
+deploy/                         # Мониторинг: Grafana, Alertmanager, VictoriaMetrics
+docs/                           # Документация (quickstart, migration, specification)
 plans/                          # Планы разработки
-```
-
-Планируемые SDK: Go (пилотный, реализован), Java, C#, Python.
-
-## Go SDK
-
-Пилотный SDK на Go. Публичный API, все 8 чекеров, метрики, планировщик и contrib-модули реализованы.
-
-### Быстрый старт
-
-```go
-import (
-    "github.com/BigKAA/topologymetrics/dephealth"
-    _ "github.com/BigKAA/topologymetrics/dephealth/checks" // регистрация чекеров
-)
-
-dh, err := dephealth.New(
-    dephealth.HTTP("payment-service",
-        dephealth.FromURL(os.Getenv("PAYMENT_SERVICE_URL")),
-        dephealth.Critical(true),
-    ),
-    dephealth.Postgres("postgres-main",
-        dephealth.FromParams(os.Getenv("DB_HOST"), os.Getenv("DB_PORT")),
-        dephealth.Critical(true),
-    ),
-    dephealth.Redis("redis-cache",
-        dephealth.FromURL(os.Getenv("REDIS_URL")),
-    ),
-)
-if err != nil {
-    log.Fatal(err)
-}
-
-dh.Start(ctx)
-defer dh.Stop()
-
-http.Handle("/metrics", promhttp.Handler())
-```
-
-### Интеграция с connection pool
-
-```go
-import (
-    "github.com/BigKAA/topologymetrics/dephealth/contrib/sqldb"
-    "github.com/BigKAA/topologymetrics/dephealth/contrib/redispool"
-)
-
-dh, err := dephealth.New(
-    // PostgreSQL через существующий *sql.DB
-    sqldb.FromDB("postgres-main", db,
-        dephealth.FromParams("pg.svc", "5432"),
-        dephealth.Critical(true),
-    ),
-    // Redis через существующий *redis.Client (host:port извлекается автоматически)
-    redispool.FromClient("redis-cache", redisClient),
-)
-```
-
-### Глобальные опции
-
-```go
-dh, err := dephealth.New(
-    dephealth.WithCheckInterval(30 * time.Second),
-    dephealth.WithTimeout(3 * time.Second),
-    dephealth.WithRegisterer(customRegisterer),
-    dephealth.WithLogger(slog.Default()),
-    // ...зависимости
-)
-```
-
-### Реализованные компоненты
-
-- **Public API** (`sdk-go/dephealth/dephealth.go`, `options.go`) — `DepHealth`, `New()`, Option pattern
-- **Core** (`sdk-go/dephealth/`) — `Dependency`, `Endpoint`, `CheckConfig`, `HealthChecker` interface
-- **Parser** (`sdk-go/dephealth/parser.go`) — парсинг URL, connection string, JDBC, прямых параметров
-- **Checkers** (`sdk-go/dephealth/checks/`) — TCP, HTTP, gRPC, PostgreSQL, MySQL, Redis, AMQP, Kafka
-- **Metrics** (`sdk-go/dephealth/metrics.go`) — Prometheus Gauge + Histogram, functional options
-- **Scheduler** (`sdk-go/dephealth/scheduler.go`) — горутина на endpoint, пороги, graceful shutdown
-- **Contrib** (`sdk-go/dephealth/contrib/`) — `sqldb` (PostgreSQL/MySQL pool), `redispool` (go-redis pool)
-
-### Сборка и тесты
-
-```bash
-# Unit-тесты (81 тест)
-cd sdk-go && go test ./... -short
-
-# Линтер
-cd sdk-go && golangci-lint run
-
-# Integration-тесты (требуют Docker/Kubernetes)
-cd sdk-go && go test ./... -tags integration
 ```
 
 ## Спецификация
@@ -188,7 +178,6 @@ cd sdk-go && go test ./... -tags integration
 | `app_dependency_latency_seconds` | Histogram | Латентность проверки |
 
 Обязательные метки: `dependency`, `type`, `host`, `port`.
-Опциональные: `role`, `shard`, `vhost`.
 
 ### Параметры по умолчанию
 
@@ -196,7 +185,6 @@ cd sdk-go && go test ./... -tags integration
 | --- | --- |
 | `checkInterval` | 15s |
 | `timeout` | 5s |
-| `initialDelay` | 5s |
 | `failureThreshold` | 1 |
 | `successThreshold` | 1 |
 
@@ -208,15 +196,28 @@ cd sdk-go && go test ./... -tags integration
 - Управляемые HTTP и gRPC заглушки
 - 8 тестовых сценариев: basic-health, partial-failure, full-failure, recovery,
   latency, labels, timeout, initial-state
-- Python runner для парсинга и проверки Prometheus-метрик
+- Все 4 SDK проходят 8/8 сценариев (32 теста суммарно)
 
 ## Документация
 
-- [Быстрый старт Go SDK](docs/quickstart/go.md) — установка и минимальный пример
-- [Руководство по интеграции](docs/migration/go.md) — подключение к существующему сервису
-- [Обзор спецификации](docs/specification.md) — контракты метрик, поведения, конфигурации
+### Быстрый старт
 
-Детальная спецификация: [`spec/`](spec/)
+- [Go](docs/quickstart/go.md)
+- [Python](docs/quickstart/python.md)
+- [Java](docs/quickstart/java.md)
+- [C#](docs/quickstart/csharp.md)
+
+### Руководство по интеграции
+
+- [Go](docs/migration/go.md)
+- [Python](docs/migration/python.md)
+- [Java](docs/migration/java.md)
+- [C#](docs/migration/csharp.md)
+
+### Дополнительно
+
+- [Сравнение SDK](docs/comparison.md) — все языки side-by-side
+- [Обзор спецификации](docs/specification.md) — контракты метрик, поведения, конфигурации
 
 ## Лицензия
 
