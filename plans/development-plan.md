@@ -1711,43 +1711,28 @@ conformance/
 
 **Цель**: создать документацию для всех SDK, провести финальную кросс-языковую верификацию, подготовить релиз.
 
-**Статус**: [ ] Не начата
+**Статус**: [~] В процессе (16.1–16.3 завершены)
 
 ### Задачи фазы 16
 
-#### 16.1. Документация для каждого языка
+#### 16.1. Документация для каждого языка ✅
 
-- [ ] `docs/quickstart/python.md` — быстрый старт Python SDK:
-  - Установка: `pip install dephealth[fastapi]`
-  - Минимальный пример (5 строк)
-  - Пример с FastAPI
-  - Конфигурация через env vars
-- [ ] `docs/quickstart/java.md` — быстрый старт Java SDK:
-  - Установка: Maven dependency
-  - Минимальный пример
-  - Пример с Spring Boot auto-configuration
-- [ ] `docs/quickstart/csharp.md` — быстрый старт C# SDK:
-  - Установка: `dotnet add package DepHealth.AspNetCore`
-  - Минимальный пример
-  - Пример с ASP.NET Minimal API
-- [ ] `docs/migration/python.md` — руководство по интеграции в существующий сервис
-- [ ] `docs/migration/java.md` — руководство по интеграции
-- [ ] `docs/migration/csharp.md` — руководство по интеграции
+- [x] `docs/quickstart/python.md` — быстрый старт Python SDK
+- [x] `docs/quickstart/java.md` — быстрый старт Java SDK
+- [x] `docs/quickstart/csharp.md` — быстрый старт C# SDK
+- [x] `docs/migration/python.md` — руководство по интеграции в существующий сервис
+- [x] `docs/migration/java.md` — руководство по интеграции
+- [x] `docs/migration/csharp.md` — руководство по интеграции
 
-#### 16.2. Comparison matrix
+#### 16.2. Comparison matrix ✅
 
-- [ ] `docs/comparison.md` — все SDK side-by-side:
-  - Таблица: возможности × языки (Go, Python, Java, C#)
-  - Поддерживаемые чекеры
-  - Фреймворк-интеграции
-  - Async/sync режимы
-  - Зависимости и размеры пакетов
+- [x] `docs/comparison.md` — все SDK side-by-side
 
-#### 16.3. Обновление README.md
+#### 16.3. Обновление README.md ✅
 
-- [ ] Обзор проекта — все 4 языка
-- [ ] Примеры для каждого языка (краткие)
-- [ ] Ссылки на quickstart и migration guide для каждого языка
+- [x] Обзор проекта — все 4 языка
+- [x] Примеры для каждого языка (краткие)
+- [x] Ссылки на quickstart и migration guide для каждого языка
 - [ ] Badges: CI/CD status, версии пакетов (когда опубликованы)
 
 #### 16.4. Финальный conformance-прогон
