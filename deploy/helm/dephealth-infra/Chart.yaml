@@ -1,0 +1,13 @@
+apiVersion: v2
+name: dephealth-infra
+description: Инфраструктурные зависимости для dephealth (postgres, redis, kafka, rabbitmq, stubs)
+version: 0.1.0
+appVersion: "1.0.0"
+type: application
+keywords:
+  - dephealth
+  - infrastructure
+  - postgres
+  - redis
+  - kafka
+  - rabbitmq

@@ -306,7 +306,7 @@ volumes:
 `conformance/k8s/postgres/`, `conformance/k8s/redis/`, `conformance/k8s/kafka/`,
 `conformance/k8s/rabbitmq/`, `conformance/k8s/stubs/`, `test-services/k8s/stubs/`.
 
-**Статус**: [ ] Не начата
+**Статус**: [x] Завершена
 
 ### Структура
 
@@ -389,19 +389,19 @@ global:
 
 ### Задачи
 
-- [ ] 20.1. Создать `deploy/helm/dephealth-infra/Chart.yaml`
-- [ ] 20.2. Создать `values.yaml` с дефолтами для docker.io
-- [ ] 20.3. Создать `values-homelab.yaml` для домашнего окружения
-- [ ] 20.4. Шаблоны: namespace, postgres-primary (StatefulSet + Service)
-- [ ] 20.5. Шаблоны: postgres-replica (условный, `{{ if .Values.postgres.replica.enabled }}`)
-- [ ] 20.6. Шаблоны: redis (Deployment + Service)
-- [ ] 20.7. Шаблоны: kafka (условный StatefulSet + Service)
-- [ ] 20.8. Шаблоны: rabbitmq (условный Deployment + Service)
-- [ ] 20.9. Шаблоны: http-stub, grpc-stub (Deployment + Service)
-- [ ] 20.10. Шаблон `_helpers.tpl` — helper для формирования image path
-- [ ] 20.11. `helm template` — проверить генерацию манифестов
-- [ ] 20.12. `helm install` — проверить деплой в кластер
-- [ ] 20.13. Проверить с `values-homelab.yaml`
+- [x] 20.1. Создать `deploy/helm/dephealth-infra/Chart.yaml`
+- [x] 20.2. Создать `values.yaml` с дефолтами для docker.io
+- [x] 20.3. Создать `values-homelab.yaml` для домашнего окружения
+- [x] 20.4. Шаблоны: namespace, postgres-primary (StatefulSet + Service)
+- [x] 20.5. Шаблоны: postgres-replica (условный, `{{ if .Values.postgres.replica.enabled }}`)
+- [x] 20.6. Шаблоны: redis (Deployment + Service)
+- [x] 20.7. Шаблоны: kafka (условный StatefulSet + Service)
+- [x] 20.8. Шаблоны: rabbitmq (условный Deployment + Service)
+- [x] 20.9. Шаблоны: http-stub, grpc-stub (Deployment + Service)
+- [x] 20.10. Шаблон `_helpers.tpl` — helper для формирования image path
+- [x] 20.11. `helm template` — проверить генерацию манифестов
+- [x] 20.12. `helm install` — проверить деплой в кластер
+- [x] 20.13. Проверить с `values-homelab.yaml`
 
 ---
 

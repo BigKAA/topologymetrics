@@ -1,0 +1,112 @@
+# dephealth-infra — значения по умолчанию
+#
+# Использование:
+#   helm install dephealth-infra deploy/helm/dephealth-infra/
+#   helm install dephealth-infra deploy/helm/dephealth-infra/ -f deploy/helm/dephealth-infra/values-homelab.yaml
+
+global:
+  # Registry для базовых Docker Hub образов
+  imageRegistry: docker.io
+  # Registry для собственных образов (stubs)
+  pushRegistry: ""
+  # StorageClass для PVC (пустая строка = default StorageClass кластера)
+  storageClass: ""
+  # Целевой namespace
+  namespace: dephealth-test
+
+# --- PostgreSQL ---
+postgres:
+  enabled: true
+  image: postgres
+  tag: "17-alpine"
+  credentials:
+    user: dephealth
+    password: dephealth-test-pass
+    database: dephealth
+  primary:
+    storage: 1Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+  replica:
+    enabled: false
+    storage: 1Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+
+# --- Redis ---
+redis:
+  enabled: true
+  image: redis
+  tag: "7-alpine"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# --- Kafka ---
+kafka:
+  enabled: false
+  image: apache/kafka
+  tag: "3.8.1"
+  storage: 1Gi
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+# --- RabbitMQ ---
+rabbitmq:
+  enabled: false
+  image: rabbitmq
+  tag: "3-management-alpine"
+  credentials:
+    user: dephealth
+    password: dephealth-test-pass
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# --- Stubs ---
+stubs:
+  httpStub:
+    enabled: true
+    image: dephealth-http-stub
+    tag: latest
+    resources:
+      requests:
+        cpu: 10m
+        memory: 16Mi
+      limits:
+        cpu: 100m
+        memory: 32Mi
+  grpcStub:
+    enabled: true
+    image: dephealth-grpc-stub
+    tag: latest
+    resources:
+      requests:
+        cpu: 10m
+        memory: 16Mi
+      limits:
+        cpu: 100m
+        memory: 32Mi
