@@ -1737,17 +1737,18 @@ conformance/
 
 #### 16.4. Финальный conformance-прогон
 
-- [ ] `conformance/run.sh --lang all` — все 4 SDK последовательно:
+- [x] `conformance/run.sh --lang all` — все 4 SDK последовательно:
   - Go: все 8 сценариев ✓
   - Python: все 8 сценариев ✓
   - Java: все 8 сценариев ✓
   - C#: все 8 сценариев ✓
-- [ ] Кросс-языковая проверка идентичности метрик:
-  - Имена метрик (app_dependency_health, app_dependency_latency_seconds)
-  - Метки (dependency, type, host, port)
-  - HELP-строки
-  - Бакеты histogram
-  - Формат Prometheus text format
+- [x] Кросс-языковая проверка идентичности метрик:
+  - Имена метрик (app_dependency_health, app_dependency_latency_seconds) ✓
+  - Метки (dependency, type, host, port) ✓
+  - HELP-строки ✓
+  - Бакеты histogram ✓
+  - Формат Prometheus text format ✓
+- [x] Скрипт `conformance/runner/cross_verify.py` — автоматическая кросс-языковая верификация
 
 #### 16.5. Подготовка к публикации
 
