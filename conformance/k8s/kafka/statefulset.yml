@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: kafka
-          image: harbor.kryukov.lan/homelab/apache/kafka:3.8.1
+          image: harbor.kryukov.lan/docker/apache/kafka:3.8.1
           ports:
             - containerPort: 9092
               name: kafka

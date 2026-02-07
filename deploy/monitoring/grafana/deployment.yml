@@ -19,7 +19,7 @@ spec:
         fsGroup: 472
       containers:
         - name: grafana
-          image: harbor.kryukov.lan/homelab/grafana/grafana:11.6.0
+          image: harbor.kryukov.lan/docker/grafana/grafana:11.6.0
           ports:
             - containerPort: 3000
               name: http

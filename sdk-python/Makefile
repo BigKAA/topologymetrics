@@ -20,7 +20,7 @@ IMAGE_TAG      ?= latest
 
 # Docker volumes
 CACHE_VOLUME = dephealth-python-cache
-PY_IMAGE     = harbor.kryukov.lan/homelab/python:$(PYTHON_VERSION)-slim
+PY_IMAGE     = harbor.kryukov.lan/docker/python:$(PYTHON_VERSION)-slim
 
 # Пути
 PROJECT_ROOT = $(shell cd .. && pwd)

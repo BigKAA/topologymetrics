@@ -46,9 +46,9 @@
 
 | Язык | Образ сборки | Образ линтера |
 | --- | --- | --- |
-| Go | `harbor.kryukov.lan/homelab/golang:$(GO_VERSION)` | `harbor.kryukov.lan/homelab/golangci/golangci-lint:$(LINT_VERSION)` |
-| Python | `harbor.kryukov.lan/homelab/python:$(PYTHON_VERSION)-slim` | Встроенный (`ruff`, `mypy`) |
-| Java | `harbor.kryukov.lan/homelab/maven:$(JAVA_VERSION)` | Встроенный (SpotBugs, Checkstyle) |
+| Go | `harbor.kryukov.lan/docker/golang:$(GO_VERSION)` | `harbor.kryukov.lan/docker/golangci/golangci-lint:$(LINT_VERSION)` |
+| Python | `harbor.kryukov.lan/docker/python:$(PYTHON_VERSION)-slim` | Встроенный (`ruff`, `mypy`) |
+| Java | `harbor.kryukov.lan/docker/maven:$(JAVA_VERSION)` | Встроенный (SpotBugs, Checkstyle) |
 | C# | `mcr.microsoft.com/dotnet/sdk:$(DOTNET_VERSION)` | Встроенный (dotnet format) |
 
 ## Docker-образы тестовых сервисов
@@ -98,8 +98,8 @@ IMAGE_NAME   ?= dephealth-test-go
 IMAGE_TAG    ?= latest
 
 CACHE_VOLUME = dephealth-go-cache
-GO_IMAGE     = harbor.kryukov.lan/homelab/golang:$(GO_VERSION)
-LINT_IMAGE   = harbor.kryukov.lan/homelab/golangci/golangci-lint:$(LINT_VERSION)
+GO_IMAGE     = harbor.kryukov.lan/docker/golang:$(GO_VERSION)
+LINT_IMAGE   = harbor.kryukov.lan/docker/golangci/golangci-lint:$(LINT_VERSION)
 PROJECT_ROOT = $(shell cd .. && pwd)
 
 DOCKER_RUN = docker run --rm \
@@ -135,7 +135,7 @@ IMAGE_NAME     ?= dephealth-test-python
 IMAGE_TAG      ?= latest
 
 CACHE_VOLUME = dephealth-python-cache
-PY_IMAGE     = harbor.kryukov.lan/homelab/python:$(PYTHON_VERSION)-slim
+PY_IMAGE     = harbor.kryukov.lan/docker/python:$(PYTHON_VERSION)-slim
 PROJECT_ROOT = $(shell cd .. && pwd)
 
 DOCKER_RUN = docker run --rm \
@@ -171,7 +171,7 @@ IMAGE_NAME   ?= dephealth-test-java
 IMAGE_TAG    ?= latest
 
 CACHE_VOLUME = dephealth-java-cache
-MVN_IMAGE    = harbor.kryukov.lan/homelab/maven:$(JAVA_VERSION)
+MVN_IMAGE    = harbor.kryukov.lan/docker/maven:$(JAVA_VERSION)
 PROJECT_ROOT = $(shell cd .. && pwd)
 
 DOCKER_RUN = docker run --rm \

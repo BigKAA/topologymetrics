@@ -1,4 +1,4 @@
-FROM harbor.kryukov.lan/homelab/python:3.12-slim
+FROM harbor.kryukov.lan/docker/python:3.12-slim
 
 WORKDIR /app
 COPY requirements.txt .
