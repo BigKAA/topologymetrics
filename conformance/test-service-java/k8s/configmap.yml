@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: conformance-test-config-java
-  namespace: dephealth-conformance
-  labels:
-    app: conformance-test-service-java
-data:
-  CHECK_INTERVAL: "10"

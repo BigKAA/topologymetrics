@@ -23,7 +23,6 @@ conformance/
 │   ├── labels.yml          # Корректность меток (dependency, type, host, port)
 │   ├── timeout.yml         # Таймаут проверки (сервис недоступен)
 │   └── initial-state.yml   # Начальное состояние при запуске
-├── k8s/                    # Raw-манифесты Kubernetes (legacy)
 ├── test-service/           # Go conformance-сервис
 ├── test-service-python/    # Python conformance-сервис
 ├── test-service-java/      # Java conformance-сервис
@@ -53,12 +52,9 @@ RabbitMQ, Kafka, HTTP/gRPC-заглушки) и все 4 тестовых сер
 
 ### kubectl (legacy)
 
-Прямое применение raw-манифестов из `conformance/k8s/`. Используется для отладки
-или когда Helm недоступен.
-
-```bash
-./run.sh --lang go --deploy-mode kubectl
-```
+> **Примечание**: raw-манифесты (`conformance/k8s/`) удалены после миграции на Helm.
+> Режим kubectl поддерживается в `run.sh`, но требует наличия манифестов.
+> Рекомендуется использовать Helm.
 
 ## Полный список опций
 

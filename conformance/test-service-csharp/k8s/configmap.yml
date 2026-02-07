@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: conformance-test-config-csharp
-  namespace: dephealth-conformance
-  labels:
-    app: conformance-test-service-csharp
-data:
-  CHECK_INTERVAL: "10"

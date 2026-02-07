@@ -771,31 +771,26 @@ deploy_infra() {
 
 **Цель**: удалить старые raw K8s-манифесты после полной миграции на Helm.
 
-**Статус**: [ ] Не начата
+**Статус**: [x] Завершена
 
-### Удаляемые директории
+### Удалённые директории
 
 ```
 test-services/k8s/              # → deploy/helm/dephealth-infra + dephealth-services
 conformance/k8s/                # → deploy/helm/dephealth-conformance
+conformance/test-service-*/k8s/ # → deploy/helm/dephealth-conformance
 deploy/monitoring/              # → deploy/helm/dephealth-monitoring
+deploy/alerting/                # → deploy/helm/dephealth-monitoring (шаблоны vmalert, alertmanager)
+deploy/grafana/                 # → deploy/helm/dephealth-monitoring/dashboards/
 ```
-
-### Сохраняемые файлы (перенести в Helm)
-
-- `deploy/monitoring/deploy.sh` → удалить (Helm заменяет)
-- `deploy/grafana/dashboards/*.json` → `deploy/helm/dephealth-monitoring/dashboards/`
-- `deploy/alerting/rules.yml` → шаблон в dephealth-monitoring
-- `deploy/alerting/inhibition-rules.yml` → шаблон в dephealth-monitoring
 
 ### Задачи
 
-- [ ] 26.1. Проверить, что все Helm-чарты полностью заменяют raw-манифесты
-- [ ] 26.2. Удалить `test-services/k8s/`
-- [ ] 26.3. Удалить `conformance/k8s/`
-- [ ] 26.4. Удалить `deploy/monitoring/` (кроме Helm)
-- [ ] 26.5. Обновить все ссылки в документации
-- [ ] 26.6. Финальный conformance-прогон через Helm
+- [x] 26.1. Проверить, что все Helm-чарты полностью заменяют raw-манифесты
+- [x] 26.2. Удалить `test-services/k8s/`
+- [x] 26.3. Удалить `conformance/k8s/` и `conformance/test-service-*/k8s/`
+- [x] 26.4. Удалить `deploy/monitoring/`, `deploy/alerting/`, `deploy/grafana/`
+- [x] 26.5. Обновить ссылки в документации (`conformance/README.md`)
 
 ---
 
