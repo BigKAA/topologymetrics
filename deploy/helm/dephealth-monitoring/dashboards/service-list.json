@@ -135,11 +135,76 @@
       ]
     },
     {
+      "id": 5,
+      "title": "Состояние сервисов (timeline)",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 4 },
+      "collapsed": false
+    },
+    {
+      "id": 6,
+      "title": "Состояние сервисов (только проблемные)",
+      "description": "OK=2 (зелёный), Degraded=1 (оранжевый), Broken=0 (красный). Показаны только сервисы, имевшие проблемы за выбранный период.",
+      "type": "state-timeline",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 5 },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 0,
+            "fillOpacity": 80
+          },
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "green", "value": 2 }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "Broken", "color": "red" },
+                "1": { "text": "Degraded", "color": "orange" },
+                "2": { "text": "OK", "color": "green" }
+              }
+            }
+          ],
+          "links": [
+            {
+              "title": "Статус сервиса \u2192",
+              "url": "/d/dephealth-service-status/?var-service=${__series.name}&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "showValue": "auto",
+        "mergeValues": true,
+        "rowHeight": 0.8,
+        "alignValue": "center",
+        "tooltip": { "mode": "single" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "expr": "(min by (job, namespace) (app_dependency_health{namespace=~\"$namespace\", dependency=~\"$dependency\", type=~\"$dependency_type\", host=~\"$host\"}) + max by (job, namespace) (app_dependency_health{namespace=~\"$namespace\", dependency=~\"$dependency\", type=~\"$dependency_type\", host=~\"$host\"})) and on(job, namespace) (min_over_time((min by (job, namespace) (app_dependency_health{namespace=~\"$namespace\", dependency=~\"$dependency\", type=~\"$dependency_type\", host=~\"$host\"}))[${__range}:15s]) < 1)",
+          "legendFormat": "{{job}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
       "id": 4,
       "title": "Сервисы и зависимости",
       "type": "table",
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "gridPos": { "h": 20, "w": 24, "x": 0, "y": 4 },
+      "gridPos": { "h": 20, "w": 24, "x": 0, "y": 13 },
       "targets": [
         {
           "expr": "min by (dependency, type, host, port, job, namespace) (app_dependency_health{namespace=~\"$namespace\", dependency=~\"$dependency\", type=~\"$dependency_type\", host=~\"$host\"})",
@@ -266,7 +331,18 @@
             "matcher": { "id": "byName", "options": "Статус" },
             "properties": [
               { "id": "custom.width", "value": 100 },
-              { "id": "custom.displayMode", "value": "color-background-solid" },
+              { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "basic" } },
+              { "id": "color", "value": { "mode": "thresholds" } },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "red", "value": null },
+                    { "color": "green", "value": 1 }
+                  ]
+                }
+              },
               {
                 "id": "mappings",
                 "value": [
@@ -281,7 +357,8 @@
               { "id": "unit", "value": "s" },
               { "id": "decimals", "value": 3 },
               { "id": "custom.width", "value": 120 },
-              { "id": "custom.displayMode", "value": "color-text" },
+              { "id": "custom.cellOptions", "value": { "type": "color-text" } },
+              { "id": "color", "value": { "mode": "thresholds" } },
               {
                 "id": "thresholds",
                 "value": {
@@ -299,7 +376,8 @@
             "matcher": { "id": "byName", "options": "Flapping" },
             "properties": [
               { "id": "custom.width", "value": 100 },
-              { "id": "custom.displayMode", "value": "color-background-solid" },
+              { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "basic" } },
+              { "id": "color", "value": { "mode": "thresholds" } },
               {
                 "id": "thresholds",
                 "value": {

@@ -254,7 +254,18 @@
             "matcher": { "id": "byName", "options": "Статус" },
             "properties": [
               { "id": "custom.width", "value": 100 },
-              { "id": "custom.displayMode", "value": "color-background-solid" },
+              { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "basic" } },
+              { "id": "color", "value": { "mode": "thresholds" } },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "red", "value": null },
+                    { "color": "green", "value": 1 }
+                  ]
+                }
+              },
               {
                 "id": "mappings",
                 "value": [
@@ -269,7 +280,8 @@
               { "id": "unit", "value": "s" },
               { "id": "decimals", "value": 3 },
               { "id": "custom.width", "value": 120 },
-              { "id": "custom.displayMode", "value": "color-text" },
+              { "id": "custom.cellOptions", "value": { "type": "color-text" } },
+              { "id": "color", "value": { "mode": "thresholds" } },
               {
                 "id": "thresholds",
                 "value": {
@@ -295,7 +307,8 @@
             "matcher": { "id": "byName", "options": "Flapping" },
             "properties": [
               { "id": "custom.width", "value": 100 },
-              { "id": "custom.displayMode", "value": "color-background-solid" },
+              { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "basic" } },
+              { "id": "color", "value": { "mode": "thresholds" } },
               {
                 "id": "thresholds",
                 "value": {
