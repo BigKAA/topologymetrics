@@ -22,14 +22,17 @@
 ## Переменные
 
 Все переменные задаются через `?=` (перезаписываемые извне).
+Каждый Makefile загружает `../.env` через `-include ../.env` (опционально).
 
-| Переменная | Описание | Пример |
+| Переменная | Описание | По умолчанию |
 | --- | --- | --- |
 | `<LANG>_VERSION` | Версия языка/рантайма | `GO_VERSION ?= 1.25` |
-| `REGISTRY` | Container registry | `harbor.kryukov.lan/library` |
+| `IMAGE_REGISTRY` | Registry для базовых образов (pull) | `docker.io` |
+| `MCR_REGISTRY` | Registry для MCR-образов (только C#) | `mcr.microsoft.com` |
+| `PUSH_REGISTRY` | Registry для push собранных образов | (пусто — локальный тег) |
 | `IMAGE_NAME` | Имя Docker-образа | `dephealth-test-go` |
 | `IMAGE_TAG` | Тег Docker-образа | `latest` |
-| `LINT_VERSION` | Версия линтера (если отдельный образ) | `v2.1.6` |
+| `LINT_VERSION` | Версия линтера (если отдельный образ) | `v2.8.0` |
 
 ## Docker volumes
 
@@ -46,21 +49,23 @@
 
 | Язык | Образ сборки | Образ линтера |
 | --- | --- | --- |
-| Go | `harbor.kryukov.lan/docker/golang:$(GO_VERSION)` | `harbor.kryukov.lan/docker/golangci/golangci-lint:$(LINT_VERSION)` |
-| Python | `harbor.kryukov.lan/docker/python:$(PYTHON_VERSION)-slim` | Встроенный (`ruff`, `mypy`) |
-| Java | `harbor.kryukov.lan/docker/maven:$(JAVA_VERSION)` | Встроенный (SpotBugs, Checkstyle) |
-| C# | `mcr.microsoft.com/dotnet/sdk:$(DOTNET_VERSION)` | Встроенный (dotnet format) |
+| Go | `$(IMAGE_REGISTRY)/golang:$(GO_VERSION)` | `$(IMAGE_REGISTRY)/golangci/golangci-lint:$(LINT_VERSION)` |
+| Python | `$(IMAGE_REGISTRY)/python:$(PYTHON_VERSION)-slim` | Встроенный (`ruff`, `mypy`) |
+| Java | `$(IMAGE_REGISTRY)/maven:3.9-eclipse-temurin-$(JAVA_VERSION)` | Встроенный (SpotBugs, Checkstyle) |
+| C# | `$(MCR_REGISTRY)/dotnet/sdk:$(DOTNET_VERSION)` | Встроенный (dotnet format) |
 
 ## Docker-образы тестовых сервисов
 
 Формат имени: `dephealth-test-{lang}`
 
-Примеры:
+При заданном `PUSH_REGISTRY` образы получают полный путь:
 
-- `harbor.kryukov.lan/library/dephealth-test-go:latest`
-- `harbor.kryukov.lan/library/dephealth-test-python:latest`
-- `harbor.kryukov.lan/library/dephealth-test-java:latest`
-- `harbor.kryukov.lan/library/dephealth-test-csharp:latest`
+- `$(PUSH_REGISTRY)/dephealth-test-go:latest`
+- `$(PUSH_REGISTRY)/dephealth-test-python:latest`
+- `$(PUSH_REGISTRY)/dephealth-test-java:latest`
+- `$(PUSH_REGISTRY)/dephealth-test-csharp:latest`
+
+Без `PUSH_REGISTRY` — локальный тег без registry-префикса.
 
 ## Предварительное скачивание образов
 
@@ -91,37 +96,29 @@ make pull
 ### Go (`sdk-go/Makefile`)
 
 ```makefile
-GO_VERSION   ?= 1.25
-LINT_VERSION ?= v2.1.6
-REGISTRY     ?= harbor.kryukov.lan/library
-IMAGE_NAME   ?= dephealth-test-go
-IMAGE_TAG    ?= latest
+-include ../.env
+
+GO_VERSION     ?= 1.25
+LINT_VERSION   ?= v2.8.0
+IMAGE_REGISTRY ?= docker.io
+PUSH_REGISTRY  ?=
+IMAGE_NAME     ?= dephealth-test-go
+IMAGE_TAG      ?= latest
 
 CACHE_VOLUME = dephealth-go-cache
-GO_IMAGE     = harbor.kryukov.lan/docker/golang:$(GO_VERSION)
-LINT_IMAGE   = harbor.kryukov.lan/docker/golangci/golangci-lint:$(LINT_VERSION)
-PROJECT_ROOT = $(shell cd .. && pwd)
+GO_IMAGE     = $(IMAGE_REGISTRY)/golang:$(GO_VERSION)
+LINT_IMAGE   = $(IMAGE_REGISTRY)/golangci/golangci-lint:$(LINT_VERSION)
 
-DOCKER_RUN = docker run --rm \
-    -v $(PROJECT_ROOT):/workspace \
-    -v $(CACHE_VOLUME):/go \
-    -w /workspace/sdk-go \
-    -e GOFLAGS=-buildvcs=false
-
-test:
-    $(DOCKER_RUN) $(GO_IMAGE) go test -race -count=1 ./...
-
-lint:
-    docker run --rm \
-        -v $(PROJECT_ROOT):/workspace \
-        -v $(CACHE_VOLUME):/go \
-        -w /workspace/sdk-go \
-        -e GOFLAGS=-buildvcs=false \
-        $(LINT_IMAGE) golangci-lint run ./...
+ifdef PUSH_REGISTRY
+  FULL_IMAGE = $(PUSH_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
+else
+  FULL_IMAGE = $(IMAGE_NAME):$(IMAGE_TAG)
+endif
 
 image:
     docker build \
-        -t $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG) \
+        --build-arg REGISTRY=$(IMAGE_REGISTRY) \
+        -t $(FULL_IMAGE) \
         -f $(PROJECT_ROOT)/test-services/go-service/Dockerfile \
         $(PROJECT_ROOT)
 ```
@@ -129,68 +126,38 @@ image:
 ### Python (`sdk-python/Makefile`)
 
 ```makefile
+-include ../.env
+
 PYTHON_VERSION ?= 3.12
-REGISTRY       ?= harbor.kryukov.lan/library
-IMAGE_NAME     ?= dephealth-test-python
-IMAGE_TAG      ?= latest
+IMAGE_REGISTRY ?= docker.io
+PUSH_REGISTRY  ?=
 
-CACHE_VOLUME = dephealth-python-cache
-PY_IMAGE     = harbor.kryukov.lan/docker/python:$(PYTHON_VERSION)-slim
-PROJECT_ROOT = $(shell cd .. && pwd)
-
-DOCKER_RUN = docker run --rm \
-    -v $(PROJECT_ROOT):/workspace \
-    -v $(CACHE_VOLUME):/root/.cache/pip \
-    -w /workspace/sdk-python
-
-test:
-    $(DOCKER_RUN) $(PY_IMAGE) \
-        sh -c 'pip install -q -e ".[dev]" && pytest -v --tb=short'
-
-lint:
-    $(DOCKER_RUN) $(PY_IMAGE) \
-        sh -c 'pip install -q ruff mypy && ruff check . && mypy dephealth/ --strict'
-
-fmt:
-    $(DOCKER_RUN) $(PY_IMAGE) \
-        sh -c 'pip install -q ruff && ruff format . && ruff check --fix .'
+PY_IMAGE = $(IMAGE_REGISTRY)/python:$(PYTHON_VERSION)-slim
 
 image:
     docker build \
-        -t $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG) \
-        -f $(PROJECT_ROOT)/test-services/python-service/Dockerfile \
+        --build-arg REGISTRY=$(IMAGE_REGISTRY) \
+        -t $(FULL_IMAGE) \
+        -f $(DOCKERFILE) \
         $(PROJECT_ROOT)
 ```
 
 ### Java (`sdk-java/Makefile`)
 
 ```makefile
-JAVA_VERSION ?= 3.9-eclipse-temurin-21
-REGISTRY     ?= harbor.kryukov.lan/library
-IMAGE_NAME   ?= dephealth-test-java
-IMAGE_TAG    ?= latest
+-include ../.env
 
-CACHE_VOLUME = dephealth-java-cache
-MVN_IMAGE    = harbor.kryukov.lan/docker/maven:$(JAVA_VERSION)
-PROJECT_ROOT = $(shell cd .. && pwd)
+JAVA_VERSION   ?= 21
+IMAGE_REGISTRY ?= docker.io
+PUSH_REGISTRY  ?=
 
-DOCKER_RUN = docker run --rm \
-    -v $(PROJECT_ROOT):/workspace \
-    -v $(CACHE_VOLUME):/root/.m2 \
-    -w /workspace/sdk-java
-
-test:
-    $(DOCKER_RUN) $(MVN_IMAGE) mvn test -q
-
-lint:
-    $(DOCKER_RUN) $(MVN_IMAGE) mvn spotbugs:check checkstyle:check -q
-
-build:
-    $(DOCKER_RUN) $(MVN_IMAGE) mvn package -DskipTests -q
+MAVEN_IMAGE   = $(IMAGE_REGISTRY)/maven:3.9-eclipse-temurin-$(JAVA_VERSION)
+RUNTIME_IMAGE = $(IMAGE_REGISTRY)/eclipse-temurin:$(JAVA_VERSION)-jre-alpine
 
 image:
     docker build \
-        -t $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG) \
+        --build-arg REGISTRY=$(IMAGE_REGISTRY) \
+        -t $(FULL_IMAGE) \
         -f $(PROJECT_ROOT)/test-services/java-service/Dockerfile \
         $(PROJECT_ROOT)
 ```
@@ -198,32 +165,19 @@ image:
 ### C# (`sdk-csharp/Makefile`)
 
 ```makefile
-DOTNET_VERSION ?= 9.0
-REGISTRY       ?= harbor.kryukov.lan/library
-IMAGE_NAME     ?= dephealth-test-csharp
-IMAGE_TAG      ?= latest
+-include ../.env
 
-CACHE_VOLUME = dephealth-csharp-cache
-DOTNET_IMAGE = mcr.microsoft.com/dotnet/sdk:$(DOTNET_VERSION)
-PROJECT_ROOT = $(shell cd .. && pwd)
+DOTNET_VERSION ?= 8.0
+MCR_REGISTRY   ?= mcr.microsoft.com
+PUSH_REGISTRY  ?=
 
-DOCKER_RUN = docker run --rm \
-    -v $(PROJECT_ROOT):/workspace \
-    -v $(CACHE_VOLUME):/root/.nuget \
-    -w /workspace/sdk-csharp
-
-test:
-    $(DOCKER_RUN) $(DOTNET_IMAGE) dotnet test --verbosity minimal
-
-lint:
-    $(DOCKER_RUN) $(DOTNET_IMAGE) dotnet format --verify-no-changes
-
-build:
-    $(DOCKER_RUN) $(DOTNET_IMAGE) dotnet build --no-restore
+SDK_IMAGE     = $(MCR_REGISTRY)/dotnet/sdk:$(DOTNET_VERSION)
+RUNTIME_IMAGE = $(MCR_REGISTRY)/dotnet/aspnet:$(DOTNET_VERSION)-alpine
 
 image:
     docker build \
-        -t $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG) \
+        --build-arg MCR_REGISTRY=$(MCR_REGISTRY) \
+        -t $(FULL_IMAGE) \
         -f $(PROJECT_ROOT)/test-services/csharp-service/Dockerfile \
         $(PROJECT_ROOT)
 ```

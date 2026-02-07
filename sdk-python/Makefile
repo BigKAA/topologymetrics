@@ -13,14 +13,26 @@
 #   make clean          — очистка кэшей
 
 # --- Переменные ---
+-include ../.env
+
 PYTHON_VERSION ?= 3.12
-REGISTRY       ?= harbor.kryukov.lan/library
+IMAGE_REGISTRY ?= docker.io
+PUSH_REGISTRY  ?=
 IMAGE_NAME     ?= dephealth-test-python
 IMAGE_TAG      ?= latest
 
 # Docker volumes
 CACHE_VOLUME = dephealth-python-cache
-PY_IMAGE     = harbor.kryukov.lan/docker/python:$(PYTHON_VERSION)-slim
+PY_IMAGE     = $(IMAGE_REGISTRY)/python:$(PYTHON_VERSION)-slim
+
+# Полное имя образа (с registry-префиксом если задан)
+ifdef PUSH_REGISTRY
+  FULL_IMAGE = $(PUSH_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
+  FULL_CONFORMANCE_IMAGE = $(PUSH_REGISTRY)/dephealth-conformance-python:$(IMAGE_TAG)
+else
+  FULL_IMAGE = $(IMAGE_NAME):$(IMAGE_TAG)
+  FULL_CONFORMANCE_IMAGE = dephealth-conformance-python:$(IMAGE_TAG)
+endif
 
 # Пути
 PROJECT_ROOT = $(shell cd .. && pwd)
@@ -78,24 +90,32 @@ fmt:
 ## image: сборка Docker-образа тестового сервиса
 image:
 	docker build \
-		-t $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG) \
+		--build-arg REGISTRY=$(IMAGE_REGISTRY) \
+		-t $(FULL_IMAGE) \
 		-f $(DOCKERFILE) \
 		$(PROJECT_ROOT)
 
 ## push: загрузка образа тестового сервиса в registry
 push:
-	docker push $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
+ifndef PUSH_REGISTRY
+	$(error PUSH_REGISTRY не задан. Укажите: make push PUSH_REGISTRY=registry.example.com/project)
+endif
+	docker push $(FULL_IMAGE)
 
 ## image-conformance: сборка Docker-образа conformance-сервиса
 image-conformance:
 	docker build \
-		-t $(REGISTRY)/dephealth-conformance-python:$(IMAGE_TAG) \
+		--build-arg REGISTRY=$(IMAGE_REGISTRY) \
+		-t $(FULL_CONFORMANCE_IMAGE) \
 		-f $(PROJECT_ROOT)/conformance/test-service-python/Dockerfile \
 		$(PROJECT_ROOT)
 
 ## push-conformance: загрузка conformance-образа в registry
 push-conformance:
-	docker push $(REGISTRY)/dephealth-conformance-python:$(IMAGE_TAG)
+ifndef PUSH_REGISTRY
+	$(error PUSH_REGISTRY не задан. Укажите: make push-conformance PUSH_REGISTRY=registry.example.com/project)
+endif
+	docker push $(FULL_CONFORMANCE_IMAGE)
 
 ## pull: скачать необходимые Docker-образы
 pull:

@@ -13,18 +13,28 @@
 #   make clean          — очистка кэшей
 
 # --- Переменные ---
-GO_VERSION   ?= 1.25
-LINT_VERSION ?= v2.8.0
-REGISTRY     ?= harbor.kryukov.lan/library
-IMAGE_NAME   ?= dephealth-test-go
-IMAGE_TAG    ?= latest
+-include ../.env
+
+GO_VERSION     ?= 1.25
+LINT_VERSION   ?= v2.8.0
+IMAGE_REGISTRY ?= docker.io
+PUSH_REGISTRY  ?=
+IMAGE_NAME     ?= dephealth-test-go
+IMAGE_TAG      ?= latest
 
 # Docker volumes
 CACHE_VOLUME  = dephealth-go-cache
-GO_IMAGE      = harbor.kryukov.lan/docker/golang:$(GO_VERSION)
-GO_ALPINE     = harbor.kryukov.lan/docker/golang:$(GO_VERSION)-alpine
-ALPINE_IMAGE  = harbor.kryukov.lan/docker/alpine:3.21
-LINT_IMAGE    = harbor.kryukov.lan/docker/golangci/golangci-lint:$(LINT_VERSION)
+GO_IMAGE      = $(IMAGE_REGISTRY)/golang:$(GO_VERSION)
+GO_ALPINE     = $(IMAGE_REGISTRY)/golang:$(GO_VERSION)-alpine
+ALPINE_IMAGE  = $(IMAGE_REGISTRY)/alpine:3.21
+LINT_IMAGE    = $(IMAGE_REGISTRY)/golangci/golangci-lint:$(LINT_VERSION)
+
+# Полное имя образа (с registry-префиксом если задан)
+ifdef PUSH_REGISTRY
+  FULL_IMAGE = $(PUSH_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
+else
+  FULL_IMAGE = $(IMAGE_NAME):$(IMAGE_TAG)
+endif
 
 # Пути (относительно корня проекта)
 PROJECT_ROOT  = $(shell cd .. && pwd)
@@ -85,13 +95,17 @@ fmt:
 ## image: сборка Docker-образа тестового сервиса
 image:
 	docker build \
-		-t $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG) \
+		--build-arg REGISTRY=$(IMAGE_REGISTRY) \
+		-t $(FULL_IMAGE) \
 		-f $(DOCKERFILE) \
 		$(PROJECT_ROOT)
 
 ## push: загрузка образа в registry
 push:
-	docker push $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
+ifndef PUSH_REGISTRY
+	$(error PUSH_REGISTRY не задан. Укажите: make push PUSH_REGISTRY=registry.example.com/project)
+endif
+	docker push $(FULL_IMAGE)
 
 ## pull: скачать все необходимые Docker-образы
 pull:

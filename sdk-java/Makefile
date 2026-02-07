@@ -1,15 +1,28 @@
 .PHONY: build test test-coverage lint fmt image push image-conformance push-conformance pull clean help
 
 ## Конфигурация
+-include ../.env
+
 PROJECT_ROOT := $(shell cd .. && pwd)
 JAVA_VERSION ?= 21
-MAVEN_IMAGE ?= harbor.kryukov.lan/docker/maven:3.9-eclipse-temurin-$(JAVA_VERSION)
-RUNTIME_IMAGE ?= harbor.kryukov.lan/docker/eclipse-temurin:$(JAVA_VERSION)-jre-alpine
-REGISTRY ?= harbor.kryukov.lan/library
+IMAGE_REGISTRY ?= docker.io
+PUSH_REGISTRY  ?=
 IMAGE_NAME ?= dephealth-test-java
 IMAGE_TAG ?= latest
 CONFORMANCE_IMAGE_NAME ?= dephealth-conformance-java
 CACHE_VOLUME ?= dephealth-java-cache
+
+MAVEN_IMAGE   ?= $(IMAGE_REGISTRY)/maven:3.9-eclipse-temurin-$(JAVA_VERSION)
+RUNTIME_IMAGE ?= $(IMAGE_REGISTRY)/eclipse-temurin:$(JAVA_VERSION)-jre-alpine
+
+# Полное имя образа (с registry-префиксом если задан)
+ifdef PUSH_REGISTRY
+  FULL_IMAGE = $(PUSH_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
+  FULL_CONFORMANCE_IMAGE = $(PUSH_REGISTRY)/$(CONFORMANCE_IMAGE_NAME):$(IMAGE_TAG)
+else
+  FULL_IMAGE = $(IMAGE_NAME):$(IMAGE_TAG)
+  FULL_CONFORMANCE_IMAGE = $(CONFORMANCE_IMAGE_NAME):$(IMAGE_TAG)
+endif
 
 DOCKER_RUN = docker run --rm \
 	-v $(PROJECT_ROOT):/workspace \
@@ -40,24 +53,32 @@ fmt:
 ## image: Сборка Docker-образа тестового сервиса
 image:
 	docker build \
-		-t $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG) \
+		--build-arg REGISTRY=$(IMAGE_REGISTRY) \
+		-t $(FULL_IMAGE) \
 		-f $(PROJECT_ROOT)/test-services/java-service/Dockerfile \
 		$(PROJECT_ROOT)
 
 ## push: Загрузка образа тестового сервиса в registry
 push:
-	docker push $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
+ifndef PUSH_REGISTRY
+	$(error PUSH_REGISTRY не задан. Укажите: make push PUSH_REGISTRY=registry.example.com/project)
+endif
+	docker push $(FULL_IMAGE)
 
 ## image-conformance: Сборка Docker-образа conformance-сервиса
 image-conformance:
 	docker build \
-		-t $(REGISTRY)/$(CONFORMANCE_IMAGE_NAME):$(IMAGE_TAG) \
+		--build-arg REGISTRY=$(IMAGE_REGISTRY) \
+		-t $(FULL_CONFORMANCE_IMAGE) \
 		-f $(PROJECT_ROOT)/conformance/test-service-java/Dockerfile \
 		$(PROJECT_ROOT)
 
 ## push-conformance: Загрузка образа conformance-сервиса в registry
 push-conformance:
-	docker push $(REGISTRY)/$(CONFORMANCE_IMAGE_NAME):$(IMAGE_TAG)
+ifndef PUSH_REGISTRY
+	$(error PUSH_REGISTRY не задан. Укажите: make push-conformance PUSH_REGISTRY=registry.example.com/project)
+endif
+	docker push $(FULL_CONFORMANCE_IMAGE)
 
 ## pull: Загрузка всех необходимых Docker-образов
 pull:
