@@ -1,4 +1,4 @@
-.PHONY: build test test-coverage lint fmt image push image-conformance push-conformance pull clean help
+.PHONY: build test test-coverage lint fmt publish image push image-conformance push-conformance pull clean help
 
 ## Конфигурация
 -include ../.env
@@ -49,6 +49,17 @@ lint:
 ## fmt: Проверка форматирования (Checkstyle)
 fmt:
 	$(DOCKER_RUN) mvn checkstyle:check
+
+## publish: Публикация на Maven Central (release-профиль)
+publish:
+	docker run --rm \
+		-v $(PROJECT_ROOT):/workspace \
+		-v $(CACHE_VOLUME):/root/.m2/repository \
+		-v $(HOME)/.m2/settings.xml:/root/.m2/settings.xml:ro \
+		-v $(HOME)/.gnupg:/root/.gnupg:ro \
+		-w /workspace/sdk-java \
+		$(MAVEN_IMAGE) \
+		mvn clean deploy -Prelease -DskipTests
 
 ## image: Сборка Docker-образа тестового сервиса
 image:

@@ -1735,7 +1735,7 @@ conformance/
 - [x] Ссылки на quickstart и migration guide для каждого языка
 - [ ] Badges: CI/CD status, версии пакетов (когда опубликованы)
 
-#### 16.4. Финальный conformance-прогон
+#### 16.4. Финальный conformance-прогон ✅
 
 - [x] `conformance/run.sh --lang all` — все 4 SDK последовательно:
   - Go: все 8 сценариев ✓
@@ -1750,7 +1750,7 @@ conformance/
   - Формат Prometheus text format ✓
 - [x] Скрипт `conformance/runner/cross_verify.py` — автоматическая кросс-языковая верификация
 
-#### 16.5. Подготовка к публикации
+#### 16.5. Подготовка к публикации ✅
 
 - [x] Go: LICENSE, README.md для pkg.go.dev
 - [x] Python: `pyproject.toml` заполнен (authors, classifiers, urls), README.md, `python -m build`
