@@ -1,0 +1,103 @@
+# dephealth — локальная среда разработки
+#
+# Профиль по умолчанию: базовые зависимости (postgres, redis)
+# Профиль "full": все 7 зависимостей (как в conformance)
+#
+# Использование:
+#   docker compose up -d                        # postgres + redis
+#   docker compose --profile full up -d         # все зависимости
+#   docker compose down -v                      # остановить и удалить volumes
+#
+# Настройка registry — через .env файл (см. .env.example):
+#   IMAGE_REGISTRY=harbor.example.com/docker
+#
+# Или через docker-compose.override.yml (см. docker-compose.override.yml.example)
+
+services:
+  postgres:
+    image: ${IMAGE_REGISTRY:-docker.io}/postgres:17-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: dephealth
+      POSTGRES_PASSWORD: dephealth-test-pass
+      POSTGRES_DB: dephealth
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dephealth"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: ${IMAGE_REGISTRY:-docker.io}/redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  kafka:
+    image: ${IMAGE_REGISTRY:-docker.io}/apache/kafka:3.8.1
+    profiles: ["full"]
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+
+  rabbitmq:
+    image: ${IMAGE_REGISTRY:-docker.io}/rabbitmq:3-management-alpine
+    profiles: ["full"]
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: dephealth
+      RABBITMQ_DEFAULT_PASS: dephealth-test-pass
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  http-stub:
+    image: ${PUSH_REGISTRY:-local}/dephealth-http-stub:latest
+    profiles: ["full"]
+    build:
+      context: ./conformance/stubs/http-stub
+      args:
+        REGISTRY: ${IMAGE_REGISTRY:-docker.io}
+    ports:
+      - "8081:8080"
+
+  grpc-stub:
+    image: ${PUSH_REGISTRY:-local}/dephealth-grpc-stub:latest
+    profiles: ["full"]
+    build:
+      context: ./conformance/stubs/grpc-stub
+      args:
+        REGISTRY: ${IMAGE_REGISTRY:-docker.io}
+    ports:
+      - "9090:9090"
+      - "8082:8080"
+
+volumes:
+  postgres-data:
+  kafka-data:

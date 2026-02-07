@@ -186,7 +186,7 @@ GATEWAY_NAMESPACE=default
 **Цель**: разработчик может поднять все зависимости одной командой
 без Kubernetes. Два профиля: `dev` (базовые 4 зависимости) и `full` (все 7 + stubs).
 
-**Статус**: [ ] Не начата
+**Статус**: [x] Завершена
 
 ### Файлы
 
@@ -290,12 +290,12 @@ volumes:
 
 ### Задачи
 
-- [ ] 19.1. Создать `docker-compose.yml` в корне проекта
-- [ ] 19.2. Создать `docker-compose.override.yml.example` с примером для harbor
-- [ ] 19.3. Проверить `docker compose up -d` с дефолтами (docker.io)
-- [ ] 19.4. Проверить `docker compose --profile full up -d`
-- [ ] 19.5. Проверить подключение SDK-тестов к compose-сервисам
-- [ ] 19.6. Добавить `docker-compose.override.yml` в `.gitignore`
+- [x] 19.1. Создать `docker-compose.yml` в корне проекта
+- [x] 19.2. Создать `docker-compose.override.yml.example` с примером для harbor
+- [x] 19.3. Проверить `docker compose up -d` с дефолтами (docker.io)
+- [x] 19.4. Проверить `docker compose --profile full up -d`
+- [x] 19.5. Проверить подключение SDK-тестов к compose-сервисам
+- [x] 19.6. Добавить `docker-compose.override.yml` в `.gitignore`
 
 ---
 

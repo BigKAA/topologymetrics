@@ -1,0 +1,29 @@
+# Пример переопределений для локального окружения.
+#
+# Скопируйте этот файл:
+#   cp docker-compose.override.yml.example docker-compose.override.yml
+#
+# Docker Compose автоматически подхватывает docker-compose.override.yml
+# и мержит его с основным docker-compose.yml.
+
+services:
+  # --- Пример: Harbor registry ---
+  postgres:
+    image: harbor.example.com/docker/postgres:17-alpine
+
+  redis:
+    image: harbor.example.com/docker/redis:7-alpine
+
+  kafka:
+    image: harbor.example.com/docker/apache/kafka:3.8.1
+
+  rabbitmq:
+    image: harbor.example.com/docker/rabbitmq:3-management-alpine
+
+  # --- Пример: изменить порты (если стандартные заняты) ---
+  # postgres:
+  #   ports:
+  #     - "15432:5432"
+  # redis:
+  #   ports:
+  #     - "16379:6379"
