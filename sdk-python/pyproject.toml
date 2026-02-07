@@ -8,14 +8,36 @@ packages = ["dephealth", "dephealth_fastapi"]
 [project]
 name = "dephealth"
 version = "0.1.0"
-description = "SDK для мониторинга зависимостей микросервисов"
+description = "SDK for monitoring microservice dependencies via Prometheus metrics"
 requires-python = ">=3.11"
 license = "MIT"
+authors = [{name = "Artur Kryukov", email = "artur@kryukov.biz"}]
+readme = "README.md"
+keywords = ["monitoring", "prometheus", "microservices", "health-check", "dependency"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: System :: Monitoring",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Framework :: FastAPI",
+    "Typing :: Typed",
+]
 
 dependencies = [
     "prometheus-client>=0.20",
     "aiohttp>=3.9",
 ]
+
+[project.urls]
+Homepage = "https://github.com/BigKAA/topologymetrics"
+Repository = "https://github.com/BigKAA/topologymetrics"
+Documentation = "https://github.com/BigKAA/topologymetrics/tree/master/docs"
+"Bug Tracker" = "https://github.com/BigKAA/topologymetrics/issues"
+Changelog = "https://github.com/BigKAA/topologymetrics/blob/master/CHANGELOG.md"
 
 [project.optional-dependencies]
 postgres = ["asyncpg>=0.29"]

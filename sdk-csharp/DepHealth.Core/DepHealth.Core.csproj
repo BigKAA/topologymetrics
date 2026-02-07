@@ -2,7 +2,9 @@
 
   <PropertyGroup>
     <RootNamespace>DepHealth</RootNamespace>
+    <PackageId>DepHealth.Core</PackageId>
     <Description>SDK for monitoring microservice dependencies via Prometheus metrics</Description>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,4 +1,4 @@
-"""dephealth-fastapi — интеграция dephealth SDK с FastAPI."""
+"""dephealth-fastapi — FastAPI integration for the dephealth SDK."""
 
 from dephealth_fastapi.endpoints import dependencies_router
 from dephealth_fastapi.lifespan import dephealth_lifespan

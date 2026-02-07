@@ -5,5 +5,16 @@
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <LangVersion>12</LangVersion>
+
+    <!-- Package metadata -->
+    <Version>0.1.0</Version>
+    <Authors>Artur Kryukov</Authors>
+    <Company>BigKAA</Company>
+    <Copyright>Copyright (c) 2026 Artur Kryukov</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/BigKAA/topologymetrics</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/BigKAA/topologymetrics</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>monitoring;prometheus;microservices;health-check;dependency</PackageTags>
   </PropertyGroup>
 </Project>

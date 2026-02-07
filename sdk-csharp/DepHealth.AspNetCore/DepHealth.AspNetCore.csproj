@@ -2,7 +2,9 @@
 
   <PropertyGroup>
     <RootNamespace>DepHealth.AspNetCore</RootNamespace>
+    <PackageId>DepHealth.AspNetCore</PackageId>
     <Description>ASP.NET Core integration for DepHealth dependency monitoring SDK</Description>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>

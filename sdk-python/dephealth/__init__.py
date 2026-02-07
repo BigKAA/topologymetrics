@@ -1,4 +1,4 @@
-"""dephealth — SDK для мониторинга зависимостей микросервисов."""
+"""dephealth — SDK for monitoring microservice dependencies via Prometheus metrics."""
 
 from dephealth.checker import (
     CheckConnectionRefusedError,

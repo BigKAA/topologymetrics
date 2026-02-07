@@ -40,6 +40,18 @@ __pycache__/
 .env.*
 !.env.example
 
+# Python build artifacts
+sdk-python/dist/
+sdk-python/*.egg-info/
+
+# Java build artifacts
+sdk-java/**/target/
+
+# C# build artifacts
+sdk-csharp/**/bin/
+sdk-csharp/**/obj/
+*.nupkg
+
 # Docker Compose
 docker-compose.override.yml
 

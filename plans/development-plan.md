@@ -1752,21 +1752,23 @@ conformance/
 
 #### 16.5. Подготовка к публикации
 
-- [ ] Go: `go mod tidy`, проверка `pkg.go.dev`
-- [ ] Python: `pyproject.toml` заполнен, `python -m build`, тестовый upload на TestPyPI
-- [ ] Java: `pom.xml` заполнен (SCM, developers, licenses), `mvn deploy` в staging
-- [ ] C#: `.csproj` заполнен, `dotnet pack`, тестовый push на NuGet.org (preview)
+- [x] Go: LICENSE, README.md для pkg.go.dev
+- [x] Python: `pyproject.toml` заполнен (authors, classifiers, urls), README.md, `python -m build`
+- [x] Java: `pom.xml` заполнен (SCM, developers, licenses, release profile), версия 0.1.0, `mvn package`
+- [x] C#: Directory.Build.props + `.csproj` заполнены (PackageId, metadata), `dotnet pack`
+- [x] `.gitignore` — артефакты сборки (dist/, target/, bin/, obj/, nupkg)
+- [x] Перевод публичной документации на английский (README, descriptions, CHANGELOG)
 
 #### 16.6. Релиз
 
-- [ ] `CHANGELOG.md` — описание всех изменений v1.0.0
-- [ ] Git tag `v1.0.0`
+- [x] `CHANGELOG.md` — описание всех изменений v0.1.0
+- [ ] Git tag `v0.1.0` + `sdk-go/v0.1.0`
 - [ ] Release notes (GitHub Release)
 - [ ] Публикация пакетов:
   - Go modules (git tag достаточен)
   - PyPI: `twine upload`
   - Maven Central: `mvn deploy -P release`
-  - NuGet: `dotnet nuget push`
+  - NuGet: пропущен
 
 ### Артефакты фазы 16
 

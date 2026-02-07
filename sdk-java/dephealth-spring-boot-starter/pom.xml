@@ -7,12 +7,12 @@
     <parent>
         <groupId>com.github.bigkaa</groupId>
         <artifactId>dephealth-parent</artifactId>
-        <version>0.1.0-SNAPSHOT</version>
+        <version>0.1.0</version>
     </parent>
 
     <artifactId>dephealth-spring-boot-starter</artifactId>
     <name>DepHealth Spring Boot Starter</name>
-    <description>Spring Boot автоконфигурация для dephealth SDK</description>
+    <description>Spring Boot auto-configuration for the dephealth SDK</description>
 
     <dependencyManagement>
         <dependencies>
