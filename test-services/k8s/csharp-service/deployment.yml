@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: csharp-service
+  namespace: dephealth-test
+  labels:
+    app: csharp-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: csharp-service
+  template:
+    metadata:
+      labels:
+        app: csharp-service
+    spec:
+      containers:
+        - name: csharp-service
+          image: harbor.kryukov.lan/library/dephealth-test-csharp:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: POSTGRES_URL
+              value: "postgres://dephealth:dephealth-test-pass@postgres:5432/dephealth?sslmode=disable"
+            - name: REDIS_URL
+              value: "redis://redis:6379/0"
+            - name: HTTP_SERVICE_URL
+              value: "http://http-stub:8080"
+            - name: HTTP_HEALTH_PATH
+              value: "/health"
+            - name: GRPC_SERVICE_HOST
+              value: "grpc-stub"
+            - name: GRPC_SERVICE_PORT
+              value: "9090"
+            - name: DEPHEALTH_INTERVAL
+              valueFrom:
+                configMapKeyRef:
+                  name: csharp-service-config
+                  key: DEPHEALTH_INTERVAL
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi

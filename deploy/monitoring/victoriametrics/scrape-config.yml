@@ -53,14 +53,13 @@ data:
               service: java-service
 
       # Тестовый C#-сервис (namespace dephealth-test)
-      # Раскомментировать после реализации C# SDK:
-      # - job_name: dephealth-test-csharp
-      #   static_configs:
-      #     - targets:
-      #         - csharp-service.dephealth-test.svc:8080
-      #       labels:
-      #         namespace: dephealth-test
-      #         service: csharp-service
+      - job_name: dephealth-test-csharp
+        static_configs:
+          - targets:
+              - csharp-service.dephealth-test.svc:8080
+            labels:
+              namespace: dephealth-test
+              service: csharp-service
 
       # VictoriaMetrics self-monitoring
       - job_name: victoriametrics
