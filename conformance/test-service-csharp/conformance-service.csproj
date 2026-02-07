@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>12</LangVersion>
+    <RootNamespace>DepHealth.Conformance</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../sdk-csharp/DepHealth.Core/DepHealth.Core.csproj" />
+    <ProjectReference Include="../../sdk-csharp/DepHealth.AspNetCore/DepHealth.AspNetCore.csproj" />
+  </ItemGroup>
+
+</Project>
