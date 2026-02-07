@@ -1,0 +1,316 @@
+{
+  "__inputs": [],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.0.0" },
+    { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" }
+  ],
+  "annotations": { "list": [] },
+  "description": "Список всех соединений и их текущее состояние",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "apps",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": false,
+      "title": "Service List",
+      "type": "link",
+      "url": "/d/dephealth-service-list/"
+    },
+    {
+      "asDropdown": false,
+      "icon": "dashboard",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": false,
+      "title": "Services Status",
+      "type": "link",
+      "url": "/d/dephealth-services-status/"
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Все соединения",
+      "type": "table",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 24, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "min by (dependency, type, host, port, job, namespace) (app_dependency_health{namespace=~\"$namespace\", type=~\"$dependency_type\", host=~\"$host\"})",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum by (dependency, type, host, port, job, namespace, le) (rate(app_dependency_latency_seconds_bucket{namespace=~\"$namespace\", type=~\"$dependency_type\", host=~\"$host\"}[5m])))",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "B"
+        },
+        {
+          "expr": "rate(app_dependency_latency_seconds_sum{namespace=~\"$namespace\", type=~\"$dependency_type\", host=~\"$host\"}[5m]) / rate(app_dependency_latency_seconds_count{namespace=~\"$namespace\", type=~\"$dependency_type\", host=~\"$host\"}[5m])",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "C"
+        },
+        {
+          "expr": "max by (dependency, type, host, port, job, namespace) (changes(app_dependency_health{namespace=~\"$namespace\", type=~\"$dependency_type\", host=~\"$host\"}[15m]))",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "D"
+        }
+      ],
+      "transformations": [
+        { "id": "merge", "options": {} },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "namespace": true
+            },
+            "indexByName": {
+              "dependency": 0,
+              "type": 1,
+              "host": 2,
+              "port": 3,
+              "job": 4,
+              "Value #A": 5,
+              "Value #B": 6,
+              "Value #C": 7,
+              "Value #D": 8
+            },
+            "renameByName": {
+              "dependency": "Зависимость",
+              "type": "Тип",
+              "host": "Хост",
+              "port": "Порт",
+              "job": "Сервис",
+              "Value #A": "Статус",
+              "Value #B": "P99 (сек)",
+              "Value #C": "Avg (сек)",
+              "Value #D": "Flapping"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [{ "field": "Зависимость", "desc": false }]
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Зависимость" },
+            "properties": [
+              { "id": "custom.width", "value": 180 },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Подробности \u2192",
+                    "url": "/d/dephealth-link-status/?var-dependency=${__value.text}&var-host=${__data.fields[\"Хост\"]}&var-port=${__data.fields[\"Порт\"]}&${__url_time_range}",
+                    "targetBlank": false
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Тип" },
+            "properties": [
+              { "id": "custom.width", "value": 100 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Хост" },
+            "properties": [
+              { "id": "custom.width", "value": 220 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Порт" },
+            "properties": [
+              { "id": "custom.width", "value": 80 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Сервис" },
+            "properties": [
+              { "id": "custom.width", "value": 180 },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Статус сервиса \u2192",
+                    "url": "/d/dephealth-service-status/?var-service=${__value.text}&${__url_time_range}",
+                    "targetBlank": false
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Статус" },
+            "properties": [
+              { "id": "custom.width", "value": 100 },
+              { "id": "custom.displayMode", "value": "color-background-solid" },
+              {
+                "id": "mappings",
+                "value": [
+                  { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "P99 (сек)" },
+            "properties": [
+              { "id": "unit", "value": "s" },
+              { "id": "decimals", "value": 3 },
+              { "id": "custom.width", "value": 120 },
+              { "id": "custom.displayMode", "value": "color-text" },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green", "value": null },
+                    { "color": "yellow", "value": 0.1 },
+                    { "color": "red", "value": 1 }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Avg (сек)" },
+            "properties": [
+              { "id": "unit", "value": "s" },
+              { "id": "decimals", "value": 3 },
+              { "id": "custom.width", "value": 120 },
+              { "id": "custom.displayMode", "value": "color-text" },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green", "value": null },
+                    { "color": "yellow", "value": 0.1 },
+                    { "color": "red", "value": 1 }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Flapping" },
+            "properties": [
+              { "id": "custom.width", "value": 100 },
+              { "id": "custom.displayMode", "value": "color-background-solid" },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green", "value": null },
+                    { "color": "orange", "value": 4 },
+                    { "color": "red", "value": 8 }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [{ "displayName": "Статус", "desc": false }],
+        "footer": { "show": false }
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["dephealth"],
+  "templating": {
+    "list": [
+      {
+        "name": "DS_PROMETHEUS",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0,
+        "label": "Datasource"
+      },
+      {
+        "name": "namespace",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "query": "label_values(app_dependency_health, namespace)",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "hide": 0,
+        "label": "Namespace"
+      },
+      {
+        "name": "dependency_type",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "query": "label_values(app_dependency_health{namespace=~\"$namespace\"}, type)",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "hide": 0,
+        "label": "Тип"
+      },
+      {
+        "name": "host",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "query": "label_values(app_dependency_health{namespace=~\"$namespace\", type=~\"$dependency_type\"}, host)",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "hide": 0,
+        "label": "Хост"
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "dephealth: Links Status",
+  "uid": "dephealth-links-status",
+  "version": 1
+}

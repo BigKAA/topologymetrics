@@ -44,57 +44,70 @@ data:
         options:
           path: /var/lib/grafana/dashboards/dephealth
 ---
-# --- ConfigMap: dashboard - overview ---
+# --- ConfigMap: dashboard - service-list ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: grafana-dashboard-overview
+  name: grafana-dashboard-service-list
   namespace: {{ include "dephealth-monitoring.namespace" . }}
   labels:
     {{- include "dephealth-monitoring.labels" . | nindent 4 }}
     {{- include "dephealth-monitoring.selectorLabels" (dict "name" "grafana") | nindent 4 }}
 data:
-  overview.json: |
-    {{- .Files.Get "dashboards/overview.json" | nindent 4 }}
+  service-list.json: |
+    {{- .Files.Get "dashboards/service-list.json" | nindent 4 }}
 ---
-# --- ConfigMap: dashboard - service-detail ---
+# --- ConfigMap: dashboard - services-status ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: grafana-dashboard-service-detail
+  name: grafana-dashboard-services-status
   namespace: {{ include "dephealth-monitoring.namespace" . }}
   labels:
     {{- include "dephealth-monitoring.labels" . | nindent 4 }}
     {{- include "dephealth-monitoring.selectorLabels" (dict "name" "grafana") | nindent 4 }}
 data:
-  service-detail.json: |
-    {{- .Files.Get "dashboards/service-detail.json" | nindent 4 }}
+  services-status.json: |
+    {{- .Files.Get "dashboards/services-status.json" | nindent 4 }}
 ---
-# --- ConfigMap: dashboard - dependency-map ---
+# --- ConfigMap: dashboard - service-status ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: grafana-dashboard-dependency-map
+  name: grafana-dashboard-service-status
   namespace: {{ include "dephealth-monitoring.namespace" . }}
   labels:
     {{- include "dephealth-monitoring.labels" . | nindent 4 }}
     {{- include "dephealth-monitoring.selectorLabels" (dict "name" "grafana") | nindent 4 }}
 data:
-  dependency-map.json: |
-    {{- .Files.Get "dashboards/dependency-map.json" | nindent 4 }}
+  service-status.json: |
+    {{- .Files.Get "dashboards/service-status.json" | nindent 4 }}
 ---
-# --- ConfigMap: dashboard - services ---
+# --- ConfigMap: dashboard - links-status ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: grafana-dashboard-services
+  name: grafana-dashboard-links-status
   namespace: {{ include "dephealth-monitoring.namespace" . }}
   labels:
     {{- include "dephealth-monitoring.labels" . | nindent 4 }}
     {{- include "dephealth-monitoring.selectorLabels" (dict "name" "grafana") | nindent 4 }}
 data:
-  services.json: |
-    {{- .Files.Get "dashboards/services.json" | nindent 4 }}
+  links-status.json: |
+    {{- .Files.Get "dashboards/links-status.json" | nindent 4 }}
+---
+# --- ConfigMap: dashboard - link-status ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-link-status
+  namespace: {{ include "dephealth-monitoring.namespace" . }}
+  labels:
+    {{- include "dephealth-monitoring.labels" . | nindent 4 }}
+    {{- include "dephealth-monitoring.selectorLabels" (dict "name" "grafana") | nindent 4 }}
+data:
+  link-status.json: |
+    {{- .Files.Get "dashboards/link-status.json" | nindent 4 }}
 ---
 # --- Deployment ---
 apiVersion: apps/v1
@@ -153,21 +166,25 @@ spec:
             - name: dashboards-provider
               mountPath: /etc/grafana/provisioning/dashboards
               readOnly: true
-            - name: dashboards-overview
-              mountPath: /var/lib/grafana/dashboards/dephealth/overview.json
-              subPath: overview.json
+            - name: dashboards-service-list
+              mountPath: /var/lib/grafana/dashboards/dephealth/service-list.json
+              subPath: service-list.json
               readOnly: true
-            - name: dashboards-service-detail
-              mountPath: /var/lib/grafana/dashboards/dephealth/service-detail.json
-              subPath: service-detail.json
+            - name: dashboards-services-status
+              mountPath: /var/lib/grafana/dashboards/dephealth/services-status.json
+              subPath: services-status.json
               readOnly: true
-            - name: dashboards-dependency-map
-              mountPath: /var/lib/grafana/dashboards/dephealth/dependency-map.json
-              subPath: dependency-map.json
+            - name: dashboards-service-status
+              mountPath: /var/lib/grafana/dashboards/dephealth/service-status.json
+              subPath: service-status.json
               readOnly: true
-            - name: dashboards-services
-              mountPath: /var/lib/grafana/dashboards/dephealth/services.json
-              subPath: services.json
+            - name: dashboards-links-status
+              mountPath: /var/lib/grafana/dashboards/dephealth/links-status.json
+              subPath: links-status.json
+              readOnly: true
+            - name: dashboards-link-status
+              mountPath: /var/lib/grafana/dashboards/dephealth/link-status.json
+              subPath: link-status.json
               readOnly: true
             - name: data
               mountPath: /var/lib/grafana
@@ -178,18 +195,21 @@ spec:
         - name: dashboards-provider
           configMap:
             name: grafana-dashboards-provider
-        - name: dashboards-overview
+        - name: dashboards-service-list
           configMap:
-            name: grafana-dashboard-overview
-        - name: dashboards-service-detail
+            name: grafana-dashboard-service-list
+        - name: dashboards-services-status
           configMap:
-            name: grafana-dashboard-service-detail
-        - name: dashboards-dependency-map
+            name: grafana-dashboard-services-status
+        - name: dashboards-service-status
           configMap:
-            name: grafana-dashboard-dependency-map
-        - name: dashboards-services
+            name: grafana-dashboard-service-status
+        - name: dashboards-links-status
           configMap:
-            name: grafana-dashboard-services
+            name: grafana-dashboard-links-status
+        - name: dashboards-link-status
+          configMap:
+            name: grafana-dashboard-link-status
         - name: data
           emptyDir: {}
 ---

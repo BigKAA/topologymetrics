@@ -1,21 +1,22 @@
 {
   "__inputs": [],
   "__requires": [
-    {
-      "type": "grafana",
-      "id": "grafana",
-      "name": "Grafana",
-      "version": "9.0.0"
-    },
-    {
-      "type": "datasource",
-      "id": "prometheus",
-      "name": "Prometheus",
-      "version": "1.0.0"
-    }
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.0.0" },
+    { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" }
   ],
   "annotations": {
-    "list": []
+    "list": [
+      {
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "enable": false,
+        "expr": "changes(app_dependency_health{job=~\"$service\"}[1m]) > 0",
+        "hide": false,
+        "iconColor": "rgba(255, 96, 96, 1)",
+        "name": "Изменения состояния",
+        "tagKeys": "dependency,host",
+        "titleFormat": "{{dependency}} @ {{host}}:{{port}}"
+      }
+    ]
   },
   "description": "Детальный статус зависимостей выбранного сервиса",
   "editable": true,
@@ -30,19 +31,32 @@
       "keepTime": true,
       "tags": [],
       "targetBlank": false,
-      "title": "Назад к обзору",
+      "title": "Service List",
       "type": "link",
-      "url": "/d/dephealth-overview/dephealth-overview"
+      "url": "/d/dephealth-service-list/"
+    },
+    {
+      "asDropdown": false,
+      "icon": "link",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": false,
+      "title": "Links Status",
+      "type": "link",
+      "url": "/d/dephealth-links-status/"
     }
   ],
   "panels": [
     {
+      "id": 1,
       "title": "Текущее состояние",
       "type": "row",
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
       "collapsed": false
     },
     {
+      "id": 2,
       "title": "Статус зависимостей",
       "type": "stat",
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
@@ -59,6 +73,13 @@
           "color": { "mode": "thresholds" },
           "mappings": [
             { "type": "value", "options": { "0": { "text": "DOWN" }, "1": { "text": "UP" } } }
+          ],
+          "links": [
+            {
+              "title": "Статус соединения \u2192",
+              "url": "/d/dephealth-link-status/?var-dependency=${__field.labels.dependency}&var-host=${__field.labels.host}&var-port=${__field.labels.port}&${__url_time_range}",
+              "targetBlank": false
+            }
           ]
         },
         "overrides": []
@@ -79,97 +100,52 @@
       ]
     },
     {
+      "id": 3,
+      "title": "SLA / Доступность за период",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 5 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 95 },
+              { "color": "green", "value": 99 }
+            ]
+          },
+          "color": { "mode": "thresholds" },
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "horizontal",
+        "textMode": "value_and_name",
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "targets": [
+        {
+          "expr": "avg_over_time(app_dependency_health{job=~\"$service\"}[$__range]) * 100",
+          "legendFormat": "{{dependency}} ({{host}}:{{port}})",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 4,
       "title": "Таблица endpoint-ов",
       "type": "table",
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 5 },
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": "auto",
-            "displayMode": "auto",
-            "filterable": true
-          }
-        },
-        "overrides": [
-          {
-            "matcher": { "id": "byName", "options": "Статус" },
-            "properties": [
-              { "id": "custom.displayMode", "value": "color-background-solid" },
-              {
-                "id": "mappings",
-                "value": [
-                  { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
-                ]
-              },
-              { "id": "custom.width", "value": 100 }
-            ]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Латентность (p99)" },
-            "properties": [
-              { "id": "unit", "value": "s" },
-              { "id": "decimals", "value": 3 },
-              { "id": "custom.displayMode", "value": "color-text" },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    { "color": "green", "value": null },
-                    { "color": "yellow", "value": 0.1 },
-                    { "color": "red", "value": 1 }
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Средняя латентность" },
-            "properties": [
-              { "id": "unit", "value": "s" },
-              { "id": "decimals", "value": 3 }
-            ]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Time" },
-            "properties": [
-              { "id": "custom.hidden", "value": true }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "showHeader": true,
-        "sortBy": [{ "displayName": "Статус", "desc": false }],
-        "footer": { "show": false }
-      },
-      "transformations": [
-        { "id": "merge", "options": {} },
-        {
-          "id": "organize",
-          "options": {
-            "renameByName": {
-              "dependency": "Зависимость",
-              "type": "Тип",
-              "host": "Host",
-              "port": "Port",
-              "Value #A": "Статус",
-              "Value #B": "Латентность (p99)",
-              "Value #C": "Средняя латентность"
-            },
-            "indexByName": {
-              "dependency": 0,
-              "type": 1,
-              "host": 2,
-              "port": 3,
-              "Value #A": 4,
-              "Value #B": 5,
-              "Value #C": 6
-            }
-          }
-        }
-      ],
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 9 },
       "targets": [
         {
           "expr": "app_dependency_health{job=~\"$service\"}",
@@ -188,20 +164,173 @@
           "format": "table",
           "instant": true,
           "refId": "C"
+        },
+        {
+          "expr": "changes(app_dependency_health{job=~\"$service\"}[15m])",
+          "format": "table",
+          "instant": true,
+          "refId": "D"
         }
-      ]
+      ],
+      "transformations": [
+        { "id": "merge", "options": {} },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "namespace": true,
+              "job": true,
+              "instance": true
+            },
+            "indexByName": {
+              "dependency": 0,
+              "type": 1,
+              "host": 2,
+              "port": 3,
+              "Value #A": 4,
+              "Value #B": 5,
+              "Value #C": 6,
+              "Value #D": 7
+            },
+            "renameByName": {
+              "dependency": "Зависимость",
+              "type": "Тип",
+              "host": "Хост",
+              "port": "Порт",
+              "Value #A": "Статус",
+              "Value #B": "P99 (сек)",
+              "Value #C": "Avg (сек)",
+              "Value #D": "Flapping"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Зависимость" },
+            "properties": [
+              { "id": "custom.width", "value": 180 },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Статус соединения →",
+                    "url": "/d/dephealth-link-status/?var-dependency=${__value.text}&var-host=${__data.fields[\"Хост\"]}&var-port=${__data.fields[\"Порт\"]}&${__url_time_range}",
+                    "targetBlank": false
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Тип" },
+            "properties": [
+              { "id": "custom.width", "value": 100 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Хост" },
+            "properties": [
+              { "id": "custom.width", "value": 220 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Порт" },
+            "properties": [
+              { "id": "custom.width", "value": 80 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Статус" },
+            "properties": [
+              { "id": "custom.width", "value": 100 },
+              { "id": "custom.displayMode", "value": "color-background-solid" },
+              {
+                "id": "mappings",
+                "value": [
+                  { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "P99 (сек)" },
+            "properties": [
+              { "id": "unit", "value": "s" },
+              { "id": "decimals", "value": 3 },
+              { "id": "custom.width", "value": 120 },
+              { "id": "custom.displayMode", "value": "color-text" },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green", "value": null },
+                    { "color": "yellow", "value": 0.1 },
+                    { "color": "red", "value": 1 }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Avg (сек)" },
+            "properties": [
+              { "id": "unit", "value": "s" },
+              { "id": "decimals", "value": 3 },
+              { "id": "custom.width", "value": 120 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Flapping" },
+            "properties": [
+              { "id": "custom.width", "value": 100 },
+              { "id": "custom.displayMode", "value": "color-background-solid" },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green", "value": null },
+                    { "color": "orange", "value": 4 },
+                    { "color": "red", "value": 8 }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [{ "displayName": "Статус", "desc": false }],
+        "footer": { "show": false }
+      }
     },
     {
-      "title": "Здоровье зависимостей (24ч)",
+      "id": 5,
+      "title": "Здоровье зависимостей (timeline)",
       "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 },
       "collapsed": false
     },
     {
+      "id": 6,
       "title": "app_dependency_health",
       "type": "state-timeline",
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 14 },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 18 },
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -218,6 +347,13 @@
           },
           "mappings": [
             { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+          ],
+          "links": [
+            {
+              "title": "Статус соединения \u2192",
+              "url": "/d/dephealth-link-status/?var-dependency=${__field.labels.dependency}&var-host=${__field.labels.host}&var-port=${__field.labels.port}&${__url_time_range}",
+              "targetBlank": false
+            }
           ]
         },
         "overrides": []
@@ -239,20 +375,20 @@
       ]
     },
     {
+      "id": 7,
       "title": "Латентность",
       "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 26 },
       "collapsed": false
     },
     {
+      "id": 8,
       "title": "Латентность проверок (heatmap)",
       "type": "heatmap",
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 23 },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 27 },
       "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
+        "defaults": { "custom": {} },
         "overrides": []
       },
       "options": {
@@ -266,13 +402,8 @@
           "scheme": "Oranges",
           "steps": 64
         },
-        "yAxis": {
-          "unit": "s"
-        },
-        "tooltip": {
-          "show": true,
-          "yHistogram": true
-        },
+        "yAxis": { "unit": "s" },
+        "tooltip": { "show": true, "yHistogram": true },
         "exemplars": { "color": "rgba(255,0,255,0.7)" },
         "filterValues": { "le": 1e-9 },
         "legend": { "show": true },
@@ -289,10 +420,11 @@
       ]
     },
     {
+      "id": 9,
       "title": "P99 латентность по зависимости",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 31 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 35 },
       "fieldConfig": {
         "defaults": {
           "unit": "s",
@@ -329,10 +461,11 @@
       ]
     },
     {
+      "id": 10,
       "title": "Средняя латентность по зависимости",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 31 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 35 },
       "fieldConfig": {
         "defaults": {
           "unit": "s",
@@ -362,8 +495,8 @@
     }
   ],
   "refresh": "30s",
-  "schemaVersion": 38,
-  "tags": ["dephealth", "dependencies", "service-detail"],
+  "schemaVersion": 39,
+  "tags": ["dephealth"],
   "templating": {
     "list": [
       {
@@ -380,10 +513,9 @@
         "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
         "query": "label_values(app_dependency_health, job)",
         "refresh": 2,
-        "includeAll": true,
-        "allValue": ".*",
+        "includeAll": false,
         "multi": false,
-        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "current": {},
         "hide": 0,
         "label": "Сервис"
       }
@@ -392,7 +524,7 @@
   "time": { "from": "now-24h", "to": "now" },
   "timepicker": {},
   "timezone": "",
-  "title": "dephealth: Детали сервиса",
-  "uid": "dephealth-service-detail",
+  "title": "dephealth: Service Status",
+  "uid": "dephealth-service-status",
   "version": 1
 }

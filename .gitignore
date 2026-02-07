@@ -42,3 +42,6 @@ __pycache__/
 
 # Docker Compose
 docker-compose.override.yml
+
+# AI tasks
+.tasks
