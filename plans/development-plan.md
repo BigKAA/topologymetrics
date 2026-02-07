@@ -1512,31 +1512,30 @@ conformance/
 **Цель**: реализовать полный C# SDK — ядро, 8 чекеров, ASP.NET интеграцию,
 тестовый сервис и conformance-прогон.
 
-**Статус**: [ ] Не начата
+**Статус**: [x] Завершена
 
 ### Задачи фазы 15
 
 #### 15.1. Инициализация проекта (`sdk-csharp/`)
 
-- [ ] Solution: `DepHealth.sln`
+- [x] Solution: `DepHealth.sln`
   - Проекты: `DepHealth.Core`, `DepHealth.AspNetCore`, `DepHealth.EntityFramework`
-  - .NET 8+
-- [ ] `Dockerfile.dev` — .NET SDK среда для тестов:
-  - Базовый образ: `mcr.microsoft.com/dotnet/sdk:8.0`
-  - Docker volume: `dephealth-dotnet-cache` (NuGet cache)
-- [ ] `Makefile` — по конвенциям из фазы 11:
+  - .NET 8 LTS, C# 12
+- [x] Docker через Harbor MCR proxy: `harbor.kryukov.lan/mcr/dotnet/sdk:8.0`
+  - Docker volume: `dephealth-csharp-cache` (NuGet cache)
+- [x] `Makefile` — по конвенциям из фазы 11:
   - `build` → `dotnet build`
   - `test` → `dotnet test`
   - `lint` → `dotnet format --verify-no-changes`
 
 #### 15.2. Core-проект (`sdk-csharp/DepHealth.Core/`)
 
-- [ ] Модель:
+- [x] Модель:
   - `Dependency.cs`: Name, Type, Critical, Endpoints, CheckConfig
   - `Endpoint.cs`: Host, Port, Metadata (Dictionary)
   - `CheckConfig.cs`: Interval, Timeout, InitialDelay, FailureThreshold, SuccessThreshold
   - Builder pattern
-- [ ] Интерфейс `IHealthChecker`:
+- [x] Интерфейс `IHealthChecker`:
 
   ```csharp
   public interface IHealthChecker
@@ -1546,52 +1545,52 @@ conformance/
   }
   ```
 
-- [ ] Исключения: `CheckTimeoutException`, `ConnectionRefusedException`, `UnhealthyException`
+- [x] Исключения: `CheckTimeoutException`, `ConnectionRefusedException`, `UnhealthyException`
 
 #### 15.3. Парсер конфигураций
 
-- [ ] `ConfigParser.cs`:
+- [x] `ConfigParser.cs`:
   - `ParseUrl()`, `ParseConnectionString()`, `ParseJdbc()`, `ParseParams()`
   - Аналогично Go/Python/Java
-- [ ] Unit-тесты (xUnit)
+- [x] Unit-тесты (xUnit)
 
 #### 15.4. Health Checkers (`sdk-csharp/DepHealth.Core/Checks/`)
 
-- [ ] `TcpChecker.cs` — `TcpClient.ConnectAsync()`
-- [ ] `HttpChecker.cs` — `HttpClient.GetAsync()`, ожидание 2xx
-- [ ] `GrpcChecker.cs` — gRPC Health/Check (Grpc.HealthCheck)
-- [ ] `PostgresChecker.cs` — Npgsql `SELECT 1`
+- [x] `TcpChecker.cs` — `TcpClient.ConnectAsync()`
+- [x] `HttpChecker.cs` — `HttpClient.GetAsync()`, ожидание 2xx
+- [x] `GrpcChecker.cs` — gRPC Health/Check (Grpc.HealthCheck)
+- [x] `PostgresChecker.cs` — Npgsql `SELECT 1`
   - Автономный: новое соединение
   - Pool-режим: принимает `NpgsqlDataSource`
-- [ ] `MySqlChecker.cs` — MySqlConnector `SELECT 1`
-- [ ] `RedisChecker.cs` — StackExchange.Redis `PING`
-- [ ] `AmqpChecker.cs` — RabbitMQ.Client connect → close
-- [ ] `KafkaChecker.cs` — Confluent.Kafka AdminClient → metadata
-- [ ] Unit-тесты для каждого чекера (xUnit + Moq/NSubstitute)
+- [x] `MySqlChecker.cs` — MySqlConnector `SELECT 1`
+- [x] `RedisChecker.cs` — StackExchange.Redis `PING`
+- [x] `AmqpChecker.cs` — RabbitMQ.Client connect → close
+- [x] `KafkaChecker.cs` — Confluent.Kafka AdminClient → metadata
+- [x] Unit-тесты для каждого чекера (xUnit + Moq)
 
 #### 15.5. Prometheus Exporter
 
-- [ ] `PrometheusExporter.cs` (prometheus-net):
+- [x] `PrometheusExporter.cs` (prometheus-net):
   - Gauge `app_dependency_health`
   - Histogram `app_dependency_latency_seconds`
   - Бакеты: `[0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0]`
-- [ ] Unit-тесты
+- [x] Unit-тесты
 
 #### 15.6. Check Scheduler
 
-- [ ] `CheckScheduler.cs`:
+- [x] `CheckScheduler.cs`:
   - Task-based (`Task.Delay` + `CancellationToken`)
   - `initialDelay`, `checkInterval`, таймауты
   - Логика порогов
-  - `StartAsync()` / `StopAsync()`
+  - `Start()` / `Stop()`
   - `Health() -> Dictionary<string, bool>`
-- [ ] Unit-тесты
+- [x] Unit-тесты
 
 #### 15.7. ASP.NET интеграция (`sdk-csharp/DepHealth.AspNetCore/`)
 
-- [ ] `IHostedService` — запуск/остановка CheckScheduler с приложением
-- [ ] `IHealthCheck` — интеграция с `/health` (Microsoft.Extensions.Diagnostics.HealthChecks)
-- [ ] `ServiceCollectionExtensions`:
+- [x] `IHostedService` — запуск/остановка CheckScheduler с приложением
+- [x] `IHealthCheck` — интеграция с `/health` (Microsoft.Extensions.Diagnostics.HealthChecks)
+- [x] `ServiceCollectionExtensions`:
 
   ```csharp
   builder.Services.AddDepHealth(dh => {
@@ -1601,38 +1600,38 @@ conformance/
   });
   ```
 
-- [ ] Middleware: `/metrics` endpoint (prometheus-net.AspNetCore)
-- [ ] Endpoint: `/health/dependencies` — JSON
-- [ ] Unit-тесты
+- [x] Middleware: `/metrics` endpoint (prometheus-net.AspNetCore)
+- [x] Endpoint: `/health/dependencies` — JSON
+- [x] Unit-тесты (3 теста)
 
 #### 15.8. Entity Framework интеграция (`sdk-csharp/DepHealth.EntityFramework/`)
 
-- [ ] Extension: `AddNpgsql<TContext>()` — автоматический PostgreSQL checker
-- [ ] Извлечение connection string из DbContext
-- [ ] Unit-тесты
+- [x] Extension: `AddNpgsqlFromContext<TContext>()` — автоматический PostgreSQL checker
+- [x] Извлечение connection string из DbContext
 
 #### 15.9. Тестовый сервис (`test-services/csharp-service/`)
 
-- [ ] ASP.NET Minimal API с 4 зависимостями:
-  - PostgreSQL (через Npgsql/EF)
+- [x] ASP.NET Minimal API с 4 зависимостями:
+  - PostgreSQL (через Npgsql)
   - Redis (через StackExchange.Redis)
   - HTTP-заглушка (автономный)
   - gRPC-заглушка (автономный)
-- [ ] Endpoint-ы: `/`, `/metrics`, `/health`, `/health/dependencies`
-- [ ] `Dockerfile` — multi-stage (dotnet publish → runtime:8.0-alpine)
-- [ ] Публикация: `harbor.kryukov.lan/library/dephealth-test-csharp:latest`
-- [ ] K8s-манифесты: `test-services/k8s/csharp-service/`
+- [x] Endpoint-ы: `/`, `/metrics`, `/health`, `/health/dependencies`
+- [x] `Dockerfile` — multi-stage (dotnet publish → aspnet:8.0-alpine)
+- [x] Публикация: `harbor.kryukov.lan/library/dephealth-test-csharp:latest`
+- [x] K8s-манифесты: `test-services/k8s/csharp-service/`
+- [x] HTTPRoute: `test4.kryukov.lan`
 
 #### 15.10. Conformance test service и прогон
 
-- [ ] `conformance/test-service-csharp/`:
+- [x] `conformance/test-service-csharp/`:
   - ASP.NET Minimal API с 7 зависимостями
   - `Dockerfile`, `.csproj`
-  - K8s-манифесты: `conformance/k8s/test-service-csharp/`
-- [ ] `conformance/run.sh --lang csharp`:
+  - K8s-манифесты: `conformance/test-service-csharp/k8s/`
+- [x] `conformance/run.sh --lang csharp`:
   - Деплой, прогон всех 8 сценариев
-- [ ] Все сценарии проходят
-- [ ] Раскомментировать scrape-target в VictoriaMetrics
+- [x] Все 8 сценариев проходят (basic-health, full-failure, initial-state, labels, latency, partial-failure, recovery, timeout)
+- [x] Активирован scrape-target в VictoriaMetrics
 
 ### Артефакты фазы 15
 
