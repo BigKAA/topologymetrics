@@ -7,7 +7,8 @@
 #   make test-coverage  — тесты с покрытием
 #   make lint           — ruff + mypy
 #   make fmt            — автоформатирование (ruff format + ruff check --fix)
-#   make build          — проверка сборки пакета
+#   make build          — сборка пакета (sdist + wheel)
+#   make publish        — публикация на PyPI (через ~/.pypirc)
 #   make image          — сборка Docker-образа тестового сервиса
 #   make push           — загрузка образа в registry
 #   make clean          — очистка кэшей
@@ -55,13 +56,21 @@ DOCKER_RUN = docker run --rm \
 # Установка пакета с dev-зависимостями
 PIP_INSTALL = pip install -q -e ".[dev]" 2>/dev/null
 
-.PHONY: build test test-coverage lint fmt image push image-conformance push-conformance pull clean help
+.PHONY: build test test-coverage lint fmt publish image push image-conformance push-conformance pull clean help
 
-## build: проверка сборки пакета
+## build: сборка пакета (sdist + wheel)
 build:
 	$(call remove_old,build)
 	$(DOCKER_RUN) --name $(CN)-build $(PY_IMAGE) \
-		sh -c '$(PIP_INSTALL) && python -c "import dephealth; print(\"OK\")"'
+		sh -c 'pip install -q build && python -m build'
+
+## publish: публикация на PyPI (используется ~/.pypirc)
+publish:
+	$(call remove_old,publish)
+	$(DOCKER_RUN) \
+		-v $(HOME)/.pypirc:/root/.pypirc:ro \
+		--name $(CN)-publish $(PY_IMAGE) \
+		sh -c 'pip install -q build twine && python -m build && twine upload dist/*'
 
 ## test: запуск юнит-тестов
 test:
