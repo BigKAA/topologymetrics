@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: victoriametrics
-          image: harbor.kryukov.lan/library/victoria-metrics:v1.108.1
+          image: harbor.kryukov.lan/homelab/victoriametrics/victoria-metrics:v1.108.1
           args:
             - -storageDataPath=/data
             - -retentionPeriod=7d

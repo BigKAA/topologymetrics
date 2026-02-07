@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: rabbitmq
-          image: rabbitmq:3-management-alpine
+          image: harbor.kryukov.lan/homelab/rabbitmq:3-management-alpine
           ports:
             - containerPort: 5672
               name: amqp

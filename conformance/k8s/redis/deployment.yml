@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: redis
-          image: redis:7-alpine
+          image: harbor.kryukov.lan/homelab/redis:7-alpine
           ports:
             - containerPort: 6379
               name: redis

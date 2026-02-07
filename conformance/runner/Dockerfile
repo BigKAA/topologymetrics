@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM harbor.kryukov.lan/homelab/python:3.12-slim
 
 WORKDIR /app
 COPY requirements.txt .

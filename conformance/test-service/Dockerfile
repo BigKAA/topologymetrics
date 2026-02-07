@@ -1,4 +1,4 @@
-FROM golang:1.25-alpine AS builder
+FROM harbor.kryukov.lan/homelab/golang:1.25-alpine AS builder
 
 WORKDIR /build
 
@@ -13,7 +13,7 @@ RUN go mod download
 COPY conformance/test-service/main.go .
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /app .
 
-FROM alpine:3.21
+FROM harbor.kryukov.lan/homelab/alpine:3.21
 RUN apk --no-cache add ca-certificates curl
 COPY --from=builder /app /app
 ENTRYPOINT ["/app"]

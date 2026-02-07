@@ -3,8 +3,8 @@
 ## Конфигурация
 PROJECT_ROOT := $(shell cd .. && pwd)
 JAVA_VERSION ?= 21
-MAVEN_IMAGE ?= maven:3.9-eclipse-temurin-$(JAVA_VERSION)
-RUNTIME_IMAGE ?= eclipse-temurin:$(JAVA_VERSION)-jre-alpine
+MAVEN_IMAGE ?= harbor.kryukov.lan/homelab/maven:3.9-eclipse-temurin-$(JAVA_VERSION)
+RUNTIME_IMAGE ?= harbor.kryukov.lan/homelab/eclipse-temurin:$(JAVA_VERSION)-jre-alpine
 REGISTRY ?= harbor.kryukov.lan/library
 IMAGE_NAME ?= dephealth-test-java
 IMAGE_TAG ?= latest

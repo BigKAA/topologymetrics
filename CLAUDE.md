@@ -53,7 +53,7 @@ GIT-WORKFLOW.md      # Git workflow (GitHub Flow + Conventional Commits + Semver
 
 - Разработка, отладка и тестирование — **только через Docker/Kubernetes**
 - Тестовый k8s-кластер: Gateway API (без Ingress), MetalLB, cert-manager (ClusterIssuer: `dev-ca-issuer`)
-- Container registry: `harbor.kryukov.lan` (admin/password), проект `library`
+- Container registry: `harbor.kryukov.lan` (admin/password), проект `library` (собственные образы), проект `homelab` (прокси-кэш Docker Hub)
 - Тестовые домены: `test1.kryukov.lan`, `test2.kryukov.lan` → 192.168.218.180 (Gateway API)
 - Доменные имена для тестов — добавлять в hosts (просить пользователя)
 - Доступные инструменты: `kubectl`, `helm`, `docker`

@@ -21,10 +21,10 @@ IMAGE_TAG    ?= latest
 
 # Docker volumes
 CACHE_VOLUME  = dephealth-go-cache
-GO_IMAGE      = golang:$(GO_VERSION)
-GO_ALPINE     = golang:$(GO_VERSION)-alpine
-ALPINE_IMAGE  = alpine:3.21
-LINT_IMAGE    = golangci/golangci-lint:$(LINT_VERSION)
+GO_IMAGE      = harbor.kryukov.lan/homelab/golang:$(GO_VERSION)
+GO_ALPINE     = harbor.kryukov.lan/homelab/golang:$(GO_VERSION)-alpine
+ALPINE_IMAGE  = harbor.kryukov.lan/homelab/alpine:3.21
+LINT_IMAGE    = harbor.kryukov.lan/homelab/golangci/golangci-lint:$(LINT_VERSION)
 
 # Пути (относительно корня проекта)
 PROJECT_ROOT  = $(shell cd .. && pwd)

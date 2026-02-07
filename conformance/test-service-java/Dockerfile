@@ -1,5 +1,5 @@
 # Stage 1: Сборка SDK и conformance-сервиса
-FROM maven:3.9-eclipse-temurin-21 AS builder
+FROM harbor.kryukov.lan/homelab/maven:3.9-eclipse-temurin-21 AS builder
 
 WORKDIR /workspace
 
@@ -27,7 +27,7 @@ COPY conformance/test-service-java/src conformance/test-service-java/src
 RUN cd conformance/test-service-java && mvn package -DskipTests -q
 
 # Stage 2: Runtime
-FROM eclipse-temurin:21-jre-alpine
+FROM harbor.kryukov.lan/homelab/eclipse-temurin:21-jre-alpine
 
 RUN apk add --no-cache curl
 
