@@ -1,0 +1,292 @@
+# Руководство по интеграции dephealth в существующий .NET-сервис
+
+Пошаговая инструкция по добавлению мониторинга зависимостей
+в работающий микросервис.
+
+## Предварительные требования
+
+- .NET 8+
+- ASP.NET Core (Minimal API или MVC)
+- Доступ к зависимостям (БД, кэш, другие сервисы) из сервиса
+
+## Шаг 1. Установка зависимостей
+
+```bash
+dotnet add package DepHealth.AspNetCore
+```
+
+Для Entity Framework интеграции:
+
+```bash
+dotnet add package DepHealth.EntityFramework
+```
+
+## Шаг 2. Регистрация сервисов
+
+Добавьте dephealth в `Program.cs`:
+
+```csharp
+using DepHealth;
+using DepHealth.AspNetCore;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDepHealth(dh => dh
+    .AddDependency("postgres-main", DependencyType.Postgres, d => d
+        .Url(builder.Configuration["DATABASE_URL"]!)
+        .Critical(true))
+    .AddDependency("redis-cache", DependencyType.Redis, d => d
+        .Url(builder.Configuration["REDIS_URL"]!))
+    .AddDependency("payment-api", DependencyType.Http, d => d
+        .Url("http://payment.svc:8080")
+        .Critical(true))
+);
+```
+
+## Шаг 3. Выбор режима
+
+### Вариант A: Standalone-режим (простой)
+
+SDK создаёт временные соединения для проверок:
+
+```csharp
+builder.Services.AddDepHealth(dh => dh
+    .AddDependency("postgres-main", DependencyType.Postgres, d => d
+        .Url(builder.Configuration["DATABASE_URL"]!)
+        .Critical(true))
+    .AddDependency("redis-cache", DependencyType.Redis, d => d
+        .Url(builder.Configuration["REDIS_URL"]!))
+    .AddDependency("payment-api", DependencyType.Http, d => d
+        .Url("http://payment.svc:8080")
+        .HttpHealthPath("/healthz")
+        .Critical(true))
+);
+```
+
+### Вариант B: Интеграция с Entity Framework (рекомендуется)
+
+SDK использует существующий DbContext. Преимущества:
+
+- Отражает реальную способность сервиса работать с зависимостью
+- Не создаёт дополнительную нагрузку на БД
+- Обнаруживает проблемы с пулом (исчерпание, утечки)
+
+```csharp
+using DepHealth.EntityFramework;
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(builder.Configuration["DATABASE_URL"]));
+
+builder.Services.AddDepHealth(dh => dh
+    .CheckInterval(TimeSpan.FromSeconds(15))
+
+    // PostgreSQL через EF Core DbContext
+    .AddEntityFrameworkDependency<AppDbContext>("postgres-main",
+        critical: true)
+
+    // Redis — standalone
+    .AddDependency("redis-cache", DependencyType.Redis, d => d
+        .Url(builder.Configuration["REDIS_URL"]!))
+
+    // HTTP — только standalone
+    .AddDependency("payment-api", DependencyType.Http, d => d
+        .Url("http://payment.svc:8080"))
+
+    // gRPC — только standalone
+    .AddDependency("auth-service", DependencyType.Grpc, d => d
+        .Host("auth.svc")
+        .Port("9090"))
+);
+```
+
+### Вариант C: Интеграция с connection string
+
+```csharp
+.AddDependency("postgres-main", DependencyType.Postgres, d => d
+    .ConnectionString("Host=pg.svc;Port=5432;Database=mydb;Username=user;Password=pass")
+    .Critical(true))
+```
+
+## Шаг 4. Middleware и endpoints
+
+```csharp
+var app = builder.Build();
+
+// Регистрирует /metrics (Prometheus) и /health/dependencies
+app.UseDepHealth();
+
+app.MapGet("/", () => "OK");
+app.Run();
+```
+
+`UseDepHealth()` регистрирует:
+
+| Endpoint | Описание |
+| --- | --- |
+| `/metrics` | Prometheus-метрики (text format) |
+| `/health/dependencies` | JSON-статус всех зависимостей |
+
+## Шаг 5. Проверка работоспособности
+
+### Prometheus-метрики
+
+```bash
+curl http://localhost:8080/metrics
+
+# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
+# TYPE app_dependency_health gauge
+app_dependency_health{dependency="postgres-main",type="postgres",host="pg.svc",port="5432"} 1
+app_dependency_health{dependency="redis-cache",type="redis",host="redis.svc",port="6379"} 1
+```
+
+### Состояние зависимостей
+
+```bash
+curl http://localhost:8080/health/dependencies
+
+{
+    "status": "healthy",
+    "dependencies": {
+        "postgres-main": true,
+        "redis-cache": true,
+        "payment-api": false
+    }
+}
+```
+
+Статус-код: `200` (все healthy) или `503` (есть unhealthy).
+
+## Шаг 6. Доступ к DepHealth из кода
+
+```csharp
+// Через DI
+app.MapGet("/info", (IDepHealth depHealth) =>
+{
+    var health = depHealth.Health();
+    return Results.Ok(health);
+});
+```
+
+## Типичные конфигурации
+
+### Веб-сервис с PostgreSQL и Redis
+
+```csharp
+builder.Services.AddDepHealth(dh => dh
+    .AddDependency("postgres", DependencyType.Postgres, d => d
+        .Url(builder.Configuration["DATABASE_URL"]!)
+        .Critical(true))
+    .AddDependency("redis", DependencyType.Redis, d => d
+        .Url(builder.Configuration["REDIS_URL"]!))
+);
+```
+
+### API Gateway с upstream-сервисами
+
+```csharp
+builder.Services.AddDepHealth(dh => dh
+    .CheckInterval(TimeSpan.FromSeconds(10))
+
+    .AddDependency("user-service", DependencyType.Http, d => d
+        .Url("http://user-svc:8080")
+        .HttpHealthPath("/healthz")
+        .Critical(true))
+    .AddDependency("order-service", DependencyType.Http, d => d
+        .Url("http://order-svc:8080")
+        .Critical(true))
+    .AddDependency("auth-service", DependencyType.Grpc, d => d
+        .Host("auth-svc")
+        .Port("9090")
+        .Critical(true))
+);
+```
+
+### Обработчик событий с Kafka и RabbitMQ
+
+```csharp
+builder.Services.AddDepHealth(dh => dh
+    .AddDependency("kafka-main", DependencyType.Kafka, d => d
+        .Url("kafka://kafka.svc:9092")
+        .Critical(true))
+    .AddDependency("rabbitmq", DependencyType.Amqp, d => d
+        .Host("rabbitmq.svc")
+        .Port("5672")
+        .AmqpUsername("user")
+        .AmqpPassword("pass")
+        .Critical(true))
+    .AddDependency("postgres", DependencyType.Postgres, d => d
+        .Url(builder.Configuration["DATABASE_URL"]!))
+);
+```
+
+## Troubleshooting
+
+### Метрики не появляются на `/metrics`
+
+**Проверьте:**
+
+1. `app.UseDepHealth()` вызван в pipeline
+2. Пакет `DepHealth.AspNetCore` установлен
+3. Приложение стартовало без ошибок
+
+### Все зависимости показывают `0` (unhealthy)
+
+**Проверьте:**
+
+1. Сетевая доступность зависимостей из контейнера/пода сервиса
+2. DNS-резолвинг имён сервисов
+3. Правильность URL/host/port в конфигурации
+4. Таймаут (`5s` по умолчанию) — достаточен ли для данной зависимости
+5. Логи: настройте `Logging:LogLevel:DepHealth=Debug` в `appsettings.json`
+
+### Высокая латентность проверок PostgreSQL
+
+**Причина**: standalone-режим создаёт новое соединение каждый раз.
+
+**Решение**: используйте Entity Framework интеграцию или connection string
+с пулом.
+
+### gRPC: ошибка `DeadlineExceeded`
+
+**Проверьте:**
+
+1. gRPC-сервис доступен по указанному адресу
+2. Сервис реализует `grpc.health.v1.Health/Check`
+3. Для gRPC используйте `Host()` + `Port()`, а не `Url()`
+4. Если нужен TLS: `.GrpcTls(true)`
+
+### Kafka: ошибка «unsupported URL scheme»
+
+**Kafka URL нуждается в схеме**: `kafka://host:port`
+
+```csharp
+.AddDependency("kafka", DependencyType.Kafka, d => d
+    .Url("kafka://kafka.svc:9092"))
+```
+
+### AMQP: ошибка подключения к RabbitMQ
+
+**Используйте явные параметры:**
+
+```csharp
+.AddDependency("rabbitmq", DependencyType.Amqp, d => d
+    .Host("rabbitmq.svc")
+    .Port("5672")
+    .AmqpUsername("user")
+    .AmqpPassword("pass")
+    .AmqpVhost("/"))
+```
+
+### Именование зависимостей
+
+Имена должны соответствовать правилам:
+
+- Длина: 1-63 символа
+- Формат: `[a-z][a-z0-9-]*` (строчные буквы, цифры, дефисы)
+- Начинается с буквы
+- Примеры: `postgres-main`, `redis-cache`, `auth-service`
+
+## Следующие шаги
+
+- [Быстрый старт](../quickstart/csharp.md) — минимальные примеры
+- [Обзор спецификации](../specification.md) — детали контрактов метрик и поведения

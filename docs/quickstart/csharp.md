@@ -1,0 +1,252 @@
+# Быстрый старт: C# SDK
+
+Руководство по подключению dephealth к .NET-сервису за несколько минут.
+
+## Установка
+
+Core-пакет:
+
+```bash
+dotnet add package DepHealth.Core
+```
+
+ASP.NET Core интеграция (включает Core):
+
+```bash
+dotnet add package DepHealth.AspNetCore
+```
+
+Entity Framework интеграция (connection pool):
+
+```bash
+dotnet add package DepHealth.EntityFramework
+```
+
+## Минимальный пример
+
+Подключение одной HTTP-зависимости с экспортом метрик (ASP.NET Minimal API):
+
+```csharp
+using DepHealth;
+using DepHealth.AspNetCore;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDepHealth(dh => dh
+    .AddDependency("payment-api", DependencyType.Http, d => d
+        .Url("http://payment.svc:8080")
+        .Critical(true))
+);
+
+var app = builder.Build();
+
+app.UseDepHealth();          // Регистрирует /metrics и /health/dependencies
+app.MapGet("/", () => "OK");
+app.Run();
+```
+
+После запуска на `/metrics` появятся метрики:
+
+```text
+app_dependency_health{dependency="payment-api",type="http",host="payment.svc",port="8080"} 1
+app_dependency_latency_seconds_bucket{dependency="payment-api",type="http",host="payment.svc",port="8080",le="0.01"} 42
+```
+
+## Несколько зависимостей
+
+```csharp
+builder.Services.AddDepHealth(dh => dh
+    // Глобальные настройки
+    .CheckInterval(TimeSpan.FromSeconds(30))
+    .Timeout(TimeSpan.FromSeconds(3))
+
+    // PostgreSQL — standalone check (новое соединение)
+    .AddDependency("postgres-main", DependencyType.Postgres, d => d
+        .Url("postgres://user:pass@pg.svc:5432/mydb")
+        .Critical(true))
+
+    // Redis — standalone check
+    .AddDependency("redis-cache", DependencyType.Redis, d => d
+        .Url("redis://:password@redis.svc:6379/0"))
+
+    // HTTP-сервис
+    .AddDependency("auth-service", DependencyType.Http, d => d
+        .Url("http://auth.svc:8080")
+        .HttpHealthPath("/healthz")
+        .Critical(true))
+
+    // gRPC-сервис
+    .AddDependency("user-service", DependencyType.Grpc, d => d
+        .Host("user.svc")
+        .Port("9090"))
+
+    // RabbitMQ
+    .AddDependency("rabbitmq", DependencyType.Amqp, d => d
+        .Host("rabbitmq.svc")
+        .Port("5672")
+        .AmqpUsername("user")
+        .AmqpPassword("pass")
+        .AmqpVhost("/"))
+
+    // Kafka
+    .AddDependency("kafka", DependencyType.Kafka, d => d
+        .Url("kafka://kafka.svc:9092"))
+);
+```
+
+## Интеграция с connection pool
+
+Предпочтительный режим: SDK использует существующий connection pool
+сервиса вместо создания новых соединений.
+
+### PostgreSQL через Entity Framework
+
+```csharp
+using DepHealth.EntityFramework;
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(connectionString));
+
+builder.Services.AddDepHealth(dh => dh
+    .AddEntityFrameworkDependency<AppDbContext>("postgres-main",
+        critical: true)
+);
+```
+
+### PostgreSQL через connection string
+
+```csharp
+.AddDependency("postgres-main", DependencyType.Postgres, d => d
+    .ConnectionString("Host=pg.svc;Port=5432;Database=mydb;Username=user;Password=pass")
+    .Critical(true))
+```
+
+## ASP.NET Core интеграция
+
+### Minimal API
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDepHealth(dh => dh
+    .AddDependency("postgres-main", DependencyType.Postgres, d => d
+        .Url(builder.Configuration["DATABASE_URL"]!)
+        .Critical(true))
+    .AddDependency("redis-cache", DependencyType.Redis, d => d
+        .Url(builder.Configuration["REDIS_URL"]!))
+    .AddDependency("auth-service", DependencyType.Http, d => d
+        .Url("http://auth.svc:8080")
+        .HttpHealthPath("/healthz")
+        .Critical(true))
+);
+
+var app = builder.Build();
+
+app.UseDepHealth();  // Prometheus /metrics + /health/dependencies
+
+app.MapGet("/", () => "OK");
+app.Run();
+```
+
+### Endpoints
+
+```bash
+# Prometheus-метрики
+GET /metrics
+
+# Состояние зависимостей
+GET /health/dependencies
+
+# Ответ:
+{
+    "status": "healthy",
+    "dependencies": {
+        "postgres-main": true,
+        "redis-cache": true,
+        "auth-service": false
+    }
+}
+```
+
+Статус-код: `200` (все healthy) или `503` (есть unhealthy).
+
+## Глобальные опции
+
+```csharp
+builder.Services.AddDepHealth(dh => dh
+    // Интервал проверки (по умолчанию 15s)
+    .CheckInterval(TimeSpan.FromSeconds(30))
+
+    // Таймаут каждой проверки (по умолчанию 5s)
+    .Timeout(TimeSpan.FromSeconds(3))
+
+    // ...зависимости
+);
+```
+
+## Опции зависимостей
+
+Каждая зависимость может переопределить глобальные настройки:
+
+```csharp
+.AddDependency("slow-service", DependencyType.Http, d => d
+    .Url("http://slow.svc:8080")
+    .HttpHealthPath("/ready")                    // путь health check
+    .HttpTls(true)                               // HTTPS
+    .HttpTlsSkipVerify(true)                     // пропустить проверку сертификата
+    .Interval(TimeSpan.FromSeconds(60))          // свой интервал
+    .Timeout(TimeSpan.FromSeconds(10))           // свой таймаут
+    .Critical(true))                             // критическая зависимость
+```
+
+## Проверка состояния зависимостей
+
+```csharp
+// Через DI
+var depHealth = app.Services.GetRequiredService<IDepHealth>();
+
+var health = depHealth.Health();
+// Dictionary<string, bool>:
+// {"postgres-main": true, "redis-cache": true, "auth-service": false}
+
+bool allHealthy = health.Values.All(v => v);
+```
+
+## Экспорт метрик
+
+dephealth экспортирует две метрики Prometheus через prometheus-net:
+
+| Метрика | Тип | Описание |
+| --- | --- | --- |
+| `app_dependency_health` | Gauge | `1` = доступен, `0` = недоступен |
+| `app_dependency_latency_seconds` | Histogram | Латентность проверки (секунды) |
+
+Метки: `dependency`, `type`, `host`, `port`.
+
+## Поддерживаемые типы зависимостей
+
+| DependencyType | Тип | Метод проверки |
+| --- | --- | --- |
+| `Http` | `http` | HTTP GET к health endpoint, ожидание 2xx |
+| `Grpc` | `grpc` | gRPC Health Check Protocol |
+| `Tcp` | `tcp` | Установка TCP-соединения |
+| `Postgres` | `postgres` | `SELECT 1` через Npgsql |
+| `MySql` | `mysql` | `SELECT 1` через MySqlConnector |
+| `Redis` | `redis` | Команда `PING` через StackExchange.Redis |
+| `Amqp` | `amqp` | Проверка соединения с RabbitMQ |
+| `Kafka` | `kafka` | Metadata request через Confluent.Kafka |
+
+## Параметры по умолчанию
+
+| Параметр | Значение | Описание |
+| --- | --- | --- |
+| `CheckInterval` | 15s | Интервал между проверками |
+| `Timeout` | 5s | Таймаут одной проверки |
+| `FailureThreshold` | 1 | Число неудач до перехода в unhealthy |
+| `SuccessThreshold` | 1 | Число успехов до перехода в healthy |
+
+## Следующие шаги
+
+- [Руководство по интеграции](../migration/csharp.md) — пошаговое подключение
+  к существующему сервису
+- [Обзор спецификации](../specification.md) — детали контрактов метрик и поведения
