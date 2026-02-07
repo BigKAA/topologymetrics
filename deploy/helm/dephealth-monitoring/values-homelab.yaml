@@ -1,0 +1,39 @@
+# Переопределения для домашнего окружения (harbor.kryukov.lan)
+global:
+  imageRegistry: harbor.kryukov.lan/docker
+  storageClass: nfs-client
+
+grafana:
+  rootUrl: "http://grafana.kryukov.lan"
+  route:
+    enabled: true
+    hostname: grafana.kryukov.lan
+    gateway:
+      name: eg
+      namespace: envoy-gateway-system
+
+scrapeTargets:
+  - jobName: dephealth-test-go
+    host: go-service.dephealth-test.svc
+    port: "8080"
+    namespace: dephealth-test
+    service: go-service
+
+  - jobName: dephealth-test-python
+    host: python-service.dephealth-test.svc
+    port: "8080"
+    namespace: dephealth-test
+    service: python-service
+
+  - jobName: dephealth-test-java
+    host: java-service.dephealth-test.svc
+    port: "8080"
+    metricsPath: /actuator/prometheus
+    namespace: dephealth-test
+    service: java-service
+
+  - jobName: dephealth-test-csharp
+    host: csharp-service.dephealth-test.svc
+    port: "8080"
+    namespace: dephealth-test
+    service: csharp-service

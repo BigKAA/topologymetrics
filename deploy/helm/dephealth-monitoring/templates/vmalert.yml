@@ -1,0 +1,159 @@
+{{- if .Values.vmalert.enabled }}
+# --- ConfigMap: alert rules ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vmalert-rules
+  namespace: {{ include "dephealth-monitoring.namespace" . }}
+  labels:
+    {{- include "dephealth-monitoring.labels" . | nindent 4 }}
+    {{- include "dephealth-monitoring.selectorLabels" (dict "name" "vmalert") | nindent 4 }}
+data:
+  dephealth.yml: |
+    groups:
+      - name: dephealth.rules
+        rules:
+
+          # Полный отказ зависимости: все endpoint-ы недоступны.
+          - alert: DependencyDown
+            expr: |
+              min by (job, namespace, dependency, type) (
+                app_dependency_health
+              ) == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: {{ `"Зависимость {{ $labels.dependency }} ({{ $labels.type }}) недоступна в сервисе {{ $labels.job }}"` }}
+              description: {{ `"Все endpoint-ы зависимости {{ $labels.dependency }} типа {{ $labels.type }} в сервисе {{ $labels.job }} (namespace: {{ $labels.namespace }}) недоступны более 1 минуты."` }}
+
+          # Частичная деградация: часть endpoint-ов недоступна.
+          - alert: DependencyDegraded
+            expr: |
+              (
+                count by (job, namespace, dependency, type) (
+                  app_dependency_health == 0
+                ) > 0
+              )
+              and
+              (
+                count by (job, namespace, dependency, type) (
+                  app_dependency_health == 1
+                ) > 0
+              )
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: {{ `"Зависимость {{ $labels.dependency }} ({{ $labels.type }}) частично деградирована в сервисе {{ $labels.job }}"` }}
+              description: {{ `"Часть endpoint-ов зависимости {{ $labels.dependency }} типа {{ $labels.type }} в сервисе {{ $labels.job }} (namespace: {{ $labels.namespace }}) недоступна более 2 минут."` }}
+
+          # Высокая латентность: p99 > 1 секунды.
+          - alert: DependencyHighLatency
+            expr: |
+              histogram_quantile(0.99,
+                rate(app_dependency_latency_seconds_bucket[5m])
+              ) > 1
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: {{ `"Высокая латентность зависимости {{ $labels.dependency }} ({{ $labels.type }}) в сервисе {{ $labels.job }}"` }}
+              description: {{ `"P99 латентность проверки зависимости {{ $labels.dependency }} превышает 1 секунду в течение 5 минут."` }}
+
+          # Частые переключения статуса (flapping).
+          - alert: DependencyFlapping
+            expr: |
+              changes(app_dependency_health[15m]) > 4
+            for: 0m
+            labels:
+              severity: info
+            annotations:
+              summary: {{ `"Зависимость {{ $labels.dependency }} ({{ $labels.type }}) нестабильна в сервисе {{ $labels.job }}"` }}
+              description: {{ `"Статус зависимости {{ $labels.dependency }} менялся {{ $value }} раз за последние 15 минут."` }}
+
+          # Метрики отсутствуют.
+          - alert: DependencyAbsent
+            expr: |
+              absent(app_dependency_health{job=~".+"})
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Метрики dephealth отсутствуют"
+              description: "Ни один сервис не экспортирует метрику app_dependency_health в течение 5 минут."
+---
+# --- Deployment ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vmalert
+  namespace: {{ include "dephealth-monitoring.namespace" . }}
+  labels:
+    {{- include "dephealth-monitoring.labels" . | nindent 4 }}
+    {{- include "dephealth-monitoring.selectorLabels" (dict "name" "vmalert") | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "dephealth-monitoring.selectorLabels" (dict "name" "vmalert") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "dephealth-monitoring.selectorLabels" (dict "name" "vmalert") | nindent 8 }}
+    spec:
+      containers:
+        - name: vmalert
+          image: {{ include "dephealth-monitoring.image" (dict "registry" .Values.global.imageRegistry "image" .Values.vmalert.image "tag" .Values.vmalert.tag) }}
+          args:
+            - -datasource.url=http://victoriametrics:8428
+            - -remoteRead.url=http://victoriametrics:8428
+            - -remoteWrite.url=http://victoriametrics:8428
+            - -notifier.url=http://alertmanager:9093
+            - -rule=/rules/*.yml
+            - -evaluationInterval={{ .Values.vmalert.evaluationInterval }}
+            - -httpListenAddr=:8880
+          ports:
+            - containerPort: 8880
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8880
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8880
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.vmalert.resources | nindent 12 }}
+          volumeMounts:
+            - name: rules
+              mountPath: /rules
+              readOnly: true
+      volumes:
+        - name: rules
+          configMap:
+            name: vmalert-rules
+---
+# --- Service ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vmalert
+  namespace: {{ include "dephealth-monitoring.namespace" . }}
+  labels:
+    {{- include "dephealth-monitoring.labels" . | nindent 4 }}
+    {{- include "dephealth-monitoring.selectorLabels" (dict "name" "vmalert") | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "dephealth-monitoring.selectorLabels" (dict "name" "vmalert") | nindent 4 }}
+  ports:
+    - name: http
+      port: 8880
+      targetPort: 8880
+{{- end }}

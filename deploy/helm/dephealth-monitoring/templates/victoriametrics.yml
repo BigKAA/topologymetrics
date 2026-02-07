@@ -1,0 +1,134 @@
+{{- if .Values.victoriametrics.enabled }}
+# --- ConfigMap: scrape config ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: victoriametrics-config
+  namespace: {{ include "dephealth-monitoring.namespace" . }}
+  labels:
+    {{- include "dephealth-monitoring.labels" . | nindent 4 }}
+    {{- include "dephealth-monitoring.selectorLabels" (dict "name" "victoriametrics") | nindent 4 }}
+data:
+  scrape.yml: |
+    global:
+      scrape_interval: 15s
+      scrape_timeout: 10s
+
+    scrape_configs:
+      {{- range .Values.scrapeTargets }}
+      - job_name: {{ .jobName }}
+        {{- if .metricsPath }}
+        metrics_path: {{ .metricsPath }}
+        {{- end }}
+        static_configs:
+          - targets:
+              - {{ .host }}:{{ .port }}
+            labels:
+              namespace: {{ .namespace }}
+              service: {{ .service }}
+      {{- end }}
+
+      {{- range .Values.extraScrapeTargets }}
+      - job_name: {{ .jobName }}
+        {{- if .metricsPath }}
+        metrics_path: {{ .metricsPath }}
+        {{- end }}
+        static_configs:
+          - targets:
+              - {{ .host }}:{{ .port }}
+            labels:
+              namespace: {{ .namespace }}
+              service: {{ .service }}
+      {{- end }}
+
+      # VictoriaMetrics self-monitoring
+      - job_name: victoriametrics
+        static_configs:
+          - targets:
+              - localhost:8428
+---
+# --- StatefulSet ---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: victoriametrics
+  namespace: {{ include "dephealth-monitoring.namespace" . }}
+  labels:
+    {{- include "dephealth-monitoring.labels" . | nindent 4 }}
+    {{- include "dephealth-monitoring.selectorLabels" (dict "name" "victoriametrics") | nindent 4 }}
+spec:
+  serviceName: victoriametrics
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "dephealth-monitoring.selectorLabels" (dict "name" "victoriametrics") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "dephealth-monitoring.selectorLabels" (dict "name" "victoriametrics") | nindent 8 }}
+    spec:
+      containers:
+        - name: victoriametrics
+          image: {{ include "dephealth-monitoring.image" (dict "registry" .Values.global.imageRegistry "image" .Values.victoriametrics.image "tag" .Values.victoriametrics.tag) }}
+          args:
+            - -storageDataPath=/data
+            - -retentionPeriod={{ .Values.victoriametrics.retentionPeriod }}
+            - -promscrape.config=/config/scrape.yml
+            - -httpListenAddr=:8428
+          ports:
+            - containerPort: 8428
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8428
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8428
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.victoriametrics.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: config
+              mountPath: /config
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: victoriametrics-config
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        {{- if .Values.global.storageClass }}
+        storageClassName: {{ .Values.global.storageClass }}
+        {{- end }}
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.victoriametrics.storage }}
+---
+# --- Service ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: victoriametrics
+  namespace: {{ include "dephealth-monitoring.namespace" . }}
+  labels:
+    {{- include "dephealth-monitoring.labels" . | nindent 4 }}
+    {{- include "dephealth-monitoring.selectorLabels" (dict "name" "victoriametrics") | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "dephealth-monitoring.selectorLabels" (dict "name" "victoriametrics") | nindent 4 }}
+  ports:
+    - name: http
+      port: 8428
+      targetPort: 8428
+{{- end }}

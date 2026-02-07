@@ -1,0 +1,14 @@
+apiVersion: v2
+name: dephealth-conformance
+description: Conformance-тесты dephealth (инфраструктура + 4 тестовых сервиса Go/Python/Java/C#)
+version: 0.1.0
+appVersion: "1.0.0"
+type: application
+keywords:
+  - dephealth
+  - conformance
+  - testing
+dependencies:
+  - name: dephealth-infra
+    version: "0.1.0"
+    repository: "file://../dephealth-infra"

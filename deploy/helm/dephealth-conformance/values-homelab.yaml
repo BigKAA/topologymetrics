@@ -1,0 +1,10 @@
+# Переопределения для домашнего окружения (harbor.kryukov.lan)
+global:
+  pushRegistry: harbor.kryukov.lan/library
+
+dephealth-infra:
+  global:
+    imageRegistry: harbor.kryukov.lan/docker
+    pushRegistry: harbor.kryukov.lan/library
+    storageClass: nfs-client
+    namespace: dephealth-conformance

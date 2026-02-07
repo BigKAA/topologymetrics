@@ -1,0 +1,155 @@
+{{- if .Values.alertmanager.enabled }}
+# --- ConfigMap ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: {{ include "dephealth-monitoring.namespace" . }}
+  labels:
+    {{- include "dephealth-monitoring.labels" . | nindent 4 }}
+    {{- include "dephealth-monitoring.selectorLabels" (dict "name" "alertmanager") | nindent 4 }}
+data:
+  alertmanager.yml: |
+    global:
+      resolve_timeout: {{ .Values.alertmanager.config.resolveTimeout }}
+
+    route:
+      receiver: default
+      group_by: {{ .Values.alertmanager.config.groupBy | toJson }}
+      group_wait: {{ .Values.alertmanager.config.groupWait }}
+      group_interval: {{ .Values.alertmanager.config.groupInterval }}
+      repeat_interval: {{ .Values.alertmanager.config.repeatInterval }}
+
+      routes:
+        # Critical — немедленная доставка
+        - matchers:
+            - severity = "critical"
+          receiver: default
+          group_wait: 10s
+          repeat_interval: 1h
+
+        # Info — тихий приёмник (только в UI)
+        - matchers:
+            - severity = "info"
+          receiver: "null"
+
+    receivers:
+      - name: default
+        webhook_configs:
+          - url: {{ .Values.alertmanager.config.webhookUrl }}
+            send_resolved: true
+
+      - name: "null"
+
+    inhibit_rules:
+      # DependencyDown подавляет DependencyDegraded
+      - source_matchers:
+          - alertname = "DependencyDown"
+        target_matchers:
+          - alertname = "DependencyDegraded"
+        equal: ['job', 'namespace', 'dependency']
+
+      # DependencyDown подавляет DependencyHighLatency
+      - source_matchers:
+          - alertname = "DependencyDown"
+        target_matchers:
+          - alertname = "DependencyHighLatency"
+        equal: ['job', 'namespace', 'dependency']
+
+      # DependencyDown подавляет DependencyFlapping
+      - source_matchers:
+          - alertname = "DependencyDown"
+        target_matchers:
+          - alertname = "DependencyFlapping"
+        equal: ['job', 'namespace', 'dependency']
+
+      # DependencyDegraded подавляет DependencyFlapping
+      - source_matchers:
+          - alertname = "DependencyDegraded"
+        target_matchers:
+          - alertname = "DependencyFlapping"
+        equal: ['job', 'namespace', 'dependency']
+
+      # Каскадное подавление: critical подавляет warning
+      - source_matchers:
+          - alertname = "DependencyDown"
+          - severity = "critical"
+        target_matchers:
+          - severity = "warning"
+        equal: ['namespace', 'dependency']
+---
+# --- Deployment ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager
+  namespace: {{ include "dephealth-monitoring.namespace" . }}
+  labels:
+    {{- include "dephealth-monitoring.labels" . | nindent 4 }}
+    {{- include "dephealth-monitoring.selectorLabels" (dict "name" "alertmanager") | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "dephealth-monitoring.selectorLabels" (dict "name" "alertmanager") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "dephealth-monitoring.selectorLabels" (dict "name" "alertmanager") | nindent 8 }}
+    spec:
+      containers:
+        - name: alertmanager
+          image: {{ include "dephealth-monitoring.image" (dict "registry" .Values.global.imageRegistry "image" .Values.alertmanager.image "tag" .Values.alertmanager.tag) }}
+          args:
+            - --config.file=/config/alertmanager.yml
+            - --storage.path=/data
+            - --web.listen-address=:9093
+            - --log.level=info
+          ports:
+            - containerPort: 9093
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 9093
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: 9093
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.alertmanager.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: config
+          configMap:
+            name: alertmanager-config
+        - name: data
+          emptyDir: {}
+---
+# --- Service ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager
+  namespace: {{ include "dephealth-monitoring.namespace" . }}
+  labels:
+    {{- include "dephealth-monitoring.labels" . | nindent 4 }}
+    {{- include "dephealth-monitoring.selectorLabels" (dict "name" "alertmanager") | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "dephealth-monitoring.selectorLabels" (dict "name" "alertmanager") | nindent 4 }}
+  ports:
+    - name: http
+      port: 9093
+      targetPort: 9093
+{{- end }}

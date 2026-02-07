@@ -1,0 +1,121 @@
+# dephealth-conformance — значения по умолчанию
+#
+# Использование:
+#   helm dependency build deploy/helm/dephealth-conformance/
+#   helm install dephealth-conformance deploy/helm/dephealth-conformance/
+#   helm install dephealth-conformance deploy/helm/dephealth-conformance/ -f deploy/helm/dephealth-conformance/values-homelab.yaml
+
+global:
+  # Registry для собственных образов (conformance services)
+  pushRegistry: ""
+  # Целевой namespace (общий для infra и conformance сервисов)
+  namespace: dephealth-conformance
+
+# --- dephealth-infra subchart: включить все зависимости ---
+dephealth-infra:
+  global:
+    imageRegistry: docker.io
+    pushRegistry: ""
+    storageClass: ""
+    namespace: dephealth-conformance
+  postgres:
+    enabled: true
+    replica:
+      enabled: true
+  redis:
+    enabled: true
+  kafka:
+    enabled: true
+  rabbitmq:
+    enabled: true
+  stubs:
+    httpStub:
+      enabled: true
+    grpcStub:
+      enabled: true
+
+# --- Credentials (совпадают с dephealth-infra defaults) ---
+credentials:
+  postgresUser: dephealth
+  postgresPassword: dephealth-test-pass
+  postgresDatabase: dephealth
+  rabbitmqUser: dephealth
+  rabbitmqPassword: dephealth-test-pass
+
+# --- Conformance-сервисы ---
+services:
+  go:
+    enabled: true
+    name: conformance-test-service
+    image: dephealth-conformance-test
+    tag: latest
+    port: 8080
+    metricsPath: /metrics
+    checkInterval: "10s"
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi
+    probes:
+      readinessDelay: 5
+      livenessDelay: 10
+
+  python:
+    enabled: true
+    name: conformance-test-service-python
+    image: dephealth-conformance-python
+    tag: latest
+    port: 8080
+    metricsPath: /metrics
+    checkInterval: "10"
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi
+    probes:
+      readinessDelay: 10
+      livenessDelay: 15
+
+  java:
+    enabled: true
+    name: conformance-test-service-java
+    image: dephealth-conformance-java
+    tag: latest
+    port: 8080
+    metricsPath: /actuator/prometheus
+    checkInterval: "10"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+    probes:
+      readinessDelay: 10
+      livenessDelay: 15
+
+  csharp:
+    enabled: true
+    name: conformance-test-service-csharp
+    image: dephealth-conformance-csharp
+    tag: latest
+    port: 8080
+    metricsPath: /metrics
+    checkInterval: "10"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+    probes:
+      readinessDelay: 10
+      livenessDelay: 15

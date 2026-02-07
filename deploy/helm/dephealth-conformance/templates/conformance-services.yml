@@ -1,0 +1,114 @@
+{{/*
+  Генерация Deployment + Service + ConfigMap для каждого conformance-сервиса.
+  Все 4 сервиса подключаются к одним и тем же 7 зависимостям (postgres-primary,
+  postgres-replica, redis, rabbitmq, kafka, http-stub, grpc-stub).
+*/}}
+{{- $ns := include "dephealth-conformance.namespace" . -}}
+{{- $creds := .Values.credentials -}}
+{{- $registry := .Values.global.pushRegistry -}}
+{{- $labels := include "dephealth-conformance.labels" . -}}
+
+{{- range $lang, $svc := .Values.services }}
+{{- if $svc.enabled }}
+---
+# === {{ $svc.name }} — ConfigMap ===
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: conformance-test-config-{{ $lang }}
+  namespace: {{ $ns }}
+  labels:
+    {{- $labels | nindent 4 }}
+    app: {{ $svc.name }}
+data:
+  CHECK_INTERVAL: {{ $svc.checkInterval | quote }}
+---
+# === {{ $svc.name }} — Deployment ===
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $svc.name }}
+  namespace: {{ $ns }}
+  labels:
+    {{- $labels | nindent 4 }}
+    app: {{ $svc.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ $svc.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $svc.name }}
+        app.kubernetes.io/name: {{ $svc.name }}
+        app.kubernetes.io/part-of: dephealth
+    spec:
+      containers:
+        - name: {{ $svc.name }}
+          image: {{ if $registry }}{{ $registry }}/{{ $svc.image }}:{{ $svc.tag }}{{ else }}{{ $svc.image }}:{{ $svc.tag }}{{ end }}
+          ports:
+            - containerPort: {{ $svc.port }}
+              name: http
+          env:
+            - name: PRIMARY_DATABASE_URL
+              value: "postgres://{{ $creds.postgresUser }}:{{ $creds.postgresPassword }}@postgres-primary.{{ $ns }}.svc:5432/{{ $creds.postgresDatabase }}?sslmode=disable"
+            - name: REPLICA_DATABASE_URL
+              value: "postgres://{{ $creds.postgresUser }}:{{ $creds.postgresPassword }}@postgres-replica.{{ $ns }}.svc:5432/{{ $creds.postgresDatabase }}?sslmode=disable"
+            - name: REDIS_URL
+              value: "redis://redis.{{ $ns }}.svc:6379/0"
+            - name: RABBITMQ_URL
+              value: "amqp://{{ $creds.rabbitmqUser }}:{{ $creds.rabbitmqPassword }}@rabbitmq.{{ $ns }}.svc:5672/"
+            - name: KAFKA_HOST
+              value: "kafka.{{ $ns }}.svc"
+            - name: KAFKA_PORT
+              value: "9092"
+            - name: HTTP_STUB_URL
+              value: "http://http-stub.{{ $ns }}.svc:8080"
+            - name: GRPC_STUB_HOST
+              value: "grpc-stub.{{ $ns }}.svc"
+            - name: GRPC_STUB_PORT
+              value: "9090"
+            - name: CHECK_INTERVAL
+              valueFrom:
+                configMapKeyRef:
+                  name: conformance-test-config-{{ $lang }}
+                  key: CHECK_INTERVAL
+            {{- if eq $lang "go" }}
+            - name: PORT
+              value: {{ $svc.port | quote }}
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ $svc.port }}
+            initialDelaySeconds: {{ $svc.probes.readinessDelay }}
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ $svc.port }}
+            initialDelaySeconds: {{ $svc.probes.livenessDelay }}
+            periodSeconds: 10
+          resources:
+            {{- toYaml $svc.resources | nindent 12 }}
+---
+# === {{ $svc.name }} — Service ===
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $svc.name }}
+  namespace: {{ $ns }}
+  labels:
+    {{- $labels | nindent 4 }}
+    app: {{ $svc.name }}
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ $svc.name }}
+  ports:
+    - port: {{ $svc.port }}
+      targetPort: {{ $svc.port }}
+      name: http
+{{- end }}
+{{- end }}

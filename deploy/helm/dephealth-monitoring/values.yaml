@@ -1,0 +1,123 @@
+# dephealth-monitoring — значения по умолчанию
+#
+# Использование:
+#   helm install dephealth-monitoring deploy/helm/dephealth-monitoring/
+#   helm install dephealth-monitoring deploy/helm/dephealth-monitoring/ -f deploy/helm/dephealth-monitoring/values-homelab.yaml
+
+global:
+  # Registry для Docker Hub образов (victoriametrics, grafana, alertmanager)
+  imageRegistry: docker.io
+  # StorageClass для PVC (пустая строка = default StorageClass кластера)
+  storageClass: ""
+  # Целевой namespace
+  namespace: dephealth-monitoring
+
+# --- VictoriaMetrics ---
+victoriametrics:
+  enabled: true
+  image: victoriametrics/victoria-metrics
+  tag: "v1.108.1"
+  retentionPeriod: 7d
+  storage: 2Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# --- VMAlert ---
+vmalert:
+  enabled: true
+  image: victoriametrics/vmalert
+  tag: "v1.108.1"
+  evaluationInterval: 15s
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# --- Alertmanager ---
+alertmanager:
+  enabled: true
+  image: prom/alertmanager
+  tag: "v0.28.1"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+  config:
+    resolveTimeout: 5m
+    groupBy: ['alertname', 'namespace', 'job', 'dependency']
+    groupWait: 30s
+    groupInterval: 5m
+    repeatInterval: 4h
+    # Webhook URL для тестовой верификации (заменить на Slack/PagerDuty в production)
+    webhookUrl: "http://localhost:9094/webhook"
+
+# --- Grafana ---
+grafana:
+  enabled: true
+  image: grafana/grafana
+  tag: "11.6.0"
+  adminUser: admin
+  adminPassword: dephealth
+  rootUrl: "http://grafana.dephealth.local"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  # HTTPRoute (Gateway API)
+  route:
+    enabled: false
+    hostname: grafana.dephealth.local
+    gateway:
+      name: gateway
+      namespace: default
+
+# --- Scrape targets ---
+# Список сервисов для VictoriaMetrics scrape.
+# Каждый элемент: jobName, host, port, metricsPath (по умолчанию /metrics), namespace, service.
+scrapeTargets:
+  - jobName: dephealth-test-go
+    host: go-service.dephealth-test.svc
+    port: "8080"
+    namespace: dephealth-test
+    service: go-service
+
+  - jobName: dephealth-test-python
+    host: python-service.dephealth-test.svc
+    port: "8080"
+    namespace: dephealth-test
+    service: python-service
+
+  - jobName: dephealth-test-java
+    host: java-service.dephealth-test.svc
+    port: "8080"
+    metricsPath: /actuator/prometheus
+    namespace: dephealth-test
+    service: java-service
+
+  - jobName: dephealth-test-csharp
+    host: csharp-service.dephealth-test.svc
+    port: "8080"
+    namespace: dephealth-test
+    service: csharp-service
+
+# Дополнительные scrape targets (conformance и т.д.)
+extraScrapeTargets: []
+#  - jobName: dephealth-conformance-go
+#    host: conformance-test-service.dephealth-conformance.svc
+#    port: "8080"
+#    namespace: dephealth-conformance
+#    service: conformance-test-service

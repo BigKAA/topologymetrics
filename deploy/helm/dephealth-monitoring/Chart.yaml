@@ -1,0 +1,12 @@
+apiVersion: v2
+name: dephealth-monitoring
+description: Стек мониторинга dephealth (VictoriaMetrics, VMAlert, Alertmanager, Grafana)
+version: 0.1.0
+appVersion: "1.0.0"
+type: application
+keywords:
+  - dephealth
+  - monitoring
+  - victoriametrics
+  - grafana
+  - alertmanager

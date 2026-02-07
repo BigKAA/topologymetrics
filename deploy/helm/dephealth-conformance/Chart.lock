@@ -1,0 +1,6 @@
+dependencies:
+- name: dephealth-infra
+  repository: file://../dephealth-infra
+  version: 0.1.0
+digest: sha256:fd869e97d41d03354e18504783e4268075eac0b31b98dd7b1f86dd15acd5cae5
+generated: "2026-02-07T13:03:31.830467451+03:00"
