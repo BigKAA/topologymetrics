@@ -1762,13 +1762,14 @@ conformance/
 #### 16.6. Релиз
 
 - [x] `CHANGELOG.md` — описание всех изменений v0.1.0
-- [ ] Git tag `v0.1.0` + `sdk-go/v0.1.0`
-- [ ] Release notes (GitHub Release)
-- [ ] Публикация пакетов:
+- [x] Git tag `v0.1.0` + `sdk-go/v0.1.0`
+- [x] Release notes (GitHub Release)
+- [x] Публикация пакетов:
   - Go modules (git tag достаточен)
-  - PyPI: `twine upload`
-  - Maven Central: `mvn deploy -P release`
+  - PyPI: `twine upload` — загружено
+  - Maven Central: `mvn deploy -P release` — опубликовано (`biz.kryukov.dev:dephealth-core:0.1.0`, `biz.kryukov.dev:dephealth-spring-boot-starter:0.1.0`)
   - NuGet: пропущен
+- [x] Переименование Java groupId `com.github.bigkaa` → `biz.kryukov.dev` (SDK, тестовые сервисы, документация)
 
 ### Артефакты фазы 16
 
