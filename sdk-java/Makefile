@@ -52,14 +52,14 @@ fmt:
 
 ## publish: Публикация на Maven Central (release-профиль)
 publish:
-	docker run --rm \
+	docker run --rm --network=host \
 		-v $(PROJECT_ROOT):/workspace \
 		-v $(CACHE_VOLUME):/root/.m2/repository \
 		-v $(HOME)/.m2/settings.xml:/root/.m2/settings.xml:ro \
-		-v $(HOME)/.gnupg:/root/.gnupg:ro \
+		-v $(HOME)/.gnupg:/host-gnupg:ro \
 		-w /workspace/sdk-java \
 		$(MAVEN_IMAGE) \
-		mvn clean deploy -Prelease -DskipTests
+		sh -c 'cp -r /host-gnupg /root/.gnupg && chmod 700 /root/.gnupg && mvn clean deploy -Prelease -DskipTests'
 
 ## image: Сборка Docker-образа тестового сервиса
 image:

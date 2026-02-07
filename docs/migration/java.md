@@ -15,9 +15,9 @@
 
 ```xml
 <dependency>
-    <groupId>com.github.bigkaa</groupId>
+    <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-spring-boot-starter</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
 </dependency>
 ```
 
@@ -25,9 +25,9 @@
 
 ```xml
 <dependency>
-    <groupId>com.github.bigkaa</groupId>
+    <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-core</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
 </dependency>
 ```
 
@@ -74,7 +74,7 @@ Spring Boot автоматически создаст и запустит `DepHe
 SDK создаёт временные соединения для проверок:
 
 ```java
-import com.github.bigkaa.dephealth.*;
+import biz.kryukov.dev.dephealth.*;
 import io.micrometer.prometheus.PrometheusMeterRegistry;
 
 PrometheusMeterRegistry meterRegistry = ...;
@@ -303,7 +303,7 @@ dephealth:
 2. DNS-резолвинг имён сервисов
 3. Правильность URL/host/port в конфигурации
 4. Таймаут (`5s` по умолчанию) — достаточен ли для данной зависимости
-5. Логи: настройте `logging.level.com.github.bigkaa.dephealth=DEBUG`
+5. Логи: настройте `logging.level.biz.kryukov.dev.dephealth=DEBUG`
 
 ### Высокая латентность проверок PostgreSQL/MySQL
 

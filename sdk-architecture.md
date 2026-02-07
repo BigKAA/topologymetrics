@@ -289,9 +289,9 @@ dephealth/
 
 **Модули (Maven)**:
 
-- `com.github.bigkaa:dephealth-core` — ядро, проверки, Prometheus-метрики
-- `com.github.bigkaa:dephealth-spring-boot-starter` — Spring Boot auto-configuration
-- `com.github.bigkaa:dephealth-micrometer` — мост для Micrometer (если используется вместо Prometheus напрямую)
+- `biz.kryukov.dev:dephealth-core` — ядро, проверки, Prometheus-метрики
+- `biz.kryukov.dev:dephealth-spring-boot-starter` — Spring Boot auto-configuration
+- `biz.kryukov.dev:dephealth-micrometer` — мост для Micrometer (если используется вместо Prometheus напрямую)
 
 **API инициализации (Spring Boot)**:
 
@@ -358,7 +358,7 @@ public class OrderServiceApplication {
 ```text
 sdk-java/
 ├── dephealth-core/
-│   └── src/main/java/com/github/bigkaa/dephealth/
+│   └── src/main/java/biz/kryukov/dev/dephealth/
 │       ├── DependencyHealth.java        # Builder, основной API
 │       ├── Dependency.java              # Модель зависимости
 │       ├── Endpoint.java                # Модель endpoint-а
@@ -376,7 +376,7 @@ sdk-java/
 │           └── KafkaChecker.java
 │
 ├── dephealth-spring-boot/
-│   └── src/main/java/com/github/bigkaa/dephealth/spring/
+│   └── src/main/java/biz/kryukov/dev/dephealth/spring/
 │       ├── DependencyHealthAutoConfiguration.java
 │       ├── DependencyHealthIndicator.java  # → /actuator/health
 │       ├── DependencyReadinessContributor.java

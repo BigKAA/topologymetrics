@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.github.bigkaa</groupId>
+        <groupId>biz.kryukov.dev</groupId>
         <artifactId>dephealth-parent</artifactId>
         <version>0.1.0</version>
     </parent>
@@ -29,7 +29,7 @@
     <dependencies>
         <!-- Internal -->
         <dependency>
-            <groupId>com.github.bigkaa</groupId>
+            <groupId>biz.kryukov.dev</groupId>
             <artifactId>dephealth-core</artifactId>
         </dependency>
 

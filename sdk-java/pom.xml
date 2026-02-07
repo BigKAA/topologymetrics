@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.github.bigkaa</groupId>
+    <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-parent</artifactId>
     <version>0.1.0</version>
     <packaging>pom</packaging>
@@ -76,7 +76,7 @@
         <dependencies>
             <!-- Internal -->
             <dependency>
-                <groupId>com.github.bigkaa</groupId>
+                <groupId>biz.kryukov.dev</groupId>
                 <artifactId>dephealth-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
