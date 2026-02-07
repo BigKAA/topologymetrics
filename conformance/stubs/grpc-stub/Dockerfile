@@ -1,4 +1,5 @@
-FROM harbor.kryukov.lan/docker/golang:1.25-alpine AS builder
+ARG REGISTRY=docker.io
+FROM ${REGISTRY}/golang:1.25-alpine AS builder
 
 WORKDIR /app
 COPY go.mod go.sum ./
@@ -6,7 +7,8 @@ RUN go mod download
 COPY main.go ./
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /grpc-stub .
 
-FROM harbor.kryukov.lan/docker/alpine:3.21
+ARG REGISTRY=docker.io
+FROM ${REGISTRY}/alpine:3.21
 RUN apk --no-cache add ca-certificates
 COPY --from=builder /grpc-stub /grpc-stub
 

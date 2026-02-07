@@ -1,5 +1,6 @@
 # Stage 1: Сборка SDK и тестового сервиса
-FROM harbor.kryukov.lan/docker/maven:3.9-eclipse-temurin-21 AS builder
+ARG REGISTRY=docker.io
+FROM ${REGISTRY}/maven:3.9-eclipse-temurin-21 AS builder
 
 WORKDIR /workspace
 
@@ -27,7 +28,8 @@ COPY test-services/java-service/src test-services/java-service/src
 RUN cd test-services/java-service && mvn package -DskipTests -q
 
 # Stage 2: Runtime
-FROM harbor.kryukov.lan/docker/eclipse-temurin:21-jre-alpine
+ARG REGISTRY=docker.io
+FROM ${REGISTRY}/eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 

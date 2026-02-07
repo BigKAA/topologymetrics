@@ -1,4 +1,5 @@
-FROM harbor.kryukov.lan/docker/python:3.12-slim
+ARG REGISTRY=docker.io
+FROM ${REGISTRY}/python:3.12-slim
 
 WORKDIR /app
 COPY requirements.txt .

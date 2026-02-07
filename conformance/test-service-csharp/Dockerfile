@@ -2,7 +2,8 @@
 # docker build -t ... -f conformance/test-service-csharp/Dockerfile .
 
 # Stage 1: Сборка SDK и conformance-сервиса
-FROM harbor.kryukov.lan/mcr/dotnet/sdk:8.0 AS builder
+ARG MCR_REGISTRY=mcr.microsoft.com
+FROM ${MCR_REGISTRY}/dotnet/sdk:8.0 AS builder
 
 WORKDIR /workspace
 
@@ -29,7 +30,8 @@ RUN dotnet publish conformance/test-service-csharp/conformance-service.csproj \
     -c Release -o /app/publish --no-restore
 
 # Stage 2: Runtime
-FROM harbor.kryukov.lan/mcr/dotnet/aspnet:8.0-alpine
+ARG MCR_REGISTRY=mcr.microsoft.com
+FROM ${MCR_REGISTRY}/dotnet/aspnet:8.0-alpine
 
 # curl нужен для timeout.yml сценария (HTTP PUT из pod)
 RUN apk add --no-cache curl

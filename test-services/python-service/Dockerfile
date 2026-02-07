@@ -1,7 +1,8 @@
 # Build context: корень проекта (dephealth/)
 # docker build -t ... -f test-services/python-service/Dockerfile .
 
-FROM harbor.kryukov.lan/docker/python:3.12-slim AS builder
+ARG REGISTRY=docker.io
+FROM ${REGISTRY}/python:3.12-slim AS builder
 
 WORKDIR /build
 
@@ -16,7 +17,8 @@ COPY sdk-python/dephealth_fastapi/ sdk-python/dephealth_fastapi/
 RUN pip install --no-cache-dir "./sdk-python[fastapi]"
 
 # ---
-FROM harbor.kryukov.lan/docker/python:3.12-slim
+ARG REGISTRY=docker.io
+FROM ${REGISTRY}/python:3.12-slim
 
 # Копируем установленные пакеты из builder
 COPY --from=builder /usr/local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/

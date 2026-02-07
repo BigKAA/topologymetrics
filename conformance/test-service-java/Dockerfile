@@ -1,5 +1,6 @@
 # Stage 1: Сборка SDK и conformance-сервиса
-FROM harbor.kryukov.lan/docker/maven:3.9-eclipse-temurin-21 AS builder
+ARG REGISTRY=docker.io
+FROM ${REGISTRY}/maven:3.9-eclipse-temurin-21 AS builder
 
 WORKDIR /workspace
 
@@ -27,7 +28,8 @@ COPY conformance/test-service-java/src conformance/test-service-java/src
 RUN cd conformance/test-service-java && mvn package -DskipTests -q
 
 # Stage 2: Runtime
-FROM harbor.kryukov.lan/docker/eclipse-temurin:21-jre-alpine
+ARG REGISTRY=docker.io
+FROM ${REGISTRY}/eclipse-temurin:21-jre-alpine
 
 RUN apk add --no-cache curl
 

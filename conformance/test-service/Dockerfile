@@ -1,4 +1,5 @@
-FROM harbor.kryukov.lan/docker/golang:1.25-alpine AS builder
+ARG REGISTRY=docker.io
+FROM ${REGISTRY}/golang:1.25-alpine AS builder
 
 WORKDIR /build
 
@@ -13,7 +14,8 @@ RUN go mod download
 COPY conformance/test-service/main.go .
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /app .
 
-FROM harbor.kryukov.lan/docker/alpine:3.21
+ARG REGISTRY=docker.io
+FROM ${REGISTRY}/alpine:3.21
 RUN apk --no-cache add ca-certificates curl
 COPY --from=builder /app /app
 ENTRYPOINT ["/app"]

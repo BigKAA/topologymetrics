@@ -2,7 +2,8 @@
 # docker build -t ... -f test-services/csharp-service/Dockerfile .
 
 # Stage 1: Сборка SDK и тестового сервиса
-FROM harbor.kryukov.lan/mcr/dotnet/sdk:8.0 AS builder
+ARG MCR_REGISTRY=mcr.microsoft.com
+FROM ${MCR_REGISTRY}/dotnet/sdk:8.0 AS builder
 
 WORKDIR /workspace
 
@@ -29,7 +30,8 @@ RUN dotnet publish test-services/csharp-service/csharp-service.csproj \
     -c Release -o /app/publish --no-restore
 
 # Stage 2: Runtime
-FROM harbor.kryukov.lan/mcr/dotnet/aspnet:8.0-alpine
+ARG MCR_REGISTRY=mcr.microsoft.com
+FROM ${MCR_REGISTRY}/dotnet/aspnet:8.0-alpine
 
 WORKDIR /app
 
