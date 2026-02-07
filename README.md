@@ -219,6 +219,10 @@ plans/                          # Планы разработки
 - [Сравнение SDK](docs/comparison.md) — все языки side-by-side
 - [Обзор спецификации](docs/specification.md) — контракты метрик, поведения, конфигурации
 
+## Разработка
+
+Подробное руководство для разработчиков — [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Лицензия
 
 [MIT License](LICENSE) - Copyright (c) 2026 Artur Kryukov

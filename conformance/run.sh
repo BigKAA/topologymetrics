@@ -2,23 +2,35 @@
 # Скрипт полного цикла conformance-тестирования dephealth SDK
 #
 # Использование:
-#   ./run.sh [--lang LANG] [--no-cleanup] [--scenario SCENARIO]
+#   ./run.sh [--lang LANG] [--no-cleanup] [--scenario SCENARIO] [--deploy-mode MODE]
 #
 # Опции:
 #   --lang          Язык SDK: go|python|java|csharp|all (по умолчанию: go)
 #   --no-cleanup    Не удалять инфраструктуру после тестов
 #   --scenario      Запустить только один сценарий (имя файла без расширения)
 #   --metrics-url   URL метрик тестового сервиса (по умолчанию: через port-forward)
+#   --deploy-mode   Режим деплоя: helm|kubectl (по умолчанию: helm)
+#   --namespace     Kubernetes namespace (по умолчанию: dephealth-conformance)
+#   --helm-values   Дополнительный values-файл для Helm
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-NAMESPACE="dephealth-conformance"
+NAMESPACE="${NAMESPACE:-dephealth-conformance}"
 CLEANUP=true
 SINGLE_SCENARIO=""
 METRICS_URL=""
 PORT_FORWARD_PID=""
 LANG_SDK="go"
+
+# Флаг инициализации (cleanup не выполняется до начала деплоя)
+DEPLOYED=false
+
+# Режим деплоя: helm (по умолчанию) или kubectl (legacy)
+DEPLOY_MODE="${DEPLOY_MODE:-helm}"
+HELM_CHART_DIR="${HELM_CHART_DIR:-$(cd "$SCRIPT_DIR/../deploy/helm/dephealth-conformance" 2>/dev/null && pwd || echo "")}"
+HELM_VALUES="${HELM_VALUES:-}"
+HELM_RELEASE="dephealth-conformance"
 
 # Цвета
 RED='\033[0;31m'
@@ -36,9 +48,20 @@ cleanup() {
         kill "$PORT_FORWARD_PID" 2>/dev/null || true
     fi
 
+    # Не выполнять cleanup, если деплой ещё не начался (например, --help)
+    if [ "$DEPLOYED" != true ]; then
+        return
+    fi
+
     if [ "$CLEANUP" = true ]; then
-        log_info "Очистка namespace $NAMESPACE"
-        kubectl delete namespace "$NAMESPACE" --ignore-not-found --timeout=60s || true
+        if [ "$DEPLOY_MODE" = "helm" ]; then
+            log_info "Удаление Helm-релиза $HELM_RELEASE"
+            helm uninstall "$HELM_RELEASE" -n "$NAMESPACE" --wait 2>/dev/null || true
+            kubectl delete namespace "$NAMESPACE" --ignore-not-found --timeout=60s || true
+        else
+            log_info "Очистка namespace $NAMESPACE"
+            kubectl delete namespace "$NAMESPACE" --ignore-not-found --timeout=60s || true
+        fi
     else
         log_warn "Оставляем namespace $NAMESPACE (--no-cleanup)"
     fi
@@ -53,6 +76,23 @@ while [[ $# -gt 0 ]]; do
         --no-cleanup) CLEANUP=false; shift ;;
         --scenario) SINGLE_SCENARIO="$2"; shift 2 ;;
         --metrics-url) METRICS_URL="$2"; shift 2 ;;
+        --deploy-mode) DEPLOY_MODE="$2"; shift 2 ;;
+        --namespace) NAMESPACE="$2"; shift 2 ;;
+        --helm-values) HELM_VALUES="$2"; shift 2 ;;
+        --help|-h)
+            echo "Использование: $0 [опции]"
+            echo ""
+            echo "Опции:"
+            echo "  --lang LANG          Язык SDK: go|python|java|csharp|all (по умолчанию: go)"
+            echo "  --no-cleanup         Не удалять инфраструктуру после тестов"
+            echo "  --scenario NAME      Запустить только один сценарий (имя без .yml)"
+            echo "  --metrics-url URL    URL метрик тестового сервиса"
+            echo "  --deploy-mode MODE   Режим деплоя: helm|kubectl (по умолчанию: helm)"
+            echo "  --namespace NS       Kubernetes namespace (по умолчанию: dephealth-conformance)"
+            echo "  --helm-values FILE   Дополнительный values-файл для Helm"
+            echo "  --help, -h           Показать справку"
+            exit 0
+            ;;
         *) log_error "Неизвестный аргумент: $1"; exit 1 ;;
     esac
 done
@@ -61,6 +101,18 @@ done
 SUPPORTED_LANGS="go python java csharp all"
 if ! echo "$SUPPORTED_LANGS" | grep -qw "$LANG_SDK"; then
     log_error "Неизвестный язык: $LANG_SDK (допустимые: $SUPPORTED_LANGS)"
+    exit 1
+fi
+
+# Валидация --deploy-mode
+if [ "$DEPLOY_MODE" != "helm" ] && [ "$DEPLOY_MODE" != "kubectl" ]; then
+    log_error "Неизвестный режим деплоя: $DEPLOY_MODE (допустимые: helm, kubectl)"
+    exit 1
+fi
+
+# Валидация Helm-чарта
+if [ "$DEPLOY_MODE" = "helm" ] && [ -z "$HELM_CHART_DIR" ]; then
+    log_error "Helm-чарт не найден. Укажите HELM_CHART_DIR или используйте --deploy-mode kubectl"
     exit 1
 fi
 
@@ -99,9 +151,31 @@ get_metrics_path() {
     esac
 }
 
-# Деплой общей инфраструктуры (БД, кэши, стабы)
-deploy_infra() {
-    log_info "Деплой инфраструктуры в namespace $NAMESPACE"
+# --- Деплой ---
+
+# Деплой через Helm (инфраструктура + тестовые сервисы в одном чарте)
+deploy_helm() {
+    log_info "Деплой через Helm: релиз=$HELM_RELEASE, чарт=$HELM_CHART_DIR"
+
+    # Создать namespace, если не существует
+    kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+
+    local helm_args=("upgrade" "--install" "$HELM_RELEASE" "$HELM_CHART_DIR"
+        "--namespace" "$NAMESPACE"
+        "--set" "global.namespace=$NAMESPACE"
+        "--wait" "--timeout" "5m")
+
+    if [ -n "$HELM_VALUES" ]; then
+        helm_args+=("--values" "$HELM_VALUES")
+    fi
+
+    helm "${helm_args[@]}"
+    log_info "Helm-релиз $HELM_RELEASE установлен"
+}
+
+# Деплой инфраструктуры через kubectl (legacy)
+deploy_infra_kubectl() {
+    log_info "Деплой инфраструктуры через kubectl в namespace $NAMESPACE"
     kubectl apply -f "$SCRIPT_DIR/k8s/namespace.yml"
     kubectl apply -f "$SCRIPT_DIR/k8s/postgres/"
     kubectl apply -f "$SCRIPT_DIR/k8s/redis/"
@@ -124,8 +198,8 @@ deploy_infra() {
     log_info "Инфраструктура готова"
 }
 
-# Деплой тестового сервиса для конкретного языка
-deploy_test_service() {
+# Деплой тестового сервиса через kubectl (legacy)
+deploy_test_service_kubectl() {
     local lang="$1"
     local svc_dir
     svc_dir="$(get_test_service_dir "$lang")"
@@ -141,6 +215,16 @@ deploy_test_service() {
     local deployment
     deployment="$(get_deployment_name "$lang")"
     log_info "  Ожидание deployment/$deployment..."
+    kubectl -n "$NAMESPACE" rollout status "deployment/$deployment" --timeout=120s
+}
+
+# Ожидание readiness тестового сервиса (для helm-режима сервис уже развёрнут)
+wait_for_service() {
+    local lang="$1"
+    local deployment
+    deployment="$(get_deployment_name "$lang")"
+
+    log_info "Ожидание deployment/$deployment..."
     kubectl -n "$NAMESPACE" rollout status "deployment/$deployment" --timeout=120s
 }
 
@@ -183,6 +267,7 @@ run_lang_tests() {
         if python3 "$SCRIPT_DIR/runner/verify.py" \
             --scenario "$scenario_file" \
             --metrics-url "$local_url" \
+            --namespace "$NAMESPACE" \
             --pod-label "$deployment_name"; then
             passed=$((passed + 1))
             log_info "[$lang] Сценарий $name: ${GREEN}PASSED${NC}"
@@ -221,6 +306,9 @@ run_lang_tests() {
 
 # --- Основная логика ---
 
+log_info "Режим деплоя: $DEPLOY_MODE"
+log_info "Namespace: $NAMESPACE"
+
 # Определяем список языков для прогона
 if [ "$LANG_SDK" = "all" ]; then
     LANGS="go python java csharp"
@@ -228,25 +316,35 @@ else
     LANGS="$LANG_SDK"
 fi
 
-# 1. Деплой инфраструктуры (общая для всех языков)
-deploy_infra
+# 1. Деплой инфраструктуры и сервисов
+DEPLOYED=true
+if [ "$DEPLOY_MODE" = "helm" ]; then
+    deploy_helm
+else
+    deploy_infra_kubectl
+fi
 
-# 2. Для каждого языка: деплой сервиса + тесты
+# 2. Для каждого языка: деплой сервиса (если kubectl) + тесты
 TOTAL_FAILED=0
 
 for lang in $LANGS; do
     log_info "========== Тестирование SDK: $lang =========="
 
-    # Деплой тестового сервиса (для go используем существующий k8s/test-service/)
-    if [ "$lang" = "go" ]; then
-        kubectl apply -f "$SCRIPT_DIR/k8s/test-service/"
-        log_info "  Ожидание deployment/conformance-test-service..."
-        kubectl -n "$NAMESPACE" rollout status "deployment/conformance-test-service" --timeout=120s
-    else
-        if ! deploy_test_service "$lang"; then
-            log_warn "Пропуск $lang: тестовый сервис не найден"
-            continue
+    if [ "$DEPLOY_MODE" = "kubectl" ]; then
+        # kubectl-режим: деплоим сервисы по одному
+        if [ "$lang" = "go" ]; then
+            kubectl apply -f "$SCRIPT_DIR/k8s/test-service/"
+            log_info "  Ожидание deployment/conformance-test-service..."
+            kubectl -n "$NAMESPACE" rollout status "deployment/conformance-test-service" --timeout=120s
+        else
+            if ! deploy_test_service_kubectl "$lang"; then
+                log_warn "Пропуск $lang: тестовый сервис не найден"
+                continue
+            fi
         fi
+    else
+        # helm-режим: сервисы уже развёрнуты, ждём readiness
+        wait_for_service "$lang"
     fi
 
     # Запуск тестов

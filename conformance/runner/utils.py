@@ -54,11 +54,12 @@ def get_pod_name(label_selector: str) -> str:
 
 
 def port_forward_start(
-    service: str, local_port: int, remote_port: int
+    service: str, local_port: int, remote_port: int,
+    namespace: str = NAMESPACE,
 ) -> subprocess.Popen:
     """Запустить port-forward к сервису (фоновый процесс)."""
     cmd = [
-        "kubectl", "-n", NAMESPACE,
+        "kubectl", "-n", namespace,
         "port-forward", f"svc/{service}",
         f"{local_port}:{remote_port}",
     ]

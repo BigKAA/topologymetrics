@@ -323,6 +323,7 @@ def execute_action(
 def execute_actions(
     actions: list[dict],
     label: str,
+    namespace: str = "dephealth-conformance",
     pod_label: str = "conformance-test-service",
 ) -> None:
     """Выполнить список действий (pre_actions или post_actions)."""
@@ -331,7 +332,7 @@ def execute_actions(
     logger.info("выполнение %s (%d действий)", label, len(actions))
     for i, action in enumerate(actions, 1):
         logger.info("  [%d/%d] %s", i, len(actions), action.get("type", "?"))
-        execute_action(action, pod_label=pod_label)
+        execute_action(action, namespace=namespace, pod_label=pod_label)
 
 
 def load_scenario(path: str) -> dict:
@@ -343,6 +344,7 @@ def load_scenario(path: str) -> dict:
 def run_scenario(
     scenario: dict,
     metrics_url: str,
+    namespace: str = "dephealth-conformance",
     pod_label: str = "conformance-test-service",
 ) -> list[CheckResult]:
     """Выполнить все проверки из сценария."""
@@ -352,7 +354,7 @@ def run_scenario(
     pre_actions = scenario.get("pre_actions", [])
     if pre_actions:
         try:
-            execute_actions(pre_actions, "pre_actions", pod_label=pod_label)
+            execute_actions(pre_actions, "pre_actions", namespace=namespace, pod_label=pod_label)
         except Exception as e:
             return [CheckResult("pre_actions", False, f"ошибка pre_actions: {e}")]
 
@@ -409,6 +411,10 @@ def main():
         help="URL endpoint-а /metrics тестового сервиса",
     )
     parser.add_argument(
+        "--namespace", default="dephealth-conformance",
+        help="Kubernetes namespace (по умолчанию: dephealth-conformance)",
+    )
+    parser.add_argument(
         "--pod-label", default="conformance-test-service",
         help="Значение лейбла app= для пода, через который выполняются HTTP-запросы (kubectl exec)",
     )
@@ -427,7 +433,7 @@ def main():
     scenario = load_scenario(args.scenario)
     logger.info("сценарий: %s", scenario.get("name", "без имени"))
 
-    results = run_scenario(scenario, args.metrics_url, pod_label=args.pod_label)
+    results = run_scenario(scenario, args.metrics_url, namespace=args.namespace, pod_label=args.pod_label)
 
     # Вывод результатов
     passed = 0
@@ -446,7 +452,7 @@ def main():
     post_actions = scenario.get("post_actions", [])
     if post_actions:
         try:
-            execute_actions(post_actions, "post_actions", pod_label=args.pod_label)
+            execute_actions(post_actions, "post_actions", namespace=args.namespace, pod_label=args.pod_label)
         except Exception as e:
             logger.error("ошибка post_actions: %s", e)
 
