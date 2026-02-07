@@ -6,4 +6,4 @@ metadata:
   labels:
     app: go-service
 data:
-  CHECK_INTERVAL: "10s"
+  CHECK_INTERVAL: "10"

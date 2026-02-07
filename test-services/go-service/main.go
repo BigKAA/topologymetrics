@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -46,8 +47,8 @@ func loadConfig() (*Config, error) {
 		GRPCStubPort: getEnv("GRPC_STUB_PORT", "9090"),
 	}
 
-	intervalStr := getEnv("CHECK_INTERVAL", "10s")
-	d, err := time.ParseDuration(intervalStr)
+	intervalStr := getEnv("CHECK_INTERVAL", "10")
+	d, err := parseDuration(intervalStr)
 	if err != nil {
 		return nil, fmt.Errorf("невалидный CHECK_INTERVAL %q: %w", intervalStr, err)
 	}
@@ -61,6 +62,19 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// parseDuration парсит строку длительности. Принимает Go-формат ("10s", "1m")
+// или число секунд ("10", "15.5").
+func parseDuration(s string) (time.Duration, error) {
+	if d, err := time.ParseDuration(s); err == nil {
+		return d, nil
+	}
+	sec, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return 0, fmt.Errorf("ожидается число секунд или Go duration: %q", s)
+	}
+	return time.Duration(sec * float64(time.Second)), nil
 }
 
 func initDB(ctx context.Context, dsn string) (*sql.DB, error) {

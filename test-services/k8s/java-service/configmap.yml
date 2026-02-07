@@ -6,4 +6,4 @@ metadata:
   labels:
     app: java-service
 data:
-  DEPHEALTH_INTERVAL: "10s"
+  DEPHEALTH_INTERVAL: "10"

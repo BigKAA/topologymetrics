@@ -15,8 +15,8 @@ management:
         enabled: true
 
 dephealth:
-  interval: ${DEPHEALTH_INTERVAL:15s}
-  timeout: ${DEPHEALTH_TIMEOUT:5s}
+  interval: ${DEPHEALTH_INTERVAL:15}s
+  timeout: ${DEPHEALTH_TIMEOUT:5}s
   dependencies:
     postgres-main:
       type: postgres

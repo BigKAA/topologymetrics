@@ -340,6 +340,9 @@ DEPHEALTH_<DEPENDENCY_NAME>_<PARAM>=<value>
   Символ `-` заменяется на `_`.
 - `<PARAM>` — параметр конфигурации.
 
+**Формат значений длительности**: числа в секундах (целые или дробные), без суффикса единицы измерения.
+Например: `CHECK_INTERVAL=30`, `TIMEOUT=5`. SDK самостоятельно преобразует число в нативный тип длительности.
+
 ### 8.2. Поддерживаемые параметры
 
 | Переменная | Описание | Пример |
@@ -348,8 +351,8 @@ DEPHEALTH_<DEPENDENCY_NAME>_<PARAM>=<value>
 | `DEPHEALTH_<NAME>_HOST` | Хост | `DEPHEALTH_POSTGRES_MAIN_HOST=pg.svc` |
 | `DEPHEALTH_<NAME>_PORT` | Порт | `DEPHEALTH_POSTGRES_MAIN_PORT=5432` |
 | `DEPHEALTH_<NAME>_TYPE` | Тип зависимости | `DEPHEALTH_POSTGRES_MAIN_TYPE=postgres` |
-| `DEPHEALTH_<NAME>_CHECK_INTERVAL` | Интервал проверки | `DEPHEALTH_POSTGRES_MAIN_CHECK_INTERVAL=30s` |
-| `DEPHEALTH_<NAME>_TIMEOUT` | Таймаут | `DEPHEALTH_POSTGRES_MAIN_TIMEOUT=10s` |
+| `DEPHEALTH_<NAME>_CHECK_INTERVAL` | Интервал проверки (секунды) | `DEPHEALTH_POSTGRES_MAIN_CHECK_INTERVAL=30` |
+| `DEPHEALTH_<NAME>_TIMEOUT` | Таймаут (секунды) | `DEPHEALTH_POSTGRES_MAIN_TIMEOUT=10` |
 | `DEPHEALTH_<NAME>_CRITICAL` | Критичность | `DEPHEALTH_POSTGRES_MAIN_CRITICAL=true` |
 | `DEPHEALTH_<NAME>_HEALTH_PATH` | HTTP health path | `DEPHEALTH_PAYMENT_SERVICE_HEALTH_PATH=/ready` |
 

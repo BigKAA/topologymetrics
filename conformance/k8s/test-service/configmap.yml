@@ -6,4 +6,4 @@ metadata:
   labels:
     app: conformance-test-service
 data:
-  CHECK_INTERVAL: "10s"
+  CHECK_INTERVAL: "10"

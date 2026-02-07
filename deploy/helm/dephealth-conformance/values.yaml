@@ -51,7 +51,7 @@ services:
     tag: latest
     port: 8080
     metricsPath: /metrics
-    checkInterval: "10s"
+    checkInterval: "10"
     resources:
       requests:
         cpu: 50m

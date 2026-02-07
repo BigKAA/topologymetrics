@@ -21,7 +21,7 @@ services:
     hostname: test1.dephealth.local
     metricsPath: /metrics
     port: 8080
-    checkInterval: "10s"
+    checkInterval: "10"
     resources:
       requests:
         cpu: 50m
@@ -59,7 +59,7 @@ services:
     hostname: test3.dephealth.local
     metricsPath: /actuator/prometheus
     port: 8080
-    checkInterval: "10s"
+    checkInterval: "10"
     resources:
       requests:
         cpu: 100m
