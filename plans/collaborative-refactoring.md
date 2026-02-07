@@ -411,7 +411,7 @@ global:
 Заменяет: `test-services/k8s/go-service/`, `test-services/k8s/python-service/`,
 `test-services/k8s/java-service/`, `test-services/k8s/csharp-service/`.
 
-**Статус**: [ ] Не начата
+**Статус**: [x] Завершена
 
 ### Структура
 
@@ -499,13 +499,13 @@ services:
 
 ### Задачи
 
-- [ ] 21.1. Создать `deploy/helm/dephealth-services/Chart.yaml`
-- [ ] 21.2. Создать `values.yaml` и `values-homelab.yaml`
-- [ ] 21.3. Шаблоны: 4 Deployment + Service + ConfigMap (по одному на язык)
-- [ ] 21.4. Шаблон: HTTPRoutes (условные, по одному на сервис)
-- [ ] 21.5. `_helpers.tpl` — helpers для image, labels, selectors
-- [ ] 21.6. `helm template` — проверить генерацию
-- [ ] 21.7. `helm install` — проверить деплой с dephealth-infra
+- [x] 21.1. Создать `deploy/helm/dephealth-services/Chart.yaml`
+- [x] 21.2. Создать `values.yaml` и `values-homelab.yaml`
+- [x] 21.3. Шаблоны: 4 Deployment + Service + ConfigMap (по одному на язык)
+- [x] 21.4. Шаблон: HTTPRoutes (условные, по одному на сервис)
+- [x] 21.5. `_helpers.tpl` — helpers для image, labels, selectors
+- [x] 21.6. `helm template` — проверить генерацию
+- [x] 21.7. `helm install` — проверить деплой с dephealth-infra
 
 ---
 

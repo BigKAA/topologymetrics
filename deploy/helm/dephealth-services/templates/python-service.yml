@@ -1,0 +1,88 @@
+{{- if .Values.services.python.enabled }}
+{{- $ns := include "dephealth-services.namespace" . }}
+{{- $infraNs := .Values.dependencies.infraNamespace }}
+{{- $pgHost := include "dephealth-services.infraHost" (dict "host" .Values.dependencies.postgresHost "infraNs" $infraNs "currentNs" $ns) }}
+{{- $redisHost := include "dephealth-services.infraHost" (dict "host" .Values.dependencies.redisHost "infraNs" $infraNs "currentNs" $ns) }}
+{{- $httpStubHost := include "dephealth-services.infraHost" (dict "host" .Values.dependencies.httpStubHost "infraNs" $infraNs "currentNs" $ns) }}
+{{- $grpcStubHost := include "dephealth-services.infraHost" (dict "host" .Values.dependencies.grpcStubHost "infraNs" $infraNs "currentNs" $ns) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: python-service-config
+  namespace: {{ $ns }}
+  labels:
+    {{- include "dephealth-services.labels" . | nindent 4 }}
+data:
+  CHECK_INTERVAL: {{ .Values.services.python.checkInterval | quote }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-service
+  namespace: {{ $ns }}
+  labels:
+    {{- include "dephealth-services.labels" . | nindent 4 }}
+    {{- include "dephealth-services.selectorLabels" (dict "name" "python-service") | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "dephealth-services.selectorLabels" (dict "name" "python-service") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "dephealth-services.selectorLabels" (dict "name" "python-service") | nindent 8 }}
+    spec:
+      containers:
+        - name: python-service
+          image: {{ include "dephealth-services.image" (dict "registry" .Values.global.pushRegistry "image" .Values.services.python.image "tag" .Values.services.python.tag) }}
+          ports:
+            - containerPort: {{ .Values.services.python.port }}
+              name: http
+          env:
+            - name: DATABASE_URL
+              value: "postgres://{{ .Values.dependencies.postgresUser }}:{{ .Values.dependencies.postgresPassword }}@{{ $pgHost }}:{{ .Values.dependencies.postgresPort }}/{{ .Values.dependencies.postgresDatabase }}?sslmode=disable"
+            - name: REDIS_URL
+              value: "redis://{{ $redisHost }}:{{ .Values.dependencies.redisPort }}/0"
+            - name: HTTP_STUB_URL
+              value: "http://{{ $httpStubHost }}:{{ .Values.dependencies.httpStubPort }}"
+            - name: GRPC_STUB_HOST
+              value: {{ $grpcStubHost | quote }}
+            - name: GRPC_STUB_PORT
+              value: {{ .Values.dependencies.grpcStubPort | quote }}
+            - name: CHECK_INTERVAL
+              valueFrom:
+                configMapKeyRef:
+                  name: python-service-config
+                  key: CHECK_INTERVAL
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.services.python.port }}
+            initialDelaySeconds: {{ .Values.services.python.probes.readinessDelay }}
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.services.python.port }}
+            initialDelaySeconds: {{ .Values.services.python.probes.livenessDelay }}
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.services.python.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: python-service
+  namespace: {{ $ns }}
+  labels:
+    {{- include "dephealth-services.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "dephealth-services.selectorLabels" (dict "name" "python-service") | nindent 4 }}
+  ports:
+    - port: {{ .Values.services.python.port }}
+      targetPort: http
+      name: http
+{{- end }}

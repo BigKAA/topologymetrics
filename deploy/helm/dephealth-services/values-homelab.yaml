@@ -1,0 +1,17 @@
+# Переопределения для домашнего окружения (harbor.kryukov.lan)
+global:
+  pushRegistry: harbor.kryukov.lan/library
+  domain: kryukov.lan
+  gateway:
+    name: eg
+    namespace: envoy-gateway-system
+
+services:
+  go:
+    hostname: test1.kryukov.lan
+  python:
+    hostname: test2.kryukov.lan
+  java:
+    hostname: test3.kryukov.lan
+  csharp:
+    hostname: test4.kryukov.lan

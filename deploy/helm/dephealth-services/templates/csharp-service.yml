@@ -1,0 +1,90 @@
+{{- if .Values.services.csharp.enabled }}
+{{- $ns := include "dephealth-services.namespace" . }}
+{{- $infraNs := .Values.dependencies.infraNamespace }}
+{{- $pgHost := include "dephealth-services.infraHost" (dict "host" .Values.dependencies.postgresHost "infraNs" $infraNs "currentNs" $ns) }}
+{{- $redisHost := include "dephealth-services.infraHost" (dict "host" .Values.dependencies.redisHost "infraNs" $infraNs "currentNs" $ns) }}
+{{- $httpStubHost := include "dephealth-services.infraHost" (dict "host" .Values.dependencies.httpStubHost "infraNs" $infraNs "currentNs" $ns) }}
+{{- $grpcStubHost := include "dephealth-services.infraHost" (dict "host" .Values.dependencies.grpcStubHost "infraNs" $infraNs "currentNs" $ns) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: csharp-service-config
+  namespace: {{ $ns }}
+  labels:
+    {{- include "dephealth-services.labels" . | nindent 4 }}
+data:
+  DEPHEALTH_INTERVAL: {{ .Values.services.csharp.checkInterval | quote }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: csharp-service
+  namespace: {{ $ns }}
+  labels:
+    {{- include "dephealth-services.labels" . | nindent 4 }}
+    {{- include "dephealth-services.selectorLabels" (dict "name" "csharp-service") | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "dephealth-services.selectorLabels" (dict "name" "csharp-service") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "dephealth-services.selectorLabels" (dict "name" "csharp-service") | nindent 8 }}
+    spec:
+      containers:
+        - name: csharp-service
+          image: {{ include "dephealth-services.image" (dict "registry" .Values.global.pushRegistry "image" .Values.services.csharp.image "tag" .Values.services.csharp.tag) }}
+          ports:
+            - containerPort: {{ .Values.services.csharp.port }}
+              name: http
+          env:
+            - name: POSTGRES_URL
+              value: "postgres://{{ .Values.dependencies.postgresUser }}:{{ .Values.dependencies.postgresPassword }}@{{ $pgHost }}:{{ .Values.dependencies.postgresPort }}/{{ .Values.dependencies.postgresDatabase }}?sslmode=disable"
+            - name: REDIS_URL
+              value: "redis://{{ $redisHost }}:{{ .Values.dependencies.redisPort }}/0"
+            - name: HTTP_SERVICE_URL
+              value: "http://{{ $httpStubHost }}:{{ .Values.dependencies.httpStubPort }}"
+            - name: HTTP_HEALTH_PATH
+              value: "/health"
+            - name: GRPC_SERVICE_HOST
+              value: {{ $grpcStubHost | quote }}
+            - name: GRPC_SERVICE_PORT
+              value: {{ .Values.dependencies.grpcStubPort | quote }}
+            - name: DEPHEALTH_INTERVAL
+              valueFrom:
+                configMapKeyRef:
+                  name: csharp-service-config
+                  key: DEPHEALTH_INTERVAL
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.services.csharp.port }}
+            initialDelaySeconds: {{ .Values.services.csharp.probes.readinessDelay }}
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.services.csharp.port }}
+            initialDelaySeconds: {{ .Values.services.csharp.probes.livenessDelay }}
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.services.csharp.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: csharp-service
+  namespace: {{ $ns }}
+  labels:
+    {{- include "dephealth-services.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "dephealth-services.selectorLabels" (dict "name" "csharp-service") | nindent 4 }}
+  ports:
+    - port: {{ .Values.services.csharp.port }}
+      targetPort: http
+      name: http
+{{- end }}

@@ -1,0 +1,107 @@
+# dephealth-services — значения по умолчанию
+
+global:
+  # Registry для собственных образов
+  pushRegistry: ""
+  # Домен для HTTPRoutes
+  domain: dephealth.local
+  # Gateway API конфигурация
+  gateway:
+    name: gateway
+    namespace: default
+  # Целевой namespace
+  namespace: dephealth-test
+
+# --- Тестовые сервисы ---
+services:
+  go:
+    enabled: true
+    image: dephealth-test-go
+    tag: latest
+    hostname: test1.dephealth.local
+    metricsPath: /metrics
+    port: 8080
+    checkInterval: "10s"
+    resources:
+      requests:
+        cpu: 50m
+        memory: 32Mi
+      limits:
+        cpu: 200m
+        memory: 64Mi
+    probes:
+      readinessDelay: 5
+      livenessDelay: 10
+
+  python:
+    enabled: true
+    image: dephealth-test-python
+    tag: latest
+    hostname: test2.dephealth.local
+    metricsPath: /metrics
+    port: 8080
+    checkInterval: "10"
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi
+    probes:
+      readinessDelay: 10
+      livenessDelay: 15
+
+  java:
+    enabled: true
+    image: dephealth-test-java
+    tag: latest
+    hostname: test3.dephealth.local
+    metricsPath: /actuator/prometheus
+    port: 8080
+    checkInterval: "10s"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+    probes:
+      readinessDelay: 10
+      livenessDelay: 15
+
+  csharp:
+    enabled: true
+    image: dephealth-test-csharp
+    tag: latest
+    hostname: test4.dephealth.local
+    metricsPath: /metrics
+    port: 8080
+    checkInterval: "10"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+    probes:
+      readinessDelay: 10
+      livenessDelay: 15
+
+# --- Ссылки на инфраструктурные сервисы (из dephealth-infra) ---
+dependencies:
+  postgresHost: postgres-primary
+  postgresPort: "5432"
+  postgresUser: dephealth
+  postgresPassword: dephealth-test-pass
+  postgresDatabase: dephealth
+  redisHost: redis
+  redisPort: "6379"
+  httpStubHost: http-stub
+  httpStubPort: "8080"
+  grpcStubHost: grpc-stub
+  grpcStubPort: "9090"
+  # Namespace инфра-сервисов (пусто = тот же namespace)
+  infraNamespace: ""

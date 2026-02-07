@@ -1,0 +1,95 @@
+{{- if .Values.services.go.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: go-service
+  namespace: {{ include "dephealth-services.namespace" . }}
+  labels:
+    {{- include "dephealth-services.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ .Values.global.gateway.name }}
+      namespace: {{ .Values.global.gateway.namespace }}
+  hostnames:
+    - {{ .Values.services.go.hostname | quote }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: go-service
+          port: {{ .Values.services.go.port }}
+{{- end }}
+---
+{{- if .Values.services.python.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: python-service
+  namespace: {{ include "dephealth-services.namespace" . }}
+  labels:
+    {{- include "dephealth-services.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ .Values.global.gateway.name }}
+      namespace: {{ .Values.global.gateway.namespace }}
+  hostnames:
+    - {{ .Values.services.python.hostname | quote }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: python-service
+          port: {{ .Values.services.python.port }}
+{{- end }}
+---
+{{- if .Values.services.java.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: java-service
+  namespace: {{ include "dephealth-services.namespace" . }}
+  labels:
+    {{- include "dephealth-services.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ .Values.global.gateway.name }}
+      namespace: {{ .Values.global.gateway.namespace }}
+  hostnames:
+    - {{ .Values.services.java.hostname | quote }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: java-service
+          port: {{ .Values.services.java.port }}
+{{- end }}
+---
+{{- if .Values.services.csharp.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: csharp-service
+  namespace: {{ include "dephealth-services.namespace" . }}
+  labels:
+    {{- include "dephealth-services.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ .Values.global.gateway.name }}
+      namespace: {{ .Values.global.gateway.namespace }}
+  hostnames:
+    - {{ .Values.services.csharp.hostname | quote }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: csharp-service
+          port: {{ .Values.services.csharp.port }}
+{{- end }}
