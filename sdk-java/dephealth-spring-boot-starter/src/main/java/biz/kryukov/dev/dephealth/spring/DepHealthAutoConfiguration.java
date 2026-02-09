@@ -22,7 +22,7 @@ public class DepHealthAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public DepHealth depHealth(DepHealthProperties properties, MeterRegistry meterRegistry) {
-        DepHealth.Builder builder = DepHealth.builder(meterRegistry);
+        DepHealth.Builder builder = DepHealth.builder(properties.getName(), meterRegistry);
 
         if (properties.getInterval() != null) {
             builder.checkInterval(properties.getInterval());
@@ -71,7 +71,14 @@ public class DepHealthAutoConfiguration {
         }
 
         // Общее
-        d.critical(props.isCritical());
+        if (props.getCritical() != null) {
+            d.critical(props.getCritical());
+        }
+
+        // Произвольные метки
+        if (props.getLabels() != null) {
+            props.getLabels().forEach(d::label);
+        }
         if (props.getInterval() != null) {
             d.interval(props.getInterval());
         }

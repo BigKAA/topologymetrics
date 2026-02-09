@@ -19,8 +19,10 @@ class DepHealthAutoConfigurationTest {
     void createsDepHealthBean() {
         contextRunner
                 .withPropertyValues(
+                        "dephealth.name=test-app",
                         "dephealth.dependencies.test-http.type=http",
-                        "dephealth.dependencies.test-http.url=http://localhost:8080"
+                        "dephealth.dependencies.test-http.url=http://localhost:8080",
+                        "dephealth.dependencies.test-http.critical=true"
                 )
                 .run(context -> {
                     assertTrue(context.containsBean("depHealth"));
@@ -32,8 +34,10 @@ class DepHealthAutoConfigurationTest {
     void createsLifecycleBean() {
         contextRunner
                 .withPropertyValues(
+                        "dephealth.name=test-app",
                         "dephealth.dependencies.test-http.type=http",
-                        "dephealth.dependencies.test-http.url=http://localhost:8080"
+                        "dephealth.dependencies.test-http.url=http://localhost:8080",
+                        "dephealth.dependencies.test-http.critical=true"
                 )
                 .run(context -> {
                     assertTrue(context.containsBean("depHealthLifecycle"));
@@ -44,8 +48,10 @@ class DepHealthAutoConfigurationTest {
     void createsHealthIndicatorBean() {
         contextRunner
                 .withPropertyValues(
+                        "dephealth.name=test-app",
                         "dephealth.dependencies.test-http.type=http",
-                        "dephealth.dependencies.test-http.url=http://localhost:8080"
+                        "dephealth.dependencies.test-http.url=http://localhost:8080",
+                        "dephealth.dependencies.test-http.critical=true"
                 )
                 .run(context -> {
                     assertTrue(context.containsBean("depHealthIndicator"));
@@ -56,8 +62,10 @@ class DepHealthAutoConfigurationTest {
     void createsDependenciesEndpointBean() {
         contextRunner
                 .withPropertyValues(
+                        "dephealth.name=test-app",
                         "dephealth.dependencies.test-http.type=http",
-                        "dephealth.dependencies.test-http.url=http://localhost:8080"
+                        "dephealth.dependencies.test-http.url=http://localhost:8080",
+                        "dephealth.dependencies.test-http.critical=true"
                 )
                 .run(context -> {
                     assertTrue(context.containsBean("dependenciesEndpoint"));
@@ -68,11 +76,13 @@ class DepHealthAutoConfigurationTest {
     void globalIntervalAndTimeout() {
         contextRunner
                 .withPropertyValues(
+                        "dephealth.name=test-app",
                         "dephealth.interval=30s",
                         "dephealth.timeout=10s",
                         "dephealth.dependencies.test-tcp.type=tcp",
                         "dephealth.dependencies.test-tcp.host=localhost",
-                        "dephealth.dependencies.test-tcp.port=8080"
+                        "dephealth.dependencies.test-tcp.port=8080",
+                        "dephealth.dependencies.test-tcp.critical=true"
                 )
                 .run(context -> {
                     assertNotNull(context.getBean(DepHealth.class));
@@ -83,11 +93,28 @@ class DepHealthAutoConfigurationTest {
     void perDependencyConfig() {
         contextRunner
                 .withPropertyValues(
+                        "dephealth.name=test-app",
                         "dephealth.dependencies.my-redis.type=redis",
                         "dephealth.dependencies.my-redis.url=redis://localhost:6379",
                         "dephealth.dependencies.my-redis.critical=true",
                         "dephealth.dependencies.my-redis.interval=10s",
                         "dephealth.dependencies.my-redis.timeout=3s"
+                )
+                .run(context -> {
+                    assertNotNull(context.getBean(DepHealth.class));
+                });
+    }
+
+    @Test
+    void dependencyWithLabels() {
+        contextRunner
+                .withPropertyValues(
+                        "dephealth.name=test-app",
+                        "dephealth.dependencies.test-http.type=http",
+                        "dephealth.dependencies.test-http.url=http://localhost:8080",
+                        "dephealth.dependencies.test-http.critical=true",
+                        "dephealth.dependencies.test-http.labels.region=us-east",
+                        "dephealth.dependencies.test-http.labels.env=prod"
                 )
                 .run(context -> {
                     assertNotNull(context.getBean(DepHealth.class));

@@ -22,7 +22,7 @@ public final class Dependency {
     private Dependency(Builder builder) {
         this.name = builder.name;
         this.type = builder.type;
-        this.critical = builder.critical;
+        this.critical = builder.criticalValue;
         this.endpoints = Collections.unmodifiableList(builder.endpoints);
         this.config = builder.config;
     }
@@ -47,6 +47,13 @@ public final class Dependency {
         return config;
     }
 
+    /**
+     * Преобразует boolean в строку "yes"/"no" для метки critical.
+     */
+    public static String boolToYesNo(boolean value) {
+        return value ? "yes" : "no";
+    }
+
     public static Builder builder(String name, DependencyType type) {
         return new Builder(name, type);
     }
@@ -54,7 +61,7 @@ public final class Dependency {
     public static final class Builder {
         private final String name;
         private final DependencyType type;
-        private boolean critical;
+        private Boolean criticalValue;
         private List<Endpoint> endpoints = List.of();
         private CheckConfig config = CheckConfig.defaults();
 
@@ -63,8 +70,11 @@ public final class Dependency {
             this.type = Objects.requireNonNull(type, "type");
         }
 
+        /**
+         * Устанавливает критичность зависимости. Обязательный параметр.
+         */
         public Builder critical(boolean critical) {
-            this.critical = critical;
+            this.criticalValue = critical;
             return this;
         }
 
@@ -100,6 +110,14 @@ public final class Dependency {
             }
             if (endpoints.isEmpty()) {
                 throw new ValidationException("dependency '" + name + "' must have at least one endpoint");
+            }
+            if (criticalValue == null) {
+                throw new ValidationException(
+                        "dependency '" + name + "' must have critical flag set explicitly");
+            }
+            // Валидация labels каждого endpoint
+            for (Endpoint ep : endpoints) {
+                Endpoint.validateLabels(ep.labels());
             }
         }
     }

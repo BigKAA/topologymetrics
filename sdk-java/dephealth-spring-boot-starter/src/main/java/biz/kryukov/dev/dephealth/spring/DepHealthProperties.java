@@ -11,6 +11,7 @@ import java.util.Map;
  *
  * <pre>
  * dephealth:
+ *   name: order-api
  *   interval: 15s
  *   timeout: 5s
  *   dependencies:
@@ -18,14 +19,25 @@ import java.util.Map;
  *       type: postgres
  *       url: postgres://localhost:5432/db
  *       critical: true
+ *       labels:
+ *         region: us-east-1
  * </pre>
  */
 @ConfigurationProperties(prefix = "dephealth")
 public class DepHealthProperties {
 
+    private String name;
     private Duration interval;
     private Duration timeout;
     private Map<String, DependencyProperties> dependencies = new LinkedHashMap<>();
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
 
     public Duration getInterval() {
         return interval;
@@ -56,9 +68,10 @@ public class DepHealthProperties {
         private String url;
         private String host;
         private String port;
-        private boolean critical;
+        private Boolean critical;
         private Duration interval;
         private Duration timeout;
+        private Map<String, String> labels = new LinkedHashMap<>();
 
         // HTTP
         private String healthPath;
@@ -116,12 +129,20 @@ public class DepHealthProperties {
             this.port = port;
         }
 
-        public boolean isCritical() {
+        public Boolean getCritical() {
             return critical;
         }
 
-        public void setCritical(boolean critical) {
+        public void setCritical(Boolean critical) {
             this.critical = critical;
+        }
+
+        public Map<String, String> getLabels() {
+            return labels;
+        }
+
+        public void setLabels(Map<String, String> labels) {
+            this.labels = labels;
         }
 
         public Duration getInterval() {

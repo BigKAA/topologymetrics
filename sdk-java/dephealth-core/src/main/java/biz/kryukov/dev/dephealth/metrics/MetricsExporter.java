@@ -9,6 +9,9 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -28,13 +31,35 @@ public final class MetricsExporter {
     private static final double[] LATENCY_SLOS = {0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0};
 
     private final MeterRegistry registry;
+    private final String instanceName;
+    private final List<String> customLabelNames;
     private final ConcurrentHashMap<String, AtomicReference<Double>> healthValues =
             new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, DistributionSummary> latencySummaries =
             new ConcurrentHashMap<>();
 
-    public MetricsExporter(MeterRegistry registry) {
+    /**
+     * Создаёт экспортер метрик.
+     *
+     * @param registry      реестр Micrometer
+     * @param instanceName  значение метки {@code name} (имя приложения)
+     */
+    public MetricsExporter(MeterRegistry registry, String instanceName) {
+        this(registry, instanceName, List.of());
+    }
+
+    /**
+     * Создаёт экспортер метрик с поддержкой произвольных меток.
+     *
+     * @param registry          реестр Micrometer
+     * @param instanceName      значение метки {@code name} (имя приложения)
+     * @param customLabelNames  имена произвольных меток (отсортированные по алфавиту)
+     */
+    public MetricsExporter(MeterRegistry registry, String instanceName,
+                           List<String> customLabelNames) {
         this.registry = registry;
+        this.instanceName = Objects.requireNonNull(instanceName, "instanceName");
+        this.customLabelNames = List.copyOf(customLabelNames);
     }
 
     /**
@@ -70,16 +95,23 @@ public final class MetricsExporter {
         summary.record(duration.toNanos() / 1_000_000_000.0);
     }
 
-    private static Tags buildTags(Dependency dep, Endpoint ep) {
+    /**
+     * Строит теги в порядке: name, dependency, type, host, port, critical, custom (алфавит).
+     */
+    private Tags buildTags(Dependency dep, Endpoint ep) {
         Tags tags = Tags.of(
+                "name", instanceName,
                 "dependency", dep.name(),
                 "type", dep.type().label(),
                 "host", ep.host(),
-                "port", ep.port()
+                "port", ep.port(),
+                "critical", Dependency.boolToYesNo(dep.critical())
         );
-        // Добавляем optional labels из metadata
-        for (var entry : ep.metadata().entrySet()) {
-            tags = tags.and(entry.getKey(), entry.getValue());
+        // Добавляем произвольные метки из endpoint в алфавитном порядке
+        Map<String, String> epLabels = ep.labels();
+        for (String labelName : customLabelNames) {
+            String value = epLabels.getOrDefault(labelName, "");
+            tags = tags.and(labelName, value);
         }
         return tags;
     }

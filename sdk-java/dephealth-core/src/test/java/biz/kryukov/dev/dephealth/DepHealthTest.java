@@ -21,28 +21,66 @@ class DepHealthTest {
     }
 
     @Test
-    void builderWithUrl() {
-        DepHealth dh = DepHealth.builder(registry)
+    void builderWithNameAndUrl() {
+        DepHealth dh = DepHealth.builder("test-app", registry)
                 .dependency("test-http", DependencyType.HTTP, d -> d
-                        .url("http://localhost:8080"))
+                        .url("http://localhost:8080")
+                        .critical(true))
                 .build();
         assertNotNull(dh);
     }
 
     @Test
     void builderWithParams() {
-        DepHealth dh = DepHealth.builder(registry)
+        DepHealth dh = DepHealth.builder("test-app", registry)
                 .dependency("test-tcp", DependencyType.TCP, d -> d
                         .host("localhost")
-                        .port("8080"))
+                        .port("8080")
+                        .critical(false))
                 .build();
         assertNotNull(dh);
     }
 
     @Test
+    void missingNameThrows() {
+        assertThrows(ConfigurationException.class, () ->
+                DepHealth.builder("", registry)
+                        .dependency("test", DependencyType.HTTP, d -> d
+                                .url("http://localhost:8080")
+                                .critical(true))
+                        .build());
+    }
+
+    @Test
+    void nullNameThrows() {
+        assertThrows(ConfigurationException.class, () ->
+                DepHealth.builder(null, registry)
+                        .dependency("test", DependencyType.HTTP, d -> d
+                                .url("http://localhost:8080")
+                                .critical(true))
+                        .build());
+    }
+
+    @Test
+    void invalidNameThrows() {
+        assertThrows(ConfigurationException.class, () ->
+                DepHealth.builder("INVALID_NAME", registry));
+    }
+
+    @Test
     void noDependenciesThrows() {
         assertThrows(ConfigurationException.class, () ->
-                DepHealth.builder(registry).build());
+                DepHealth.builder("test-app", registry).build());
+    }
+
+    @Test
+    void missingCriticalThrows() {
+        // critical не задан → ошибка при build (Dependency.validate)
+        assertThrows(ValidationException.class, () ->
+                DepHealth.builder("test-app", registry)
+                        .dependency("test", DependencyType.HTTP, d -> d
+                                .url("http://localhost:8080"))
+                        .build());
     }
 
     @Test
@@ -61,11 +99,12 @@ class DepHealthTest {
             }
         };
 
-        DepHealth dh = DepHealth.builder(registry)
+        DepHealth dh = DepHealth.builder("test-app", registry)
                 .checkInterval(Duration.ofSeconds(1))
                 .dependency("test", DependencyType.HTTP, mockChecker, d -> d
                         .host("localhost")
-                        .port("8080"))
+                        .port("8080")
+                        .critical(true))
                 .build();
 
         dh.start();
@@ -80,22 +119,24 @@ class DepHealthTest {
 
     @Test
     void globalIntervalUsed() {
-        DepHealth dh = DepHealth.builder(registry)
+        DepHealth dh = DepHealth.builder("test-app", registry)
                 .checkInterval(Duration.ofSeconds(30))
                 .dependency("test", DependencyType.TCP, d -> d
                         .host("localhost")
-                        .port("80"))
+                        .port("80")
+                        .critical(true))
                 .build();
         assertNotNull(dh);
     }
 
     @Test
     void perDependencyIntervalOverridesGlobal() {
-        DepHealth dh = DepHealth.builder(registry)
+        DepHealth dh = DepHealth.builder("test-app", registry)
                 .checkInterval(Duration.ofSeconds(30))
                 .dependency("test", DependencyType.TCP, d -> d
                         .host("localhost")
                         .port("80")
+                        .critical(true)
                         .interval(Duration.ofSeconds(10)))
                 .build();
         assertNotNull(dh);
@@ -103,9 +144,10 @@ class DepHealthTest {
 
     @Test
     void jdbcUrlParsing() {
-        DepHealth dh = DepHealth.builder(registry)
+        DepHealth dh = DepHealth.builder("test-app", registry)
                 .dependency("pg", DependencyType.POSTGRES, d -> d
-                        .jdbcUrl("jdbc:postgresql://localhost:5432/db"))
+                        .jdbcUrl("jdbc:postgresql://localhost:5432/db")
+                        .critical(true))
                 .build();
         assertNotNull(dh);
     }
@@ -113,8 +155,39 @@ class DepHealthTest {
     @Test
     void noEndpointConfigThrows() {
         assertThrows(ConfigurationException.class, () ->
-                DepHealth.builder(registry)
-                        .dependency("test", DependencyType.HTTP, d -> {})
+                DepHealth.builder("test-app", registry)
+                        .dependency("test", DependencyType.HTTP, d -> d.critical(true))
                         .build());
+    }
+
+    @Test
+    void withLabel() {
+        DepHealth dh = DepHealth.builder("test-app", registry)
+                .dependency("test-http", DependencyType.HTTP, d -> d
+                        .url("http://localhost:8080")
+                        .critical(true)
+                        .label("region", "us-east"))
+                .build();
+        assertNotNull(dh);
+    }
+
+    @Test
+    void reservedLabelThrows() {
+        assertThrows(ValidationException.class, () ->
+                DepHealth.builder("test-app", registry)
+                        .dependency("test-http", DependencyType.HTTP, d -> d
+                                .url("http://localhost:8080")
+                                .critical(true)
+                                .label("host", "bad")));
+    }
+
+    @Test
+    void invalidLabelNameThrows() {
+        assertThrows(ValidationException.class, () ->
+                DepHealth.builder("test-app", registry)
+                        .dependency("test-http", DependencyType.HTTP, d -> d
+                                .url("http://localhost:8080")
+                                .critical(true)
+                                .label("123invalid", "bad")));
     }
 }

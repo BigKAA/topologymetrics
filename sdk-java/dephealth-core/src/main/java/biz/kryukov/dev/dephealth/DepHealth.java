@@ -20,21 +20,25 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
+import java.util.regex.Pattern;
 
 /**
  * Точка входа SDK dephealth.
  *
  * <p>Использование:
  * <pre>{@code
- * DepHealth depHealth = DepHealth.builder(meterRegistry)
+ * DepHealth depHealth = DepHealth.builder("order-api", meterRegistry)
  *     .checkInterval(Duration.ofSeconds(15))
  *     .dependency("postgres-main", DependencyType.POSTGRES, d -> d
  *         .url("postgres://localhost:5432/db")
  *         .critical(true))
  *     .dependency("redis-cache", DependencyType.REDIS, d -> d
- *         .url("redis://localhost:6379"))
+ *         .url("redis://localhost:6379")
+ *         .critical(false))
  *     .build();
  *
  * depHealth.start();
@@ -43,6 +47,10 @@ import java.util.Map;
  * }</pre>
  */
 public final class DepHealth {
+
+    private static final Pattern NAME_PATTERN = Pattern.compile("^[a-z][a-z0-9-]*$");
+    private static final int MAX_NAME_LENGTH = 63;
+    private static final String ENV_NAME = "DEPHEALTH_NAME";
 
     private final CheckScheduler scheduler;
 
@@ -65,8 +73,15 @@ public final class DepHealth {
         return scheduler.health();
     }
 
-    public static Builder builder(MeterRegistry meterRegistry) {
-        return new Builder(meterRegistry);
+    /**
+     * Создаёт builder с обязательным именем приложения.
+     *
+     * @param name          уникальное имя приложения (метка {@code name})
+     * @param meterRegistry реестр Micrometer
+     * @return builder
+     */
+    public static Builder builder(String name, MeterRegistry meterRegistry) {
+        return new Builder(name, meterRegistry);
     }
 
     /**
@@ -77,9 +92,11 @@ public final class DepHealth {
         private String jdbcUrl;
         private String host;
         private String port;
-        private boolean critical;
+        private Boolean criticalValue;
+        private boolean criticalSet;
         private Duration interval;
         private Duration timeout;
+        private final Map<String, String> labels = new LinkedHashMap<>();
 
         // HTTP
         private String httpHealthPath;
@@ -130,8 +147,26 @@ public final class DepHealth {
             return this;
         }
 
+        /**
+         * Устанавливает критичность зависимости. Обязательный параметр.
+         */
         public DependencyBuilder critical(boolean critical) {
-            this.critical = critical;
+            this.criticalValue = critical;
+            this.criticalSet = true;
+            return this;
+        }
+
+        /**
+         * Добавляет произвольную метку (custom label).
+         *
+         * @param key   имя метки (формат {@code [a-zA-Z_][a-zA-Z0-9_]*})
+         * @param value значение метки
+         * @return this
+         * @throws ValidationException если имя невалидно или зарезервировано
+         */
+        public DependencyBuilder label(String key, String value) {
+            Endpoint.validateLabelName(key);
+            this.labels.put(key, value);
             return this;
         }
 
@@ -232,13 +267,25 @@ public final class DepHealth {
     }
 
     public static final class Builder {
+        private final String instanceName;
         private final MeterRegistry meterRegistry;
         private Duration globalInterval;
         private Duration globalTimeout;
         private final List<DependencyEntry> entries = new ArrayList<>();
 
-        private Builder(MeterRegistry meterRegistry) {
+        private Builder(String name, MeterRegistry meterRegistry) {
             this.meterRegistry = meterRegistry;
+            // API-параметр имеет приоритет над env var
+            String resolvedName = name;
+            if (resolvedName == null || resolvedName.isEmpty()) {
+                resolvedName = System.getenv(ENV_NAME);
+            }
+            if (resolvedName == null || resolvedName.isEmpty()) {
+                throw new ConfigurationException(
+                        "instance name is required: pass it to builder() or set " + ENV_NAME);
+            }
+            validateInstanceName(resolvedName);
+            this.instanceName = resolvedName;
         }
 
         public Builder checkInterval(Duration interval) {
@@ -258,6 +305,7 @@ public final class DepHealth {
                                   java.util.function.Consumer<DependencyBuilder> configurer) {
             DependencyBuilder db = new DependencyBuilder();
             configurer.accept(db);
+            applyEnvVars(name, db);
             entries.add(new DependencyEntry(name, type, db));
             return this;
         }
@@ -269,6 +317,7 @@ public final class DepHealth {
                                   java.util.function.Consumer<DependencyBuilder> configurer) {
             DependencyBuilder db = new DependencyBuilder();
             configurer.accept(db);
+            applyEnvVars(name, db);
             entries.add(new DependencyEntry(name, type, db, checker));
             return this;
         }
@@ -278,7 +327,11 @@ public final class DepHealth {
                 throw new ConfigurationException("At least one dependency must be configured");
             }
 
-            MetricsExporter metricsExporter = new MetricsExporter(meterRegistry);
+            // Собираем все уникальные custom label keys из всех зависимостей
+            List<String> customLabelKeys = collectCustomLabelKeys();
+
+            MetricsExporter metricsExporter = new MetricsExporter(
+                    meterRegistry, instanceName, customLabelKeys);
             CheckScheduler scheduler = new CheckScheduler(metricsExporter);
 
             for (DependencyEntry entry : entries) {
@@ -286,6 +339,54 @@ public final class DepHealth {
             }
 
             return new DepHealth(scheduler);
+        }
+
+        /**
+         * Собирает все уникальные ключи произвольных меток, отсортированные по алфавиту.
+         */
+        private List<String> collectCustomLabelKeys() {
+            TreeSet<String> keys = new TreeSet<>();
+            for (DependencyEntry entry : entries) {
+                keys.addAll(entry.config.labels.keySet());
+            }
+            return List.copyOf(keys);
+        }
+
+        /**
+         * Применяет env vars для critical и labels к DependencyBuilder.
+         * Формат: DEPHEALTH_<DEP>_CRITICAL=yes|no, DEPHEALTH_<DEP>_LABEL_<KEY>=value.
+         * API-параметры имеют приоритет над env vars.
+         */
+        private void applyEnvVars(String depName, DependencyBuilder db) {
+            String envPrefix = "DEPHEALTH_" + depName.toUpperCase().replace('-', '_');
+
+            // DEPHEALTH_<DEP>_CRITICAL
+            if (!db.criticalSet) {
+                String criticalEnv = System.getenv(envPrefix + "_CRITICAL");
+                if (criticalEnv != null) {
+                    if ("yes".equalsIgnoreCase(criticalEnv)) {
+                        db.criticalValue = true;
+                        db.criticalSet = true;
+                    } else if ("no".equalsIgnoreCase(criticalEnv)) {
+                        db.criticalValue = false;
+                        db.criticalSet = true;
+                    }
+                }
+            }
+
+            // DEPHEALTH_<DEP>_LABEL_<KEY>=value
+            String labelPrefix = envPrefix + "_LABEL_";
+            for (Map.Entry<String, String> envEntry : System.getenv().entrySet()) {
+                if (envEntry.getKey().startsWith(labelPrefix)) {
+                    String labelKey = envEntry.getKey().substring(labelPrefix.length())
+                            .toLowerCase();
+                    if (!db.labels.containsKey(labelKey)) {
+                        // Валидируем и добавляем только если не задан через API
+                        Endpoint.validateLabelName(labelKey);
+                        db.labels.put(labelKey, envEntry.getValue());
+                    }
+                }
+            }
         }
 
         private void buildAndRegister(DependencyEntry entry, CheckScheduler scheduler) {
@@ -298,7 +399,7 @@ public final class DepHealth {
             Duration interval = resolveInterval(db);
             Duration timeout = resolveTimeout(db, interval);
 
-            // Определяем endpoints
+            // Определяем endpoints с labels
             List<Endpoint> endpoints = resolveEndpoints(db, entry.type);
 
             CheckConfig config = CheckConfig.builder()
@@ -307,11 +408,13 @@ public final class DepHealth {
                     .initialDelay(Duration.ZERO) // PublicAPI: initialDelay=0
                     .build();
 
-            Dependency dependency = Dependency.builder(entry.name, entry.type)
+            Dependency.Builder depBuilder = Dependency.builder(entry.name, entry.type)
                     .endpoints(endpoints)
-                    .critical(db.critical)
-                    .config(config)
-                    .build();
+                    .config(config);
+            if (db.criticalSet) {
+                depBuilder.critical(db.criticalValue);
+            }
+            Dependency dependency = depBuilder.build();
 
             // Создаём или используем готовый чекер
             HealthChecker checker = entry.checker != null
@@ -438,23 +541,28 @@ public final class DepHealth {
         }
 
         private List<Endpoint> resolveEndpoints(DependencyBuilder db, DependencyType type) {
+            // Labels из DependencyBuilder применяются ко всем endpoints
+            Map<String, String> depLabels = db.labels.isEmpty()
+                    ? Map.of() : Map.copyOf(db.labels);
+
             if (db.host != null && db.port != null) {
-                return List.of(ConfigParser.parseParams(db.host, db.port));
+                var parsed = ConfigParser.parseParams(db.host, db.port);
+                return List.of(new Endpoint(parsed.host(), parsed.port(), depLabels));
             }
             if (db.jdbcUrl != null) {
                 return ConfigParser.parseJdbc(db.jdbcUrl).stream()
-                        .map(pc -> new Endpoint(pc.host(), pc.port()))
+                        .map(pc -> new Endpoint(pc.host(), pc.port(), depLabels))
                         .toList();
             }
             if (db.url != null) {
                 // Если URL начинается с jdbc: — парсим как JDBC
                 if (db.url.toLowerCase().startsWith("jdbc:")) {
                     return ConfigParser.parseJdbc(db.url).stream()
-                            .map(pc -> new Endpoint(pc.host(), pc.port()))
+                            .map(pc -> new Endpoint(pc.host(), pc.port(), depLabels))
                             .toList();
                 }
                 return ConfigParser.parseUrl(db.url).stream()
-                        .map(pc -> new Endpoint(pc.host(), pc.port()))
+                        .map(pc -> new Endpoint(pc.host(), pc.port(), depLabels))
                         .toList();
             }
             throw new ConfigurationException(
@@ -559,6 +667,19 @@ public final class DepHealth {
                 }
                 case KAFKA -> new KafkaHealthChecker();
             };
+        }
+
+        private static void validateInstanceName(String name) {
+            if (name.isEmpty() || name.length() > MAX_NAME_LENGTH) {
+                throw new ConfigurationException(
+                        "instance name must be 1-" + MAX_NAME_LENGTH + " characters, got '"
+                                + name + "' (" + name.length() + " chars)");
+            }
+            if (!NAME_PATTERN.matcher(name).matches()) {
+                throw new ConfigurationException(
+                        "instance name must match " + NAME_PATTERN.pattern()
+                                + ", got '" + name + "'");
+            }
         }
     }
 

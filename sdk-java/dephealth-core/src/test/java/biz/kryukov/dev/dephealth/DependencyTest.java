@@ -5,6 +5,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -27,6 +28,24 @@ class DependencyTest {
     }
 
     @Test
+    void criticalFalse() {
+        Dependency dep = Dependency.builder("test", DependencyType.HTTP)
+                .endpoint(new Endpoint("localhost", "80"))
+                .critical(false)
+                .build();
+
+        assertFalse(dep.critical());
+    }
+
+    @Test
+    void missingCriticalThrows() {
+        assertThrows(ValidationException.class, () ->
+                Dependency.builder("test", DependencyType.HTTP)
+                        .endpoint(new Endpoint("localhost", "80"))
+                        .build());
+    }
+
+    @Test
     void multipleEndpoints() {
         List<Endpoint> eps = List.of(
                 new Endpoint("host1", "9092"),
@@ -34,6 +53,7 @@ class DependencyTest {
         );
         Dependency dep = Dependency.builder("kafka-main", DependencyType.KAFKA)
                 .endpoints(eps)
+                .critical(true)
                 .build();
 
         assertEquals(2, dep.endpoints().size());
@@ -45,6 +65,7 @@ class DependencyTest {
         assertDoesNotThrow(() ->
                 Dependency.builder(name, DependencyType.HTTP)
                         .endpoint(new Endpoint("localhost", "80"))
+                        .critical(true)
                         .build());
     }
 
@@ -54,6 +75,7 @@ class DependencyTest {
         assertThrows(ValidationException.class, () ->
                 Dependency.builder(name, DependencyType.HTTP)
                         .endpoint(new Endpoint("localhost", "80"))
+                        .critical(true)
                         .build());
     }
 
@@ -63,6 +85,7 @@ class DependencyTest {
         assertThrows(ValidationException.class, () ->
                 Dependency.builder(longName, DependencyType.HTTP)
                         .endpoint(new Endpoint("localhost", "80"))
+                        .critical(true)
                         .build());
     }
 
@@ -72,19 +95,23 @@ class DependencyTest {
         assertDoesNotThrow(() ->
                 Dependency.builder(name63, DependencyType.HTTP)
                         .endpoint(new Endpoint("localhost", "80"))
+                        .critical(true)
                         .build());
     }
 
     @Test
     void noEndpointsThrows() {
         assertThrows(ValidationException.class, () ->
-                Dependency.builder("test", DependencyType.HTTP).build());
+                Dependency.builder("test", DependencyType.HTTP)
+                        .critical(true)
+                        .build());
     }
 
     @Test
     void endpointsAreImmutable() {
         Dependency dep = Dependency.builder("test", DependencyType.HTTP)
                 .endpoint(new Endpoint("localhost", "80"))
+                .critical(true)
                 .build();
 
         assertThrows(UnsupportedOperationException.class, () ->
@@ -100,9 +127,37 @@ class DependencyTest {
 
         Dependency dep = Dependency.builder("test", DependencyType.HTTP)
                 .endpoint(new Endpoint("localhost", "80"))
+                .critical(true)
                 .config(cfg)
                 .build();
 
         assertEquals(cfg, dep.config());
+    }
+
+    @Test
+    void boolToYesNo() {
+        assertEquals("yes", Dependency.boolToYesNo(true));
+        assertEquals("no", Dependency.boolToYesNo(false));
+    }
+
+    @Test
+    void endpointLabelsValidated() {
+        // reserved label в endpoint → ошибка валидации
+        Endpoint ep = new Endpoint("localhost", "80", Map.of("host", "bad"));
+        assertThrows(ValidationException.class, () ->
+                Dependency.builder("test", DependencyType.HTTP)
+                        .endpoint(ep)
+                        .critical(true)
+                        .build());
+    }
+
+    @Test
+    void endpointCustomLabelsValid() {
+        Endpoint ep = new Endpoint("localhost", "80", Map.of("region", "us-east"));
+        assertDoesNotThrow(() ->
+                Dependency.builder("test", DependencyType.HTTP)
+                        .endpoint(ep)
+                        .critical(true)
+                        .build());
     }
 }

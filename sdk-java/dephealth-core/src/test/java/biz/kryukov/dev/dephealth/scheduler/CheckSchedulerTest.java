@@ -26,7 +26,7 @@ class CheckSchedulerTest {
 
     @BeforeEach
     void setUp() {
-        metrics = new MetricsExporter(new SimpleMeterRegistry());
+        metrics = new MetricsExporter(new SimpleMeterRegistry(), "test-app");
         scheduler = new CheckScheduler(metrics);
     }
 
@@ -48,6 +48,7 @@ class CheckSchedulerTest {
 
         Dependency dep = Dependency.builder("test", DependencyType.HTTP)
                 .endpoint(new Endpoint("localhost", "8080"))
+                .critical(true)
                 .config(CheckConfig.builder()
                         .interval(Duration.ofSeconds(1))
                         .timeout(Duration.ofMillis(500))
@@ -83,6 +84,7 @@ class CheckSchedulerTest {
 
         Dependency dep = Dependency.builder("test", DependencyType.HTTP)
                 .endpoint(new Endpoint("localhost", "8080"))
+                .critical(true)
                 .config(CheckConfig.builder()
                         .interval(Duration.ofSeconds(1))
                         .timeout(Duration.ofMillis(500))
@@ -123,6 +125,7 @@ class CheckSchedulerTest {
 
         Dependency dep = Dependency.builder("test", DependencyType.HTTP)
                 .endpoint(new Endpoint("localhost", "8080"))
+                .critical(true)
                 .config(CheckConfig.builder()
                         .interval(Duration.ofSeconds(1))
                         .timeout(Duration.ofMillis(500))
@@ -147,6 +150,7 @@ class CheckSchedulerTest {
     void doubleStartThrows() {
         Dependency dep = Dependency.builder("test", DependencyType.TCP)
                 .endpoint(new Endpoint("localhost", "80"))
+                .critical(true)
                 .config(CheckConfig.builder()
                         .interval(Duration.ofSeconds(10))
                         .timeout(Duration.ofSeconds(5))
