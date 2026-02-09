@@ -1,6 +1,6 @@
 # Контракт конфигурации
 
-> Версия спецификации: **1.0-draft**
+> Версия спецификации: **2.0-draft**
 >
 > Этот документ описывает форматы входных данных для конфигурации зависимостей,
 > правила парсинга, программный API и конфигурацию через переменные окружения.
@@ -250,7 +250,7 @@ dephealth.Kafka(name, source, ...opts)
 - `name` (обязательный) — логическое имя зависимости. Формат: `[a-z][a-z0-9-]*`,
   длина 1-63 символа. При невалидном имени — ошибка конфигурации.
 - `source` (обязательный) — источник конфигурации (URL, параметры, pool).
-- `opts` (опциональные) — дополнительные настройки.
+- `opts` (опциональные) — дополнительные настройки (включая обязательный `critical`).
 
 ### 7.2. Источники конфигурации (Source)
 
@@ -271,8 +271,10 @@ dephealth.FromJDBC("jdbc:postgresql://host:5432/db")
 ### 7.3. Опции зависимости (DependencyOption)
 
 ```go
-// Критичность (влияет на readiness)
-dephealth.Critical(true)
+// Критичность — обязательна для каждой зависимости, без значения по умолчанию.
+// Если не указана — ошибка конфигурации.
+dephealth.Critical(true)  // critical="yes"
+dephealth.Critical(false) // critical="no"
 
 // Индивидуальный интервал проверки
 dephealth.WithCheckInterval(30 * time.Second)
@@ -291,26 +293,35 @@ dephealth.WithSuccessThreshold(2)
 dephealth.WithHealthPath("/ready")
 dephealth.WithTLSSkipVerify(true)
 
-// Метаданные (опциональные метки)
-dephealth.WithMetadata("role", "primary")
-dephealth.WithMetadata("shard", "shard-01")
+// Произвольные метки (custom labels)
+dephealth.WithLabel("role", "primary")
+dephealth.WithLabel("shard", "shard-01")
+dephealth.WithLabel("vhost", "orders")
 ```
 
 ### 7.4. Глобальные опции (при создании DepHealth)
 
 ```go
-dh := dephealth.New(
+dh := dephealth.New("order-api",
     // Глобальные опции
     dephealth.WithDefaultCheckInterval(30 * time.Second),
     dephealth.WithDefaultTimeout(10 * time.Second),
     dephealth.WithRegisterer(customRegisterer),
     dephealth.WithLogger(slog.Default()),
 
-    // Зависимости
-    dephealth.Postgres("postgres-main", dephealth.FromURL(url)),
-    dephealth.Redis("redis-cache", dephealth.FromURL(url)),
+    // Зависимости (critical обязателен для каждой)
+    dephealth.Postgres("postgres-main", dephealth.FromURL(url),
+        dephealth.Critical(true)),
+    dephealth.Redis("redis-cache", dephealth.FromURL(url),
+        dephealth.Critical(false)),
 )
 ```
+
+**Параметры**:
+
+- `name` (обязательный) — уникальное имя приложения. Формат: `[a-z][a-z0-9-]*`,
+  длина 1-63 символа. Альтернативно задаётся через `DEPHEALTH_NAME`
+  (API > env var). При отсутствии и в API, и в env — ошибка конфигурации.
 
 ### 7.5. Валидация
 
@@ -318,19 +329,32 @@ SDK валидирует конфигурацию при вызове `New()` и
 
 | Проблема | Ошибка |
 | --- | --- |
+| Отсутствует имя приложения | `missing name` |
+| Невалидное имя приложения | `invalid name: "..."` |
 | Невалидное имя зависимости | `invalid dependency name: "..."` |
+| Отсутствует critical | `missing critical for dependency "..."` |
 | Дублирующееся имя + host + port | `duplicate endpoint: "..." host=... port=...` |
 | Невалидный URL | `invalid URL: "..."` |
 | Отсутствует host | `missing host for dependency "..."` |
 | Невалидный порт | `invalid port "..." for dependency "..."` |
 | `timeout >= checkInterval` | `timeout must be less than checkInterval for "..."` |
 | Неизвестный тип | `unknown dependency type: "..."` |
+| Невалидное имя метки | `invalid label name: "..."` |
+| Зарезервированная метка | `reserved label: "..."` |
 
 ---
 
 ## 8. Конфигурация через переменные окружения
 
 ### 8.1. Формат
+
+Переменная уровня экземпляра:
+
+```text
+DEPHEALTH_NAME=<value>
+```
+
+Переменные уровня зависимости:
 
 ```text
 DEPHEALTH_<DEPENDENCY_NAME>_<PARAM>=<value>
@@ -345,6 +369,14 @@ DEPHEALTH_<DEPENDENCY_NAME>_<PARAM>=<value>
 
 ### 8.2. Поддерживаемые параметры
 
+#### Уровень экземпляра
+
+| Переменная | Описание | Пример |
+| --- | --- | --- |
+| `DEPHEALTH_NAME` | Уникальное имя приложения (метка `name`) | `DEPHEALTH_NAME=order-api` |
+
+#### Уровень зависимости
+
 | Переменная | Описание | Пример |
 | --- | --- | --- |
 | `DEPHEALTH_<NAME>_URL` | URL зависимости | `DEPHEALTH_POSTGRES_MAIN_URL=postgres://...` |
@@ -353,8 +385,17 @@ DEPHEALTH_<DEPENDENCY_NAME>_<PARAM>=<value>
 | `DEPHEALTH_<NAME>_TYPE` | Тип зависимости | `DEPHEALTH_POSTGRES_MAIN_TYPE=postgres` |
 | `DEPHEALTH_<NAME>_CHECK_INTERVAL` | Интервал проверки (секунды) | `DEPHEALTH_POSTGRES_MAIN_CHECK_INTERVAL=30` |
 | `DEPHEALTH_<NAME>_TIMEOUT` | Таймаут (секунды) | `DEPHEALTH_POSTGRES_MAIN_TIMEOUT=10` |
-| `DEPHEALTH_<NAME>_CRITICAL` | Критичность | `DEPHEALTH_POSTGRES_MAIN_CRITICAL=true` |
+| `DEPHEALTH_<NAME>_CRITICAL` | Критичность (`yes` / `no`) | `DEPHEALTH_POSTGRES_MAIN_CRITICAL=yes` |
 | `DEPHEALTH_<NAME>_HEALTH_PATH` | HTTP health path | `DEPHEALTH_PAYMENT_SERVICE_HEALTH_PATH=/ready` |
+
+#### Произвольные метки
+
+| Переменная | Описание | Пример |
+| --- | --- | --- |
+| `DEPHEALTH_<NAME>_LABEL_<KEY>` | Произвольная метка | `DEPHEALTH_POSTGRES_MAIN_LABEL_ROLE=primary` |
+
+`<KEY>` — имя метки в UPPER_SNAKE_CASE, преобразуется в lower_snake_case
+в метрике.
 
 ### 8.3. Приоритет
 
