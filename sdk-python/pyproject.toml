@@ -7,7 +7,7 @@ packages = ["dephealth", "dephealth_fastapi"]
 
 [project]
 name = "dephealth"
-version = "0.2.0"
+version = "0.2.1"
 description = "SDK for monitoring microservice dependencies via Prometheus metrics"
 requires-python = ">=3.11"
 license = "MIT"

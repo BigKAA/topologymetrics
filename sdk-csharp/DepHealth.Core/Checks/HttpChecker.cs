@@ -9,7 +9,7 @@ namespace DepHealth.Checks;
 public sealed class HttpChecker : IHealthChecker
 {
     private const string DefaultHealthPath = "/health";
-    private const string UserAgentValue = "dephealth/0.1.0";
+    private const string UserAgentValue = "dephealth/0.2.1";
 
     private readonly string _healthPath;
     private readonly bool _tlsEnabled;
@@ -39,7 +39,7 @@ public sealed class HttpChecker : IHealthChecker
 
         using var client = new HttpClient(handler);
         client.DefaultRequestHeaders.UserAgent.Add(
-            new ProductInfoHeaderValue("dephealth", "0.1.0"));
+            new ProductInfoHeaderValue("dephealth", "0.2.1"));
 
         using var response = await client.GetAsync(uri, ct).ConfigureAwait(false);
 
