@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-02-09
+
+### Fixed
+
+- **Go SDK**: HTTP-чекер теперь следует HTTP-редиректам (3xx) вместо ошибки
+- **Java SDK**: HTTP-чекер теперь следует HTTP-редиректам (3xx) вместо ошибки
+- **Java SDK**: обновлён User-Agent с 0.1.0 до 0.2.1
+- **C# SDK**: обновлён User-Agent с 0.1.0 до 0.2.1
+- **Go SDK**: обновлена константа Version с 0.1.0 до 0.2.1
+- **Спецификация**: обновлена таблица edge cases — редиректы следуются, ожидается финальный 2xx
+
+### Changed
+
+- **Документация**: обновлены скриншоты Grafana дашбордов
+
 ## [0.2.0] - 2026-02-09
 
 Dependency topology: обязательная идентификация приложений (`name`), критичность
@@ -134,5 +149,6 @@ verifying cross-language compatibility.
 - SDK comparison table
 - CONTRIBUTING.md with development workflow
 
+[0.2.1]: https://github.com/BigKAA/topologymetrics/releases/tag/v0.2.1
 [0.2.0]: https://github.com/BigKAA/topologymetrics/releases/tag/v0.2.0
 [0.1.0]: https://github.com/BigKAA/topologymetrics/releases/tag/v0.1.0

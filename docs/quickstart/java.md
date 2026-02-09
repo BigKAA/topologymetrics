@@ -12,7 +12,7 @@ Core-модуль:
 <dependency>
     <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-core</artifactId>
-    <version>0.2.0</version>
+    <version>0.2.1</version>
 </dependency>
 ```
 
@@ -22,7 +22,7 @@ Spring Boot Starter (включает core):
 <dependency>
     <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-spring-boot-starter</artifactId>
-    <version>0.2.0</version>
+    <version>0.2.1</version>
 </dependency>
 ```
 
