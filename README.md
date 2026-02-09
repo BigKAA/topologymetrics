@@ -20,10 +20,10 @@ HTTP/gRPC-сервисы). VictoriaMetrics собирает данные, Grafan
 
 ```text
 # Здоровье: 1 = доступен, 0 = недоступен
-app_dependency_health{dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432"} 1
+app_dependency_health{name="order-service",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes"} 1
 
 # Латентность проверки
-app_dependency_latency_seconds_bucket{dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",le="0.01"} 42
+app_dependency_latency_seconds_bucket{name="order-service",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="0.01"} 42
 ```
 
 Из метрик автоматически строится граф зависимостей, настраивается алертинг
@@ -39,13 +39,14 @@ import (
     _ "github.com/BigKAA/topologymetrics/dephealth/checks"
 )
 
-dh, err := dephealth.New(
+dh, err := dephealth.New("order-service",
     dephealth.Postgres("postgres-main",
         dephealth.FromURL(os.Getenv("DATABASE_URL")),
         dephealth.Critical(true),
     ),
     dephealth.Redis("redis-cache",
         dephealth.FromURL(os.Getenv("REDIS_URL")),
+        dephealth.Critical(false),
     ),
 )
 dh.Start(ctx)
@@ -61,9 +62,9 @@ from dephealth.api import postgres_check, redis_check
 from dephealth_fastapi import dephealth_lifespan, DepHealthMiddleware
 
 app = FastAPI(
-    lifespan=dephealth_lifespan(
-        postgres_check("postgres-main", url=os.environ["DATABASE_URL"]),
-        redis_check("redis-cache", url=os.environ["REDIS_URL"]),
+    lifespan=dephealth_lifespan("order-service",
+        postgres_check("postgres-main", url=os.environ["DATABASE_URL"], critical=True),
+        redis_check("redis-cache", url=os.environ["REDIS_URL"], critical=False),
     )
 )
 app.add_middleware(DepHealthMiddleware)
@@ -74,6 +75,7 @@ app.add_middleware(DepHealthMiddleware)
 ```yaml
 # application.yml
 dephealth:
+  name: order-service
   dependencies:
     postgres-main:
       type: postgres
@@ -82,25 +84,27 @@ dephealth:
     redis-cache:
       type: redis
       url: ${REDIS_URL}
+      critical: false
 ```
 
 ```xml
 <dependency>
     <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-spring-boot-starter</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
 ### C# (ASP.NET Core)
 
 ```csharp
-builder.Services.AddDepHealth(dh => dh
+builder.Services.AddDepHealth("order-service", dh => dh
     .AddDependency("postgres-main", DependencyType.Postgres, d => d
         .Url(builder.Configuration["DATABASE_URL"]!)
         .Critical(true))
     .AddDependency("redis-cache", DependencyType.Redis, d => d
-        .Url(builder.Configuration["REDIS_URL"]!))
+        .Url(builder.Configuration["REDIS_URL"]!)
+        .Critical(false))
 );
 
 app.UseDepHealth(); // /metrics + /health/dependencies
@@ -177,7 +181,7 @@ plans/                          # Планы разработки
 | `app_dependency_health` | Gauge | Доступность: `1` / `0` |
 | `app_dependency_latency_seconds` | Histogram | Латентность проверки |
 
-Обязательные метки: `dependency`, `type`, `host`, `port`.
+Обязательные метки: `name`, `dependency`, `type`, `host`, `port`, `critical`.
 
 ### Параметры по умолчанию
 
