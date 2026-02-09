@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Java SDK 0.2.2] - 2026-02-09
+
+### Fixed
+
+- **Java SDK**: разрешено создание экземпляра DepHealth без зависимостей (leaf-сервисы)
+
+## [Python SDK 0.2.2] - 2026-02-09
+
+### Fixed
+
+- **Python SDK**: credentials из URL (userinfo) теперь передаются в checkers при автономной проверке
+
 ## [Go SDK 0.3.0] - 2026-02-09
 
 ### Breaking Changes
@@ -155,6 +167,8 @@ verifying cross-language compatibility.
 - SDK comparison table
 - CONTRIBUTING.md with development workflow
 
+[Java SDK 0.2.2]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-java/v0.2.2
+[Python SDK 0.2.2]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-python/v0.2.2
 [Go SDK 0.3.0]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-go/v0.3.0
 [0.2.1]: https://github.com/BigKAA/topologymetrics/releases/tag/v0.2.1
 [0.2.0]: https://github.com/BigKAA/topologymetrics/releases/tag/v0.2.0

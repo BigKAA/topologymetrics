@@ -1,7 +1,7 @@
 # План исправления issues от пользователей
 
 > Создан: 2026-02-09
-> Статус: черновик
+> Статус: завершён
 
 ## Обзор issues
 
@@ -13,7 +13,11 @@
 
 ---
 
-## Issue 1: Разрешить zero dependencies
+## Issue 1: Разрешить zero dependencies ✅
+
+> **Статус:** Завершено
+>
+> - Спецификация + Go + Java fix + тесты Python/C# — коммит `b5f575f`
 
 ### Проблема
 
@@ -138,7 +142,14 @@ expected:
 
 ---
 
-## Issue 2: Go module path fix
+## Issue 2: Go module path fix ✅
+
+> **Статус:** Завершено
+>
+> - Module path изменён на `github.com/BigKAA/topologymetrics/sdk-go` — коммит `1ac0af2`
+> - Тег `sdk-go/v0.3.0`, GitHub Release создан
+> - 38 файлов обновлено: go.mod, 24 .go файла, Makefile, .golangci.yml, 2 тестовых сервиса, 6 документов, CHANGELOG
+> - Build, тесты, lint — пройдены
 
 ### Проблема
 

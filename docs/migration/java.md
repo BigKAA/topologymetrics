@@ -74,7 +74,7 @@ dephealth:
 <version>0.1.0</version>
 
 <!-- v0.2 -->
-<version>0.2.1</version>
+<version>0.2.2</version>
 ```
 
 ### Новые метки в метриках
@@ -103,7 +103,7 @@ app_dependency_health{name="my-service",dependency="postgres-main",type="postgre
 <dependency>
     <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-spring-boot-starter</artifactId>
-    <version>0.2.1</version>
+    <version>0.2.2</version>
 </dependency>
 ```
 
@@ -113,7 +113,7 @@ app_dependency_health{name="my-service",dependency="postgres-main",type="postgre
 <dependency>
     <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-core</artifactId>
-    <version>0.2.1</version>
+    <version>0.2.2</version>
 </dependency>
 ```
 
