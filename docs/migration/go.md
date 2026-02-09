@@ -3,6 +3,71 @@
 Пошаговая инструкция по добавлению мониторинга зависимостей
 в работающий микросервис.
 
+## Миграция с v0.1 на v0.2
+
+### Изменения API
+
+| v0.1 | v0.2 | Описание |
+| --- | --- | --- |
+| `dephealth.New(...)` | `dephealth.New("my-service", ...)` | Обязательный первый аргумент `name` |
+| `dephealth.Critical(true)` (необязателен) | `dephealth.Critical(true/false)` (обязателен) | Для каждой зависимости |
+| `Endpoint.Metadata` | `Endpoint.Labels` | Переименование поля |
+| `dephealth.WithMetadata(map)` | `dephealth.WithLabel("key", "value")` | Произвольные метки |
+| `WithOptionalLabels(...)` | удалён | Произвольные метки через `WithLabel` |
+
+### Обязательные изменения
+
+1. Добавьте `name` первым аргументом в `dephealth.New()`:
+
+```go
+// v0.1
+dh, err := dephealth.New(
+    dephealth.Postgres("postgres-main", ...),
+)
+
+// v0.2
+dh, err := dephealth.New("my-service",
+    dephealth.Postgres("postgres-main", ...),
+)
+```
+
+1. Укажите `Critical()` для каждой зависимости:
+
+```go
+// v0.1 — Critical необязателен
+dephealth.Redis("redis-cache",
+    dephealth.FromURL(os.Getenv("REDIS_URL")),
+)
+
+// v0.2 — Critical обязателен
+dephealth.Redis("redis-cache",
+    dephealth.FromURL(os.Getenv("REDIS_URL")),
+    dephealth.Critical(false),
+)
+```
+
+1. Замените `WithMetadata` на `WithLabel` (если используется):
+
+```go
+// v0.1
+dephealth.WithMetadata(map[string]string{"role": "primary"})
+
+// v0.2
+dephealth.WithLabel("role", "primary")
+```
+
+### Новые метки в метриках
+
+```text
+# v0.1
+app_dependency_health{dependency="postgres-main",type="postgres",host="pg.svc",port="5432"} 1
+
+# v0.2
+app_dependency_health{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes"} 1
+```
+
+Обновите PromQL-запросы и дашборды Grafana, добавив метки `name` и `critical`.
+
 ## Предварительные требования
 
 - Go 1.21+
@@ -46,13 +111,14 @@ SDK создаёт временные соединения для проверо
 
 ```go
 func initDepHealth() (*dephealth.DepHealth, error) {
-    return dephealth.New(
+    return dephealth.New("my-service",
         dephealth.Postgres("postgres-main",
             dephealth.FromURL(os.Getenv("DATABASE_URL")),
             dephealth.Critical(true),
         ),
         dephealth.Redis("redis-cache",
             dephealth.FromURL(os.Getenv("REDIS_URL")),
+            dephealth.Critical(false),
         ),
         dephealth.HTTP("payment-api",
             dephealth.FromURL(os.Getenv("PAYMENT_SERVICE_URL")),
@@ -72,7 +138,7 @@ SDK использует существующие подключения сер�
 
 ```go
 func initDepHealth(db *sql.DB, rdb *redis.Client) (*dephealth.DepHealth, error) {
-    return dephealth.New(
+    return dephealth.New("my-service",
         dephealth.WithCheckInterval(15 * time.Second),
         dephealth.WithLogger(slog.Default()),
 
@@ -85,16 +151,18 @@ func initDepHealth(db *sql.DB, rdb *redis.Client) (*dephealth.DepHealth, error) 
         // Redis через существующий *redis.Client
         // Host:port извлекаются автоматически
         redispool.FromClient("redis-cache", rdb,
-            dephealth.Critical(true),
+            dephealth.Critical(false),
         ),
 
         // Для HTTP/gRPC — только standalone
         dephealth.HTTP("payment-api",
             dephealth.FromURL(os.Getenv("PAYMENT_SERVICE_URL")),
+            dephealth.Critical(true),
         ),
 
         dephealth.GRPC("auth-service",
             dephealth.FromParams(os.Getenv("AUTH_HOST"), os.Getenv("AUTH_PORT")),
+            dephealth.Critical(true),
         ),
     )
 }
@@ -166,19 +234,21 @@ mux.HandleFunc("/health/dependencies", handleDependencies(dh))
 ### Веб-сервис с PostgreSQL и Redis
 
 ```go
-dh, _ := dephealth.New(
+dh, _ := dephealth.New("my-service",
     sqldb.FromDB("postgres", db,
         dephealth.FromURL(os.Getenv("DATABASE_URL")),
         dephealth.Critical(true),
     ),
-    redispool.FromClient("redis", rdb),
+    redispool.FromClient("redis", rdb,
+        dephealth.Critical(false),
+    ),
 )
 ```
 
 ### API Gateway с upstream-сервисами
 
 ```go
-dh, _ := dephealth.New(
+dh, _ := dephealth.New("api-gateway",
     dephealth.WithCheckInterval(10 * time.Second),
 
     dephealth.HTTP("user-service",
@@ -200,7 +270,7 @@ dh, _ := dephealth.New(
 ### Обработчик событий с Kafka и RabbitMQ
 
 ```go
-dh, _ := dephealth.New(
+dh, _ := dephealth.New("event-processor",
     dephealth.Kafka("kafka-main",
         dephealth.FromParams("kafka.svc", "9092"),
         dephealth.Critical(true),
@@ -212,6 +282,7 @@ dh, _ := dephealth.New(
     ),
     sqldb.FromDB("postgres", db,
         dephealth.FromURL(os.Getenv("DATABASE_URL")),
+        dephealth.Critical(false),
     ),
 )
 ```
@@ -219,17 +290,19 @@ dh, _ := dephealth.New(
 ### Сервис с TLS-зависимостями
 
 ```go
-dh, _ := dephealth.New(
+dh, _ := dephealth.New("my-service",
     dephealth.HTTP("external-api",
         dephealth.FromURL("https://api.example.com"),
         dephealth.WithHTTPHealthPath("/status"),
         dephealth.Timeout(10 * time.Second),
+        dephealth.Critical(true),
         // TLS включается автоматически для https://
     ),
     dephealth.GRPC("secure-service",
         dephealth.FromParams("secure.svc", "443"),
         dephealth.WithGRPCTLS(true),
         dephealth.WithGRPCTLSSkipVerify(true), // для self-signed сертификатов
+        dephealth.Critical(false),
     ),
 )
 ```
@@ -290,6 +363,7 @@ connection pool. Это исключает overhead на установку со
 dephealth.AMQP("rabbitmq",
     dephealth.FromParams("rabbitmq.svc", "5672"),   // для меток метрик
     dephealth.WithAMQPURL("amqp://user:pass@rabbitmq.svc:5672/vhost"),
+    dephealth.Critical(false),
 )
 ```
 

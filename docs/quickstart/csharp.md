@@ -32,7 +32,7 @@ using DepHealth.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDepHealth(dh => dh
+builder.Services.AddDepHealth("my-service", dh => dh
     .AddDependency("payment-api", DependencyType.Http, d => d
         .Url("http://payment.svc:8080")
         .Critical(true))
@@ -48,14 +48,14 @@ app.Run();
 После запуска на `/metrics` появятся метрики:
 
 ```text
-app_dependency_health{dependency="payment-api",type="http",host="payment.svc",port="8080"} 1
-app_dependency_latency_seconds_bucket{dependency="payment-api",type="http",host="payment.svc",port="8080",le="0.01"} 42
+app_dependency_health{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes"} 1
+app_dependency_latency_seconds_bucket{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",le="0.01"} 42
 ```
 
 ## Несколько зависимостей
 
 ```csharp
-builder.Services.AddDepHealth(dh => dh
+builder.Services.AddDepHealth("my-service", dh => dh
     // Глобальные настройки
     .CheckInterval(TimeSpan.FromSeconds(30))
     .Timeout(TimeSpan.FromSeconds(3))
@@ -67,7 +67,8 @@ builder.Services.AddDepHealth(dh => dh
 
     // Redis — standalone check
     .AddDependency("redis-cache", DependencyType.Redis, d => d
-        .Url("redis://:password@redis.svc:6379/0"))
+        .Url("redis://:password@redis.svc:6379/0")
+        .Critical(false))
 
     // HTTP-сервис
     .AddDependency("auth-service", DependencyType.Http, d => d
@@ -78,7 +79,8 @@ builder.Services.AddDepHealth(dh => dh
     // gRPC-сервис
     .AddDependency("user-service", DependencyType.Grpc, d => d
         .Host("user.svc")
-        .Port("9090"))
+        .Port("9090")
+        .Critical(false))
 
     // RabbitMQ
     .AddDependency("rabbitmq", DependencyType.Amqp, d => d
@@ -86,12 +88,32 @@ builder.Services.AddDepHealth(dh => dh
         .Port("5672")
         .AmqpUsername("user")
         .AmqpPassword("pass")
-        .AmqpVhost("/"))
+        .AmqpVhost("/")
+        .Critical(false))
 
     // Kafka
     .AddDependency("kafka", DependencyType.Kafka, d => d
-        .Url("kafka://kafka.svc:9092"))
+        .Url("kafka://kafka.svc:9092")
+        .Critical(false))
 );
+```
+
+## Произвольные метки
+
+Добавляйте произвольные метки через `.Label()`:
+
+```csharp
+.AddDependency("postgres-main", DependencyType.Postgres, d => d
+    .Url("postgres://user:pass@pg.svc:5432/mydb")
+    .Critical(true)
+    .Label("role", "primary")
+    .Label("shard", "eu-west"))
+```
+
+Результат в метриках:
+
+```text
+app_dependency_health{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",role="primary",shard="eu-west"} 1
 ```
 
 ## Интеграция с connection pool
@@ -107,7 +129,7 @@ using DepHealth.EntityFramework;
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-builder.Services.AddDepHealth(dh => dh
+builder.Services.AddDepHealth("my-service", dh => dh
     .AddEntityFrameworkDependency<AppDbContext>("postgres-main",
         critical: true)
 );
@@ -128,12 +150,13 @@ builder.Services.AddDepHealth(dh => dh
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDepHealth(dh => dh
+builder.Services.AddDepHealth("my-service", dh => dh
     .AddDependency("postgres-main", DependencyType.Postgres, d => d
         .Url(builder.Configuration["DATABASE_URL"]!)
         .Critical(true))
     .AddDependency("redis-cache", DependencyType.Redis, d => d
-        .Url(builder.Configuration["REDIS_URL"]!))
+        .Url(builder.Configuration["REDIS_URL"]!)
+        .Critical(false))
     .AddDependency("auth-service", DependencyType.Http, d => d
         .Url("http://auth.svc:8080")
         .HttpHealthPath("/healthz")
@@ -173,7 +196,7 @@ GET /health/dependencies
 ## Глобальные опции
 
 ```csharp
-builder.Services.AddDepHealth(dh => dh
+builder.Services.AddDepHealth("my-service", dh => dh
     // Интервал проверки (по умолчанию 15s)
     .CheckInterval(TimeSpan.FromSeconds(30))
 
@@ -199,6 +222,35 @@ builder.Services.AddDepHealth(dh => dh
     .Critical(true))                             // критическая зависимость
 ```
 
+## Конфигурация через переменные окружения
+
+| Переменная | Описание | Пример |
+| --- | --- | --- |
+| `DEPHEALTH_NAME` | Имя приложения (перекрывается API) | `my-service` |
+| `DEPHEALTH_<DEP>_CRITICAL` | Критичность зависимости | `yes` / `no` |
+| `DEPHEALTH_<DEP>_LABEL_<KEY>` | Произвольная метка | `primary` |
+
+`<DEP>` — имя зависимости в верхнем регистре, дефисы заменены на `_`.
+
+Примеры:
+
+```bash
+export DEPHEALTH_NAME=my-service
+export DEPHEALTH_POSTGRES_MAIN_CRITICAL=yes
+export DEPHEALTH_POSTGRES_MAIN_LABEL_ROLE=primary
+```
+
+Приоритет: значения из API > переменные окружения.
+
+## Поведение при отсутствии обязательных параметров
+
+| Ситуация | Поведение |
+| --- | --- |
+| Не указан `name` и нет `DEPHEALTH_NAME` | Ошибка при создании: `missing name` |
+| Не указан `.Critical()` для зависимости | Ошибка при создании: `missing critical` |
+| Недопустимое имя метки | Ошибка при создании: `invalid label name` |
+| Метка совпадает с обязательной | Ошибка при создании: `reserved label` |
+
 ## Проверка состояния зависимостей
 
 ```csharp
@@ -221,7 +273,7 @@ dephealth экспортирует две метрики Prometheus через p
 | `app_dependency_health` | Gauge | `1` = доступен, `0` = недоступен |
 | `app_dependency_latency_seconds` | Histogram | Латентность проверки (секунды) |
 
-Метки: `dependency`, `type`, `host`, `port`.
+Метки: `name`, `dependency`, `type`, `host`, `port`, `critical`.
 
 ## Поддерживаемые типы зависимостей
 

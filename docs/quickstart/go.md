@@ -30,7 +30,7 @@ import (
 )
 
 func main() {
-    dh, err := dephealth.New(
+    dh, err := dephealth.New("my-service",
         dephealth.HTTP("payment-api",
             dephealth.FromURL("http://payment.svc:8080"),
             dephealth.Critical(true),
@@ -60,14 +60,14 @@ func main() {
 После запуска на `/metrics` появятся метрики:
 
 ```text
-app_dependency_health{dependency="payment-api",type="http",host="payment.svc",port="8080"} 1
-app_dependency_latency_seconds_bucket{dependency="payment-api",type="http",host="payment.svc",port="8080",le="0.01"} 42
+app_dependency_health{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes"} 1
+app_dependency_latency_seconds_bucket{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",le="0.01"} 42
 ```
 
 ## Несколько зависимостей
 
 ```go
-dh, err := dephealth.New(
+dh, err := dephealth.New("my-service",
     // Глобальные настройки
     dephealth.WithCheckInterval(30 * time.Second),
     dephealth.WithTimeout(3 * time.Second),
@@ -81,6 +81,7 @@ dh, err := dephealth.New(
     // Redis — standalone check
     dephealth.Redis("redis-cache",
         dephealth.FromURL(os.Getenv("REDIS_URL")),
+        dephealth.Critical(false),
     ),
 
     // HTTP-сервис
@@ -93,19 +94,41 @@ dh, err := dephealth.New(
     // gRPC-сервис
     dephealth.GRPC("user-service",
         dephealth.FromParams("user.svc", "9090"),
+        dephealth.Critical(false),
     ),
 
     // RabbitMQ
     dephealth.AMQP("rabbitmq",
         dephealth.FromParams("rabbitmq.svc", "5672"),
         dephealth.WithAMQPURL("amqp://user:pass@rabbitmq.svc:5672/"),
+        dephealth.Critical(false),
     ),
 
     // Kafka
     dephealth.Kafka("kafka",
         dephealth.FromParams("kafka.svc", "9092"),
+        dephealth.Critical(false),
     ),
 )
+```
+
+## Произвольные метки
+
+Добавляйте произвольные метки через `WithLabel`:
+
+```go
+dephealth.Postgres("postgres-main",
+    dephealth.FromURL(os.Getenv("DATABASE_URL")),
+    dephealth.Critical(true),
+    dephealth.WithLabel("role", "primary"),
+    dephealth.WithLabel("shard", "eu-west"),
+)
+```
+
+Результат в метриках:
+
+```text
+app_dependency_health{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",role="primary",shard="eu-west"} 1
 ```
 
 ## Интеграция с connection pool (contrib)
@@ -129,7 +152,7 @@ import (
 // Используем существующий connection pool
 db, _ := sql.Open("pgx", os.Getenv("DATABASE_URL"))
 
-dh, err := dephealth.New(
+dh, err := dephealth.New("my-service",
     sqldb.FromDB("postgres-main", db,
         dephealth.FromURL(os.Getenv("DATABASE_URL")),
         dephealth.Critical(true),
@@ -144,7 +167,7 @@ import "github.com/BigKAA/topologymetrics/dephealth/contrib/sqldb"
 
 db, _ := sql.Open("mysql", "user:pass@tcp(mysql.svc:3306)/mydb")
 
-dh, err := dephealth.New(
+dh, err := dephealth.New("my-service",
     sqldb.FromMySQLDB("mysql-main", db,
         dephealth.FromParams("mysql.svc", "3306"),
         dephealth.Critical(true),
@@ -162,10 +185,10 @@ import (
 
 client := redis.NewClient(&redis.Options{Addr: "redis.svc:6379"})
 
-dh, err := dephealth.New(
+dh, err := dephealth.New("my-service",
     // Host и port извлекаются автоматически из client.Options().Addr
     redispool.FromClient("redis-cache", client,
-        dephealth.Critical(true),
+        dephealth.Critical(false),
     ),
 )
 ```
@@ -173,7 +196,7 @@ dh, err := dephealth.New(
 ## Глобальные опции
 
 ```go
-dh, err := dephealth.New(
+dh, err := dephealth.New("my-service",
     // Интервал проверки (по умолчанию 15s)
     dephealth.WithCheckInterval(30 * time.Second),
 
@@ -206,6 +229,35 @@ dephealth.HTTP("slow-service",
 )
 ```
 
+## Конфигурация через переменные окружения
+
+| Переменная | Описание | Пример |
+| --- | --- | --- |
+| `DEPHEALTH_NAME` | Имя приложения (перекрывается аргументом API) | `my-service` |
+| `DEPHEALTH_<DEP>_CRITICAL` | Критичность зависимости | `yes` / `no` |
+| `DEPHEALTH_<DEP>_LABEL_<KEY>` | Произвольная метка | `primary` |
+
+`<DEP>` — имя зависимости в верхнем регистре, дефисы заменены на `_`.
+
+Примеры:
+
+```bash
+export DEPHEALTH_NAME=my-service
+export DEPHEALTH_POSTGRES_MAIN_CRITICAL=yes
+export DEPHEALTH_POSTGRES_MAIN_LABEL_ROLE=primary
+```
+
+Приоритет: значения из API > переменные окружения.
+
+## Поведение при отсутствии обязательных параметров
+
+| Ситуация | Поведение |
+| --- | --- |
+| Не указан `name` и нет `DEPHEALTH_NAME` | Ошибка при создании: `missing name` |
+| Не указан `Critical()` для зависимости | Ошибка при создании: `missing critical` |
+| Недопустимое имя метки | Ошибка при создании: `invalid label name` |
+| Метка совпадает с обязательной | Ошибка при создании: `reserved label` |
+
 ## Проверка состояния зависимостей
 
 Метод `Health()` возвращает текущее состояние всех endpoint-ов:
@@ -237,7 +289,7 @@ dephealth экспортирует две метрики Prometheus:
 | `app_dependency_health` | Gauge | `1` = доступен, `0` = недоступен |
 | `app_dependency_latency_seconds` | Histogram | Латентность проверки (секунды) |
 
-Метки: `dependency`, `type`, `host`, `port`.
+Метки: `name`, `dependency`, `type`, `host`, `port`, `critical`.
 
 Для экспорта используйте стандартный `promhttp.Handler()`:
 

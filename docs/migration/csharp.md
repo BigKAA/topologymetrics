@@ -3,6 +3,62 @@
 Пошаговая инструкция по добавлению мониторинга зависимостей
 в работающий микросервис.
 
+## Миграция с v0.1 на v0.2
+
+### Изменения API
+
+| v0.1 | v0.2 | Описание |
+| --- | --- | --- |
+| `AddDepHealth(dh => ...)` | `AddDepHealth("my-service", dh => ...)` | Обязательный первый аргумент `name` |
+| `CreateBuilder()` | `CreateBuilder("my-service")` | Обязательный аргумент `name` |
+| `.Critical(true)` (необязателен) | `.Critical(true/false)` (обязателен) | Для каждой зависимости |
+| нет | `.Label("key", "value")` | Произвольные метки |
+
+### Обязательные изменения
+
+1. Добавьте `name` в `AddDepHealth`:
+
+```csharp
+// v0.1
+builder.Services.AddDepHealth(dh => dh
+    .AddDependency("postgres-main", DependencyType.Postgres, d => d
+        .Url("postgres://user:pass@pg.svc:5432/mydb")
+        .Critical(true))
+);
+
+// v0.2
+builder.Services.AddDepHealth("my-service", dh => dh
+    .AddDependency("postgres-main", DependencyType.Postgres, d => d
+        .Url("postgres://user:pass@pg.svc:5432/mydb")
+        .Critical(true))
+);
+```
+
+1. Укажите `.Critical()` для каждой зависимости:
+
+```csharp
+// v0.1 — Critical необязателен
+.AddDependency("redis-cache", DependencyType.Redis, d => d
+    .Url("redis://redis.svc:6379"))
+
+// v0.2 — Critical обязателен
+.AddDependency("redis-cache", DependencyType.Redis, d => d
+    .Url("redis://redis.svc:6379")
+    .Critical(false))
+```
+
+### Новые метки в метриках
+
+```text
+# v0.1
+app_dependency_health{dependency="postgres-main",type="postgres",host="pg.svc",port="5432"} 1
+
+# v0.2
+app_dependency_health{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes"} 1
+```
+
+Обновите PromQL-запросы и дашборды Grafana, добавив метки `name` и `critical`.
+
 ## Предварительные требования
 
 - .NET 8+
@@ -31,12 +87,13 @@ using DepHealth.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDepHealth(dh => dh
+builder.Services.AddDepHealth("my-service", dh => dh
     .AddDependency("postgres-main", DependencyType.Postgres, d => d
         .Url(builder.Configuration["DATABASE_URL"]!)
         .Critical(true))
     .AddDependency("redis-cache", DependencyType.Redis, d => d
-        .Url(builder.Configuration["REDIS_URL"]!))
+        .Url(builder.Configuration["REDIS_URL"]!)
+        .Critical(false))
     .AddDependency("payment-api", DependencyType.Http, d => d
         .Url("http://payment.svc:8080")
         .Critical(true))
@@ -50,12 +107,13 @@ builder.Services.AddDepHealth(dh => dh
 SDK создаёт временные соединения для проверок:
 
 ```csharp
-builder.Services.AddDepHealth(dh => dh
+builder.Services.AddDepHealth("my-service", dh => dh
     .AddDependency("postgres-main", DependencyType.Postgres, d => d
         .Url(builder.Configuration["DATABASE_URL"]!)
         .Critical(true))
     .AddDependency("redis-cache", DependencyType.Redis, d => d
-        .Url(builder.Configuration["REDIS_URL"]!))
+        .Url(builder.Configuration["REDIS_URL"]!)
+        .Critical(false))
     .AddDependency("payment-api", DependencyType.Http, d => d
         .Url("http://payment.svc:8080")
         .HttpHealthPath("/healthz")
@@ -77,7 +135,7 @@ using DepHealth.EntityFramework;
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration["DATABASE_URL"]));
 
-builder.Services.AddDepHealth(dh => dh
+builder.Services.AddDepHealth("my-service", dh => dh
     .CheckInterval(TimeSpan.FromSeconds(15))
 
     // PostgreSQL через EF Core DbContext
@@ -86,16 +144,19 @@ builder.Services.AddDepHealth(dh => dh
 
     // Redis — standalone
     .AddDependency("redis-cache", DependencyType.Redis, d => d
-        .Url(builder.Configuration["REDIS_URL"]!))
+        .Url(builder.Configuration["REDIS_URL"]!)
+        .Critical(false))
 
     // HTTP — только standalone
     .AddDependency("payment-api", DependencyType.Http, d => d
-        .Url("http://payment.svc:8080"))
+        .Url("http://payment.svc:8080")
+        .Critical(true))
 
     // gRPC — только standalone
     .AddDependency("auth-service", DependencyType.Grpc, d => d
         .Host("auth.svc")
-        .Port("9090"))
+        .Port("9090")
+        .Critical(true))
 );
 ```
 
@@ -135,8 +196,8 @@ curl http://localhost:8080/metrics
 
 # HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 # TYPE app_dependency_health gauge
-app_dependency_health{dependency="postgres-main",type="postgres",host="pg.svc",port="5432"} 1
-app_dependency_health{dependency="redis-cache",type="redis",host="redis.svc",port="6379"} 1
+app_dependency_health{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes"} 1
+app_dependency_health{name="my-service",dependency="redis-cache",type="redis",host="redis.svc",port="6379",critical="no"} 1
 ```
 
 ### Состояние зависимостей
@@ -172,19 +233,20 @@ app.MapGet("/info", (IDepHealth depHealth) =>
 ### Веб-сервис с PostgreSQL и Redis
 
 ```csharp
-builder.Services.AddDepHealth(dh => dh
+builder.Services.AddDepHealth("my-service", dh => dh
     .AddDependency("postgres", DependencyType.Postgres, d => d
         .Url(builder.Configuration["DATABASE_URL"]!)
         .Critical(true))
     .AddDependency("redis", DependencyType.Redis, d => d
-        .Url(builder.Configuration["REDIS_URL"]!))
+        .Url(builder.Configuration["REDIS_URL"]!)
+        .Critical(false))
 );
 ```
 
 ### API Gateway с upstream-сервисами
 
 ```csharp
-builder.Services.AddDepHealth(dh => dh
+builder.Services.AddDepHealth("api-gateway", dh => dh
     .CheckInterval(TimeSpan.FromSeconds(10))
 
     .AddDependency("user-service", DependencyType.Http, d => d
@@ -204,7 +266,7 @@ builder.Services.AddDepHealth(dh => dh
 ### Обработчик событий с Kafka и RabbitMQ
 
 ```csharp
-builder.Services.AddDepHealth(dh => dh
+builder.Services.AddDepHealth("event-processor", dh => dh
     .AddDependency("kafka-main", DependencyType.Kafka, d => d
         .Url("kafka://kafka.svc:9092")
         .Critical(true))
@@ -215,7 +277,8 @@ builder.Services.AddDepHealth(dh => dh
         .AmqpPassword("pass")
         .Critical(true))
     .AddDependency("postgres", DependencyType.Postgres, d => d
-        .Url(builder.Configuration["DATABASE_URL"]!))
+        .Url(builder.Configuration["DATABASE_URL"]!)
+        .Critical(false))
 );
 ```
 
@@ -261,7 +324,8 @@ builder.Services.AddDepHealth(dh => dh
 
 ```csharp
 .AddDependency("kafka", DependencyType.Kafka, d => d
-    .Url("kafka://kafka.svc:9092"))
+    .Url("kafka://kafka.svc:9092")
+    .Critical(false))
 ```
 
 ### AMQP: ошибка подключения к RabbitMQ
@@ -274,7 +338,8 @@ builder.Services.AddDepHealth(dh => dh
     .Port("5672")
     .AmqpUsername("user")
     .AmqpPassword("pass")
-    .AmqpVhost("/"))
+    .AmqpVhost("/")
+    .Critical(false))
 ```
 
 ### Именование зависимостей

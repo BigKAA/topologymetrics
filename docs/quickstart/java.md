@@ -12,7 +12,7 @@ Core-модуль:
 <dependency>
     <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-core</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
@@ -22,7 +22,7 @@ Spring Boot Starter (включает core):
 <dependency>
     <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-spring-boot-starter</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
@@ -39,7 +39,7 @@ public class Main {
         PrometheusMeterRegistry registry = new PrometheusMeterRegistry(
             PrometheusConfig.DEFAULT);
 
-        DepHealth depHealth = DepHealth.builder(registry)
+        DepHealth depHealth = DepHealth.builder("my-service", registry)
             .dependency("payment-api", DependencyType.HTTP, d -> d
                 .url("http://payment.svc:8080")
                 .critical(true))
@@ -58,14 +58,14 @@ public class Main {
 После запуска на `/metrics` появятся метрики:
 
 ```text
-app_dependency_health{dependency="payment-api",type="http",host="payment.svc",port="8080"} 1
-app_dependency_latency_seconds_bucket{dependency="payment-api",type="http",host="payment.svc",port="8080",le="0.01"} 42
+app_dependency_health{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes"} 1
+app_dependency_latency_seconds_bucket{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",le="0.01"} 42
 ```
 
 ## Несколько зависимостей
 
 ```java
-DepHealth depHealth = DepHealth.builder(meterRegistry)
+DepHealth depHealth = DepHealth.builder("my-service", meterRegistry)
     // Глобальные настройки
     .checkInterval(Duration.ofSeconds(30))
     .timeout(Duration.ofSeconds(3))
@@ -77,7 +77,8 @@ DepHealth depHealth = DepHealth.builder(meterRegistry)
 
     // Redis — standalone check
     .dependency("redis-cache", DependencyType.REDIS, d -> d
-        .url("redis://:password@redis.svc:6379/0"))
+        .url("redis://:password@redis.svc:6379/0")
+        .critical(false))
 
     // HTTP-сервис
     .dependency("auth-service", DependencyType.HTTP, d -> d
@@ -88,7 +89,8 @@ DepHealth depHealth = DepHealth.builder(meterRegistry)
     // gRPC-сервис
     .dependency("user-service", DependencyType.GRPC, d -> d
         .host("user.svc")
-        .port("9090"))
+        .port("9090")
+        .critical(false))
 
     // RabbitMQ
     .dependency("rabbitmq", DependencyType.AMQP, d -> d
@@ -96,14 +98,34 @@ DepHealth depHealth = DepHealth.builder(meterRegistry)
         .port("5672")
         .amqpUsername("user")
         .amqpPassword("pass")
-        .amqpVirtualHost("/"))
+        .amqpVirtualHost("/")
+        .critical(false))
 
     // Kafka
     .dependency("kafka", DependencyType.KAFKA, d -> d
         .host("kafka.svc")
-        .port("9092"))
+        .port("9092")
+        .critical(false))
 
     .build();
+```
+
+## Произвольные метки
+
+Добавляйте произвольные метки через `.label()`:
+
+```java
+.dependency("postgres-main", DependencyType.POSTGRES, d -> d
+    .url("postgres://user:pass@pg.svc:5432/mydb")
+    .critical(true)
+    .label("role", "primary")
+    .label("shard", "eu-west"))
+```
+
+Результат в метриках:
+
+```text
+app_dependency_health{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",role="primary",shard="eu-west"} 1
 ```
 
 ## Интеграция с connection pool
@@ -119,7 +141,7 @@ import javax.sql.DataSource;
 
 DataSource dataSource = ...; // существующий pool из приложения
 
-DepHealth depHealth = DepHealth.builder(meterRegistry)
+DepHealth depHealth = DepHealth.builder("my-service", meterRegistry)
     .dependency("postgres-main", DependencyType.POSTGRES, d -> d
         .dataSource(dataSource)
         .critical(true))
@@ -133,9 +155,10 @@ import redis.clients.jedis.JedisPool;
 
 JedisPool jedisPool = ...; // существующий pool из приложения
 
-DepHealth depHealth = DepHealth.builder(meterRegistry)
+DepHealth depHealth = DepHealth.builder("my-service", meterRegistry)
     .dependency("redis-cache", DependencyType.REDIS, d -> d
-        .jedisPool(jedisPool))
+        .jedisPool(jedisPool)
+        .critical(false))
     .build();
 ```
 
@@ -146,6 +169,7 @@ DepHealth depHealth = DepHealth.builder(meterRegistry)
 
 ```yaml
 dephealth:
+  name: my-service
   interval: 15s
   timeout: 5s
 
@@ -158,28 +182,34 @@ dephealth:
     redis-cache:
       type: redis
       url: ${REDIS_URL}
+      critical: false
 
     auth-service:
       type: http
       url: http://auth.svc:8080
       health-path: /healthz
       critical: true
+      labels:
+        role: primary
 
     user-service:
       type: grpc
       host: user.svc
       port: "9090"
+      critical: false
 
     rabbitmq:
       type: amqp
       url: amqp://user:pass@rabbitmq.svc:5672/
       amqp-username: user
       amqp-password: pass
+      critical: false
 
     kafka:
       type: kafka
       host: kafka.svc
       port: "9092"
+      critical: false
 ```
 
 Spring Boot автоматически:
@@ -225,7 +255,7 @@ curl http://localhost:8080/actuator/health
 ## Глобальные опции
 
 ```java
-DepHealth depHealth = DepHealth.builder(meterRegistry)
+DepHealth depHealth = DepHealth.builder("my-service", meterRegistry)
     // Интервал проверки (по умолчанию 15s)
     .checkInterval(Duration.ofSeconds(30))
 
@@ -251,6 +281,35 @@ DepHealth depHealth = DepHealth.builder(meterRegistry)
     .critical(true))                    // критическая зависимость
 ```
 
+## Конфигурация через переменные окружения
+
+| Переменная | Описание | Пример |
+| --- | --- | --- |
+| `DEPHEALTH_NAME` | Имя приложения (перекрывается API) | `my-service` |
+| `DEPHEALTH_<DEP>_CRITICAL` | Критичность зависимости | `yes` / `no` |
+| `DEPHEALTH_<DEP>_LABEL_<KEY>` | Произвольная метка | `primary` |
+
+`<DEP>` — имя зависимости в верхнем регистре, дефисы заменены на `_`.
+
+Примеры:
+
+```bash
+export DEPHEALTH_NAME=my-service
+export DEPHEALTH_POSTGRES_MAIN_CRITICAL=yes
+export DEPHEALTH_POSTGRES_MAIN_LABEL_ROLE=primary
+```
+
+Приоритет: значения из API/application.yml > переменные окружения.
+
+## Поведение при отсутствии обязательных параметров
+
+| Ситуация | Поведение |
+| --- | --- |
+| Не указан `name` и нет `DEPHEALTH_NAME` | Ошибка при создании: `missing name` |
+| Не указан `.critical()` для зависимости | Ошибка при создании: `missing critical` |
+| Недопустимое имя метки | Ошибка при создании: `invalid label name` |
+| Метка совпадает с обязательной | Ошибка при создании: `reserved label` |
+
 ## Проверка состояния зависимостей
 
 Метод `health()` возвращает текущее состояние всех endpoint-ов:
@@ -272,7 +331,7 @@ dephealth экспортирует две метрики Prometheus через M
 | `app_dependency_health` | Gauge | `1` = доступен, `0` = недоступен |
 | `app_dependency_latency_seconds` | Histogram | Латентность проверки (секунды) |
 
-Метки: `dependency`, `type`, `host`, `port`.
+Метки: `name`, `dependency`, `type`, `host`, `port`, `critical`.
 
 Для Spring Boot: метрики доступны на `/actuator/prometheus`.
 

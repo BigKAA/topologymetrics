@@ -3,6 +3,92 @@
 Пошаговая инструкция по добавлению мониторинга зависимостей
 в работающий микросервис.
 
+## Миграция с v0.1 на v0.2
+
+### Изменения API
+
+| v0.1 | v0.2 | Описание |
+| --- | --- | --- |
+| `DepHealth.builder(registry)` | `DepHealth.builder("my-service", registry)` | Обязательный первый аргумент `name` |
+| `.critical(true)` (необязателен) | `.critical(true/false)` (обязателен) | Для каждой зависимости |
+| нет | `.label("key", "value")` | Произвольные метки |
+| `dephealth.name` (нет) | `dephealth.name: my-service` | В application.yml |
+
+### Обязательные изменения
+
+1. Добавьте `name` в builder:
+
+```java
+// v0.1
+DepHealth depHealth = DepHealth.builder(meterRegistry)
+    .dependency("postgres-main", DependencyType.POSTGRES, d -> d
+        .url("postgres://user:pass@pg.svc:5432/mydb")
+        .critical(true))
+    .build();
+
+// v0.2
+DepHealth depHealth = DepHealth.builder("my-service", meterRegistry)
+    .dependency("postgres-main", DependencyType.POSTGRES, d -> d
+        .url("postgres://user:pass@pg.svc:5432/mydb")
+        .critical(true))
+    .build();
+```
+
+1. Укажите `.critical()` для каждой зависимости:
+
+```java
+// v0.1 — critical необязателен
+.dependency("redis-cache", DependencyType.REDIS, d -> d
+    .url("redis://redis.svc:6379"))
+
+// v0.2 — critical обязателен
+.dependency("redis-cache", DependencyType.REDIS, d -> d
+    .url("redis://redis.svc:6379")
+    .critical(false))
+```
+
+1. Обновите `application.yml` (Spring Boot):
+
+```yaml
+# v0.1
+dephealth:
+  dependencies:
+    redis-cache:
+      type: redis
+      url: ${REDIS_URL}
+
+# v0.2
+dephealth:
+  name: my-service
+  dependencies:
+    redis-cache:
+      type: redis
+      url: ${REDIS_URL}
+      critical: false
+```
+
+1. Обновите версию зависимости:
+
+```xml
+<!-- v0.1 -->
+<version>0.1.0</version>
+
+<!-- v0.2 -->
+<version>0.2.0</version>
+```
+
+### Новые метки в метриках
+
+```text
+# v0.1
+app_dependency_health{dependency="postgres-main",type="postgres",host="pg.svc",port="5432"} 1
+
+# v0.2
+app_dependency_health{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes"} 1
+```
+
+Обновите PromQL-запросы и дашборды Grafana, добавив метки `name` и `critical`.
+
 ## Предварительные требования
 
 - Java 21+
@@ -17,7 +103,7 @@
 <dependency>
     <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-spring-boot-starter</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
@@ -27,7 +113,7 @@
 <dependency>
     <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-core</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
@@ -40,6 +126,7 @@
 
 ```yaml
 dephealth:
+  name: my-service
   interval: 15s
   timeout: 5s
 
@@ -52,17 +139,21 @@ dephealth:
     redis-cache:
       type: redis
       url: ${REDIS_URL}
+      critical: false
 
     payment-api:
       type: http
       url: http://payment.svc:8080
       health-path: /health
       critical: true
+      labels:
+        role: primary
 
     user-service:
       type: grpc
       host: user.svc
       port: "9090"
+      critical: false
 ```
 
 Spring Boot автоматически создаст и запустит `DepHealth` bean.
@@ -79,12 +170,13 @@ import io.micrometer.prometheus.PrometheusMeterRegistry;
 
 PrometheusMeterRegistry meterRegistry = ...;
 
-DepHealth depHealth = DepHealth.builder(meterRegistry)
+DepHealth depHealth = DepHealth.builder("my-service", meterRegistry)
     .dependency("postgres-main", DependencyType.POSTGRES, d -> d
         .url(System.getenv("DATABASE_URL"))
         .critical(true))
     .dependency("redis-cache", DependencyType.REDIS, d -> d
-        .url(System.getenv("REDIS_URL")))
+        .url(System.getenv("REDIS_URL"))
+        .critical(false))
     .dependency("payment-api", DependencyType.HTTP, d -> d
         .url(System.getenv("PAYMENT_SERVICE_URL"))
         .critical(true))
@@ -106,7 +198,7 @@ import redis.clients.jedis.JedisPool;
 DataSource dataSource = ...; // HikariCP, Tomcat JDBC и т.д.
 JedisPool jedisPool = ...;
 
-DepHealth depHealth = DepHealth.builder(meterRegistry)
+DepHealth depHealth = DepHealth.builder("my-service", meterRegistry)
     .checkInterval(Duration.ofSeconds(15))
 
     // PostgreSQL через существующий DataSource
@@ -116,15 +208,18 @@ DepHealth depHealth = DepHealth.builder(meterRegistry)
 
     // Redis через существующий JedisPool
     .dependency("redis-cache", DependencyType.REDIS, d -> d
-        .jedisPool(jedisPool))
+        .jedisPool(jedisPool)
+        .critical(false))
 
     // Для HTTP/gRPC — только standalone
     .dependency("payment-api", DependencyType.HTTP, d -> d
-        .url(System.getenv("PAYMENT_SERVICE_URL")))
+        .url(System.getenv("PAYMENT_SERVICE_URL"))
+        .critical(true))
 
     .dependency("auth-service", DependencyType.GRPC, d -> d
         .host(System.getenv("AUTH_HOST"))
-        .port(System.getenv("AUTH_PORT")))
+        .port(System.getenv("AUTH_PORT"))
+        .critical(true))
 
     .build();
 ```
@@ -142,7 +237,7 @@ DepHealth depHealth = DepHealth.builder(meterRegistry)
 ```java
 public class Main {
     public static void main(String[] args) {
-        DepHealth depHealth = DepHealth.builder(meterRegistry)
+        DepHealth depHealth = DepHealth.builder("my-service", meterRegistry)
             // ... зависимости ...
             .build();
 
@@ -232,6 +327,7 @@ void handleDependencies(HttpServletRequest req, HttpServletResponse resp) {
 
 ```yaml
 dephealth:
+  name: my-service
   dependencies:
     postgres:
       type: postgres
@@ -240,12 +336,14 @@ dephealth:
     redis:
       type: redis
       url: ${REDIS_URL}
+      critical: false
 ```
 
 ### API Gateway с upstream-сервисами
 
 ```yaml
 dephealth:
+  name: api-gateway
   interval: 10s
   dependencies:
     user-service:
@@ -268,6 +366,7 @@ dephealth:
 
 ```yaml
 dephealth:
+  name: event-processor
   dependencies:
     kafka-main:
       type: kafka
@@ -283,6 +382,7 @@ dephealth:
     postgres:
       type: postgres
       url: ${DATABASE_URL}
+      critical: false
 ```
 
 ## Troubleshooting
@@ -332,6 +432,7 @@ rabbitmq:
   amqp-username: user
   amqp-password: pass
   virtual-host: /
+  critical: false
 ```
 
 ### Парсинг URL и credentials
@@ -342,6 +443,7 @@ SDK автоматически извлекает username/password из URL:
 postgres:
   type: postgres
   url: postgres://user:pass@host:5432/db
+  critical: true
   # username и password извлекаются автоматически
 ```
 
@@ -353,6 +455,7 @@ postgres:
   url: postgres://old:old@host:5432/db
   username: new_user    # перекрывает парсинг из URL
   password: new_pass
+  critical: true
 ```
 
 ### Именование зависимостей

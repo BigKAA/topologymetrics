@@ -5,6 +5,62 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-02-09
+
+Dependency topology: обязательная идентификация приложений (`name`), критичность
+зависимостей (`critical`), произвольные метки (`WithLabel`). Эти изменения позволяют
+строить полный граф зависимостей микросервисов и фильтровать по критичности.
+
+### Breaking Changes
+
+- **Все SDK**: первый параметр `name` при создании экземпляра DepHealth стал обязательным
+- **Все SDK**: параметр `critical` для каждой зависимости стал обязательным (без значения по умолчанию)
+- **Go SDK**: `Endpoint.Metadata` переименован в `Endpoint.Labels`
+- **Go SDK**: удалён `WithOptionalLabels()`, `allowedOptionalLabels`
+- **Метрики**: добавлены обязательные метки `name` и `critical` — порядок меток изменился
+
+### Added
+
+#### Спецификация
+
+- `spec/metric-contract.md` v2.0-draft: обязательные метки `name`, `critical`, произвольные `WithLabel`
+- `spec/config-contract.md` v2.0-draft: `DEPHEALTH_NAME`, `DEPHEALTH_<DEP>_CRITICAL`, `DEPHEALTH_<DEP>_LABEL_<KEY>`
+
+#### Go SDK
+
+- `New(name, ...)`: обязательный `name` приложения
+- `Critical(bool)`: обязательная критичность зависимости
+- `WithLabel(key, value)`: произвольные метки
+- Env vars: `DEPHEALTH_NAME`, `DEPHEALTH_<DEP>_CRITICAL`, `DEPHEALTH_<DEP>_LABEL_<KEY>`
+
+#### Java SDK
+
+- `DepHealth.builder(name, registry)`: обязательный `name`
+- `.critical(bool)`: обязательная критичность
+- `.label(key, value)`: произвольные метки
+- Spring Boot: `dephealth.name` в application.yml, `critical` и `labels` для зависимостей
+- Env vars: `DEPHEALTH_NAME`, `DEPHEALTH_<DEP>_CRITICAL`, `DEPHEALTH_<DEP>_LABEL_<KEY>`
+
+#### Python SDK
+
+- `DependencyHealth(name, ...)`: обязательный `name`
+- `critical` обязателен для всех фабрик
+- `labels={"key": "value"}`: произвольные метки
+- `dephealth_lifespan(name, ...)`: обязательный `name`
+- Env vars: `DEPHEALTH_NAME`, `DEPHEALTH_<DEP>_CRITICAL`, `DEPHEALTH_<DEP>_LABEL_<KEY>`
+
+#### C# SDK
+
+- `CreateBuilder(name)` / `AddDepHealth(name, ...)`: обязательный `name`
+- `.Critical(bool)`: обязательная критичность
+- `.Label(key, value)`: произвольные метки
+- Env vars: `DEPHEALTH_NAME`, `DEPHEALTH_<DEP>_CRITICAL`, `DEPHEALTH_<DEP>_LABEL_<KEY>`
+
+#### Conformance
+
+- Обновлены все 8 сценариев: проверка `name`, `critical`, custom labels
+- Обновлены все conformance-сервисы (Go, Java, Python, C#)
+
 ## [0.1.0] - 2026-02-07
 
 First public release. Four native SDKs sharing a common specification, with conformance tests
@@ -78,4 +134,5 @@ verifying cross-language compatibility.
 - SDK comparison table
 - CONTRIBUTING.md with development workflow
 
+[0.2.0]: https://github.com/BigKAA/topologymetrics/releases/tag/v0.2.0
 [0.1.0]: https://github.com/BigKAA/topologymetrics/releases/tag/v0.1.0

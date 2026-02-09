@@ -13,7 +13,7 @@
 ### Метрика здоровья
 
 ```text
-app_dependency_health{dependency="postgres-main",type="postgres",host="pg.svc",port="5432"} 1
+app_dependency_health{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes"} 1
 ```
 
 | Свойство | Значение |
@@ -21,13 +21,13 @@ app_dependency_health{dependency="postgres-main",type="postgres",host="pg.svc",p
 | Имя | `app_dependency_health` |
 | Тип | Gauge |
 | Значения | `1` (доступен), `0` (недоступен) |
-| Обязательные метки | `dependency`, `type`, `host`, `port` |
-| Опциональные метки | `role`, `shard`, `vhost` |
+| Обязательные метки | `name`, `dependency`, `type`, `host`, `port`, `critical` |
+| Опциональные метки | произвольные через `WithLabel(key, value)` |
 
 ### Метрика латентности
 
 ```text
-app_dependency_latency_seconds_bucket{dependency="postgres-main",type="postgres",host="pg.svc",port="5432",le="0.01"} 42
+app_dependency_latency_seconds_bucket{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",le="0.01"} 42
 ```
 
 | Свойство | Значение |
@@ -39,14 +39,28 @@ app_dependency_latency_seconds_bucket{dependency="postgres-main",type="postgres"
 
 ### Правила формирования меток
 
+- `name` — уникальное имя приложения (формат `[a-z][a-z0-9-]*`, 1-63 символа)
 - `dependency` — логическое имя (например, `postgres-main`, `redis-cache`)
 - `type` — тип зависимости: `http`, `grpc`, `tcp`, `postgres`, `mysql`,
   `redis`, `amqp`, `kafka`
 - `host` — DNS-имя или IP-адрес endpoint
 - `port` — порт endpoint
+- `critical` — критичность зависимости: `yes` или `no`
+
+Порядок меток: `name`, `dependency`, `type`, `host`, `port`, `critical`,
+затем произвольные метки в алфавитном порядке.
 
 При нескольких endpoint-ах одной зависимости (например, primary + replica)
 создаётся отдельная метрика для каждого endpoint.
+
+### Произвольные метки
+
+Произвольные метки добавляются через `WithLabel(key, value)` (Go),
+`.label(key, value)` (Java), `labels={"key": "value"}` (Python),
+`.Label(key, value)` (C#).
+
+Имена меток: формат `[a-zA-Z_][a-zA-Z0-9_]*`, нельзя переопределять
+обязательные метки (`name`, `dependency`, `type`, `host`, `port`, `critical`).
 
 ## Контракт поведения
 
@@ -159,6 +173,16 @@ app_dependency_latency_seconds_bucket{dependency="postgres-main",type="postgres"
 
 Дополнительное ограничение: `timeout` должен быть меньше `checkInterval`.
 
+### Переменные окружения
+
+| Переменная | Описание |
+| --- | --- |
+| `DEPHEALTH_NAME` | Имя приложения (перекрывается API) |
+| `DEPHEALTH_<DEP>_CRITICAL` | Критичность зависимости: `yes`/`no` |
+| `DEPHEALTH_<DEP>_LABEL_<KEY>` | Произвольная метка для зависимости |
+
+`<DEP>` — имя зависимости в верхнем регистре, дефисы заменены на `_`.
+
 ## Conformance-тестирование
 
 Все SDK проходят единый набор conformance-сценариев в Kubernetes:
@@ -170,7 +194,7 @@ app_dependency_latency_seconds_bucket{dependency="postgres-main",type="postgres"
 | `full-failure` | Полный отказ зависимости -> метрика = 0 |
 | `recovery` | Восстановление -> метрика возвращается к 1 |
 | `latency` | Histogram бакеты присутствуют |
-| `labels` | Правильность всех меток |
+| `labels` | Правильность всех меток (name, critical, custom labels) |
 | `timeout` | Задержка > timeout -> unhealthy |
 | `initial-state` | Начальное состояние корректно |
 
@@ -179,4 +203,10 @@ app_dependency_latency_seconds_bucket{dependency="postgres-main",type="postgres"
 ## Ссылки
 
 - [Быстрый старт Go SDK](quickstart/go.md)
+- [Быстрый старт Java SDK](quickstart/java.md)
+- [Быстрый старт Python SDK](quickstart/python.md)
+- [Быстрый старт C# SDK](quickstart/csharp.md)
 - [Руководство по интеграции Go SDK](migration/go.md)
+- [Руководство по интеграции Java SDK](migration/java.md)
+- [Руководство по интеграции Python SDK](migration/python.md)
+- [Руководство по интеграции C# SDK](migration/csharp.md)

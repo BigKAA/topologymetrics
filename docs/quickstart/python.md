@@ -37,8 +37,8 @@ from dephealth_fastapi import dephealth_lifespan, DepHealthMiddleware
 from fastapi import FastAPI
 
 app = FastAPI(
-    lifespan=dephealth_lifespan(
-        http_check("payment-api", url="http://payment.svc:8080"),
+    lifespan=dephealth_lifespan("my-service",
+        http_check("payment-api", url="http://payment.svc:8080", critical=True),
     )
 )
 
@@ -48,8 +48,8 @@ app.add_middleware(DepHealthMiddleware)
 После запуска на `/metrics` появятся метрики:
 
 ```text
-app_dependency_health{dependency="payment-api",type="http",host="payment.svc",port="8080"} 1
-app_dependency_latency_seconds_bucket{dependency="payment-api",type="http",host="payment.svc",port="8080",le="0.01"} 42
+app_dependency_health{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes"} 1
+app_dependency_latency_seconds_bucket{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",le="0.01"} 42
 ```
 
 ## Несколько зависимостей
@@ -66,7 +66,7 @@ from dephealth.api import (
     kafka_check,
 )
 
-dh = DependencyHealth(
+dh = DependencyHealth("my-service",
     # Глобальные настройки
     check_interval=timedelta(seconds=30),
     timeout=timedelta(seconds=3),
@@ -74,36 +74,60 @@ dh = DependencyHealth(
     # PostgreSQL — standalone check (новое соединение)
     postgres_check("postgres-main",
         url="postgresql://user:pass@pg.svc:5432/mydb",
+        critical=True,
     ),
 
     # Redis — standalone check
     redis_check("redis-cache",
         url="redis://redis.svc:6379/0",
+        critical=False,
     ),
 
     # HTTP-сервис
     http_check("auth-service",
         url="http://auth.svc:8080",
         health_path="/healthz",
+        critical=True,
     ),
 
     # gRPC-сервис
     grpc_check("user-service",
         host="user.svc",
         port="9090",
+        critical=False,
     ),
 
     # RabbitMQ
     amqp_check("rabbitmq",
         url="amqp://user:pass@rabbitmq.svc:5672/",
+        critical=False,
     ),
 
     # Kafka
     kafka_check("kafka",
         host="kafka.svc",
         port="9092",
+        critical=False,
     ),
 )
+```
+
+## Произвольные метки
+
+Добавляйте произвольные метки через параметр `labels`:
+
+```python
+postgres_check("postgres-main",
+    url="postgresql://user:pass@pg.svc:5432/mydb",
+    critical=True,
+    labels={"role": "primary", "shard": "eu-west"},
+)
+```
+
+Результат в метриках:
+
+```text
+app_dependency_health{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",role="primary",shard="eu-west"} 1
 ```
 
 ## Интеграция с connection pool
@@ -120,8 +144,8 @@ from dephealth.api import DependencyHealth, postgres_check
 
 pool = await asyncpg.create_pool("postgresql://user:pass@pg.svc:5432/mydb")
 
-dh = DependencyHealth(
-    postgres_check("postgres-main", pool=pool),
+dh = DependencyHealth("my-service",
+    postgres_check("postgres-main", pool=pool, critical=True),
 )
 ```
 
@@ -133,8 +157,8 @@ from dephealth.api import DependencyHealth, redis_check
 
 client = Redis.from_url("redis://redis.svc:6379/0")
 
-dh = DependencyHealth(
-    redis_check("redis-cache", client=client),
+dh = DependencyHealth("my-service",
+    redis_check("redis-cache", client=client, critical=False),
 )
 ```
 
@@ -149,8 +173,8 @@ pool = await aiomysql.create_pool(
     user="root", password="secret", db="mydb",
 )
 
-dh = DependencyHealth(
-    mysql_check("mysql-main", pool=pool),
+dh = DependencyHealth("my-service",
+    mysql_check("mysql-main", pool=pool, critical=True),
 )
 ```
 
@@ -171,20 +195,24 @@ from dephealth_fastapi import (
 )
 
 app = FastAPI(
-    lifespan=dephealth_lifespan(
+    lifespan=dephealth_lifespan("my-service",
         postgres_check("database",
             url="postgresql://user:pass@db:5432/mydb",
+            critical=True,
         ),
         redis_check("cache",
             url="redis://redis:6379/0",
+            critical=False,
         ),
         http_check("payment-svc",
             url="http://payment:8080",
             health_path="/health",
+            critical=True,
         ),
         grpc_check("user-svc",
             host="users",
             port="50051",
+            critical=False,
         ),
         check_interval=timedelta(seconds=15),
         timeout=timedelta(seconds=5),
@@ -229,9 +257,9 @@ from datetime import timedelta
 from dephealth.api import DependencyHealth, http_check, redis_check
 
 async def main():
-    dh = DependencyHealth(
-        http_check("api", url="http://api:8080"),
-        redis_check("cache", url="redis://redis:6379"),
+    dh = DependencyHealth("my-service",
+        http_check("api", url="http://api:8080", critical=True),
+        redis_check("cache", url="redis://redis:6379", critical=False),
         check_interval=timedelta(seconds=15),
     )
 
@@ -253,7 +281,7 @@ import logging
 from datetime import timedelta
 from prometheus_client import CollectorRegistry
 
-dh = DependencyHealth(
+dh = DependencyHealth("my-service",
     # Интервал проверки (по умолчанию 15s)
     check_interval=timedelta(seconds=30),
 
@@ -283,8 +311,38 @@ http_check("slow-service",
     interval=timedelta(seconds=60),   # свой интервал
     timeout=timedelta(seconds=10),    # свой таймаут
     critical=True,                    # критическая зависимость
+    labels={"env": "staging"},        # произвольные метки
 )
 ```
+
+## Конфигурация через переменные окружения
+
+| Переменная | Описание | Пример |
+| --- | --- | --- |
+| `DEPHEALTH_NAME` | Имя приложения (перекрывается аргументом API) | `my-service` |
+| `DEPHEALTH_<DEP>_CRITICAL` | Критичность зависимости | `yes` / `no` |
+| `DEPHEALTH_<DEP>_LABEL_<KEY>` | Произвольная метка | `primary` |
+
+`<DEP>` — имя зависимости в верхнем регистре, дефисы заменены на `_`.
+
+Примеры:
+
+```bash
+export DEPHEALTH_NAME=my-service
+export DEPHEALTH_POSTGRES_MAIN_CRITICAL=yes
+export DEPHEALTH_POSTGRES_MAIN_LABEL_ROLE=primary
+```
+
+Приоритет: значения из API > переменные окружения.
+
+## Поведение при отсутствии обязательных параметров
+
+| Ситуация | Поведение |
+| --- | --- |
+| Не указан `name` и нет `DEPHEALTH_NAME` | Ошибка при создании: `missing name` |
+| Не указан `critical` для зависимости | Ошибка при создании: `missing critical` |
+| Недопустимое имя метки | Ошибка при создании: `invalid label name` |
+| Метка совпадает с обязательной | Ошибка при создании: `reserved label` |
 
 ## Проверка состояния зависимостей
 
@@ -307,7 +365,7 @@ dephealth экспортирует две метрики Prometheus:
 | `app_dependency_health` | Gauge | `1` = доступен, `0` = недоступен |
 | `app_dependency_latency_seconds` | Histogram | Латентность проверки (секунды) |
 
-Метки: `dependency`, `type`, `host`, `port`.
+Метки: `name`, `dependency`, `type`, `host`, `port`, `critical`.
 
 ## Поддерживаемые типы зависимостей
 

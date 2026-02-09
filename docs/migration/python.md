@@ -3,6 +3,73 @@
 Пошаговая инструкция по добавлению мониторинга зависимостей
 в работающий микросервис.
 
+## Миграция с v0.1 на v0.2
+
+### Изменения API
+
+| v0.1 | v0.2 | Описание |
+| --- | --- | --- |
+| `DependencyHealth(...)` | `DependencyHealth("my-service", ...)` | Обязательный первый аргумент `name` |
+| `dephealth_lifespan(...)` | `dephealth_lifespan("my-service", ...)` | Обязательный первый аргумент `name` |
+| `critical=True` (необязателен) | `critical=True/False` (обязателен) | Для каждой фабрики |
+| нет | `labels={"key": "value"}` | Произвольные метки |
+
+### Обязательные изменения
+
+1. Добавьте `name` первым аргументом:
+
+```python
+# v0.1
+dh = DependencyHealth(
+    postgres_check("postgres-main", url="postgresql://..."),
+)
+
+# v0.2
+dh = DependencyHealth("my-service",
+    postgres_check("postgres-main", url="postgresql://...", critical=True),
+)
+```
+
+1. Укажите `critical` для каждой зависимости:
+
+```python
+# v0.1 — critical необязателен
+redis_check("redis-cache", url="redis://redis.svc:6379")
+
+# v0.2 — critical обязателен
+redis_check("redis-cache", url="redis://redis.svc:6379", critical=False)
+```
+
+1. Обновите `dephealth_lifespan` (FastAPI):
+
+```python
+# v0.1
+app = FastAPI(
+    lifespan=dephealth_lifespan(
+        http_check("api", url="http://api:8080"),
+    )
+)
+
+# v0.2
+app = FastAPI(
+    lifespan=dephealth_lifespan("my-service",
+        http_check("api", url="http://api:8080", critical=True),
+    )
+)
+```
+
+### Новые метки в метриках
+
+```text
+# v0.1
+app_dependency_health{dependency="postgres-main",type="postgres",host="pg.svc",port="5432"} 1
+
+# v0.2
+app_dependency_health{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes"} 1
+```
+
+Обновите PromQL-запросы и дашборды Grafana, добавив метки `name` и `critical`.
+
 ## Предварительные требования
 
 - Python 3.11+
@@ -55,15 +122,18 @@ from fastapi import FastAPI
 from datetime import timedelta
 
 app = FastAPI(
-    lifespan=dephealth_lifespan(
+    lifespan=dephealth_lifespan("my-service",
         postgres_check("postgres-main",
             url=os.environ["DATABASE_URL"],
+            critical=True,
         ),
         redis_check("redis-cache",
             url=os.environ["REDIS_URL"],
+            critical=False,
         ),
         http_check("payment-api",
             url=os.environ["PAYMENT_SERVICE_URL"],
+            critical=True,
         ),
         check_interval=timedelta(seconds=15),
     )
@@ -87,23 +157,25 @@ from redis.asyncio import Redis
 pg_pool = await asyncpg.create_pool(os.environ["DATABASE_URL"])
 redis_client = Redis.from_url(os.environ["REDIS_URL"])
 
-dh = DependencyHealth(
+dh = DependencyHealth("my-service",
     check_interval=timedelta(seconds=15),
 
     # PostgreSQL через существующий asyncpg pool
-    postgres_check("postgres-main", pool=pg_pool),
+    postgres_check("postgres-main", pool=pg_pool, critical=True),
 
     # Redis через существующий redis-py client
-    redis_check("redis-cache", client=redis_client),
+    redis_check("redis-cache", client=redis_client, critical=False),
 
     # Для HTTP/gRPC — только standalone
     http_check("payment-api",
         url=os.environ["PAYMENT_SERVICE_URL"],
+        critical=True,
     ),
 
     grpc_check("auth-service",
         host=os.environ["AUTH_HOST"],
         port=os.environ["AUTH_PORT"],
+        critical=True,
     ),
 )
 ```
@@ -113,15 +185,18 @@ dh = DependencyHealth(
 SDK создаёт временные соединения для проверок:
 
 ```python
-dh = DependencyHealth(
+dh = DependencyHealth("my-service",
     postgres_check("postgres-main",
         url=os.environ["DATABASE_URL"],
+        critical=True,
     ),
     redis_check("redis-cache",
         url=os.environ["REDIS_URL"],
+        critical=False,
     ),
     http_check("payment-api",
         url=os.environ["PAYMENT_SERVICE_URL"],
+        critical=True,
     ),
 )
 ```
@@ -137,7 +212,7 @@ dh = DependencyHealth(
 
 ```python
 async def main():
-    dh = DependencyHealth(...)
+    dh = DependencyHealth("my-service", ...)
 
     await dh.start()
 
@@ -149,7 +224,7 @@ async def main():
 ### Ручное управление (threading, fallback)
 
 ```python
-dh = DependencyHealth(...)
+dh = DependencyHealth("my-service", ...)
 
 dh.start_sync()
 
@@ -163,7 +238,7 @@ dh.stop_sync()
 ### FastAPI
 
 ```python
-app = FastAPI(lifespan=dephealth_lifespan(...))
+app = FastAPI(lifespan=dephealth_lifespan("my-service", ...))
 
 # Prometheus-метрики на /metrics
 app.add_middleware(DepHealthMiddleware)
@@ -227,9 +302,9 @@ pg_pool = await asyncpg.create_pool(os.environ["DATABASE_URL"])
 redis_client = Redis.from_url(os.environ["REDIS_URL"])
 
 app = FastAPI(
-    lifespan=dephealth_lifespan(
-        postgres_check("postgres", pool=pg_pool),
-        redis_check("redis", client=redis_client),
+    lifespan=dephealth_lifespan("my-service",
+        postgres_check("postgres", pool=pg_pool, critical=True),
+        redis_check("redis", client=redis_client, critical=False),
     )
 )
 ```
@@ -238,17 +313,20 @@ app = FastAPI(
 
 ```python
 app = FastAPI(
-    lifespan=dephealth_lifespan(
+    lifespan=dephealth_lifespan("api-gateway",
         http_check("user-service",
             url="http://user-svc:8080",
             health_path="/healthz",
+            critical=True,
         ),
         http_check("order-service",
             url="http://order-svc:8080",
+            critical=True,
         ),
         grpc_check("auth-service",
             host="auth-svc",
             port="9090",
+            critical=True,
         ),
         check_interval=timedelta(seconds=10),
     )
@@ -259,15 +337,18 @@ app = FastAPI(
 
 ```python
 app = FastAPI(
-    lifespan=dephealth_lifespan(
+    lifespan=dephealth_lifespan("event-processor",
         kafka_check("kafka-main",
             url="kafka://kafka-1:9092,kafka-2:9092",
+            critical=True,
         ),
         amqp_check("rabbitmq",
             url="amqp://user:pass@rabbitmq.svc:5672/",
+            critical=True,
         ),
         postgres_check("postgres",
             url=os.environ["DATABASE_URL"],
+            critical=False,
         ),
     )
 )
@@ -317,6 +398,7 @@ app = FastAPI(
 ```python
 amqp_check("rabbitmq",
     url="amqp://user:pass@rabbitmq.svc:5672/vhost",
+    critical=False,
 )
 ```
 

@@ -6,7 +6,7 @@
 
     <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-parent</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
     <packaging>pom</packaging>
 
     <name>DepHealth Parent</name>
@@ -33,7 +33,7 @@
         <connection>scm:git:git://github.com/BigKAA/topologymetrics.git</connection>
         <developerConnection>scm:git:ssh://github.com/BigKAA/topologymetrics.git</developerConnection>
         <url>https://github.com/BigKAA/topologymetrics</url>
-        <tag>v0.1.0</tag>
+        <tag>v0.2.0</tag>
     </scm>
 
     <issueManagement>

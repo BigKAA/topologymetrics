@@ -50,7 +50,7 @@
 | --- | --- |
 | Go | `go get github.com/BigKAA/topologymetrics@latest` |
 | Python | `pip install dephealth[fastapi]` |
-| Java | Maven: `biz.kryukov.dev:dephealth-spring-boot-starter:0.1.0` |
+| Java | Maven: `biz.kryukov.dev:dephealth-spring-boot-starter:0.2.0` |
 | C# | `dotnet add package DepHealth.AspNetCore` |
 
 ## Экспортируемые метрики
@@ -62,7 +62,7 @@
 | `app_dependency_health` | Gauge | `1` = healthy, `0` = unhealthy |
 | `app_dependency_latency_seconds` | Histogram | Латентность проверки (секунды) |
 
-Метки: `dependency`, `type`, `host`, `port`.
+Метки: `name`, `dependency`, `type`, `host`, `port`, `critical` + произвольные через `WithLabel`.
 
 Бакеты histogram: `0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0`
 
@@ -101,7 +101,7 @@ HELP-строки:
 - `slf4j-api` — логирование
 - Опционально: `postgresql`, `mysql-connector-j`, `jedis`, `grpc-netty-shaded`, `amqp-client`, `kafka-clients`
 
-### C#
+### C\#
 
 - `prometheus-net` — метрики
 - Чекеры: `Npgsql`, `MySqlConnector`, `StackExchange.Redis`, `RabbitMQ.Client`, `Confluent.Kafka`, `Grpc.Net.Client`
