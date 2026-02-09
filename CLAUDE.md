@@ -6,8 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **dephealth** — SDK для мониторинга зависимостей микросервисов. Каждый сервис экспортирует Prometheus-метрики о состоянии своих зависимостей (БД, кэши, очереди, HTTP/gRPC-сервисы). VictoriaMetrics собирает данные, Grafana визуализирует.
 
-Проект находится в фазе проектирования (Phase 1 — спецификация и SDK). Код ещё не написан, есть только архитектурная документация.
-
 ## Language and Communication
 
 - Общение, комментарии, документация и commit-сообщения — **на русском языке**.
@@ -52,11 +50,12 @@ GIT-WORKFLOW.md      # Git workflow (GitHub Flow + Conventional Commits + Semver
 ## Development Environment
 
 - Разработка, отладка и тестирование — **только через Docker/Kubernetes**
-- Тестовый k8s-кластер: Gateway API (без Ingress), MetalLB, cert-manager (ClusterIssuer: `dev-ca-issuer`)
+- Тестовый k8s-кластер (amd64): Gateway API (без Ingress), MetalLB, cert-manager (ClusterIssuer: `dev-ca-issuer`)
 - Container registry: `harbor.kryukov.lan` (admin/password), проект `library` (собственные образы), проект `homelab` (прокси-кэш Docker Hub)
 - Тестовые домены: `test1.kryukov.lan`, `test2.kryukov.lan` → 192.168.218.180 (Gateway API)
 - Доменные имена для тестов — добавлять в hosts (просить пользователя)
 - Доступные инструменты: `kubectl`, `helm`, `docker`
+- docker - сборка контейнеров сразу для двух архитектур (amd64 и arm64)
 
 ## Git Workflow
 
