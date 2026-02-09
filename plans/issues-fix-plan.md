@@ -265,7 +265,13 @@ cd conformance/test-service && go build .
 
 ---
 
-## Issue 3: Передача credentials из URL
+## Issue 3: Передача credentials из URL ✅
+
+> **Статус:** Завершено
+>
+> - Go, Python: fix + тесты — коммит `1d65135`
+> - Java: реализация была в v0.2, unit-тесты добавлены (`DepHealthCredentialsTest.java`)
+> - C#: реализация была в v0.2, unit-тесты добавлены (`CredentialsTests.cs`)
 
 ### Проблема
 
