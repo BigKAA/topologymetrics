@@ -61,13 +61,20 @@ GIT-WORKFLOW.md      # Git workflow (GitHub Flow + Conventional Commits + Semver
 
 GitHub Flow + Conventional Commits + Semver Tags. Подробности в `GIT-WORKFLOW.md`.
 
-- Основная ветка: `main` (всегда deployable)
+- Основная ветка: `master` (всегда deployable)
 - Ветки: `feature/`, `bugfix/`, `docs/`, `refactor/`, `test/`, `hotfix/`
 - Commit формат: `<type>(<scope>): <subject>` (feat, fix, docs, style, refactor, test, chore)
-- Релизы — через git tags `vX.Y.Z`
-- Быстрые правки (опечатки) можно коммитить напрямую в `main`
+- Быстрые правки (опечатки) можно коммитить напрямую в `master`
 - **Перед commit спросить пользователя**, перед merge предложить варианты (локальный merge / GitHub PR)
 - После merge — удалить временную ветку
+
+### Версионирование и релизы (ВАЖНО)
+
+- **Каждый SDK версионируется независимо** — теги per-SDK: `sdk-go/vX.Y.Z`, `sdk-java/vX.Y.Z`, `sdk-python/vX.Y.Z`, `sdk-csharp/vX.Y.Z`
+- **НЕ создавать общие теги** вида `vX.Y.Z` — только per-SDK теги
+- Go **требует** формат `sdk-go/vX.Y.Z` для работы `go get` с модулем в поддиректории
+- Semver применяется к каждому SDK отдельно: breaking change в Go SDK не бампит Java/Python/C#
+- GitHub Release создаётся per-SDK (один Release = один тег)
 
 ## Linting
 

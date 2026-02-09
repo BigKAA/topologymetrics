@@ -104,16 +104,53 @@ git branch -d <branch-name>
 git push origin --delete <branch-name>
 ```
 
-### 6. Выпуск релиза — создание тега
+### 6. Выпуск релиза — создание тегов
 
-Когда набрана функциональность для релиза:
+Каждый SDK версионируется **независимо**. Git-теги создаются per-SDK.
+
+**Формат тегов:**
+
+```text
+sdk-go/vX.Y.Z
+sdk-java/vX.Y.Z
+sdk-python/vX.Y.Z
+sdk-csharp/vX.Y.Z
+```
+
+> **Go требует** именно такой формат (`sdk-go/vX.Y.Z`) для работы
+> `go get` с модулем в поддиректории монорепо. Это жёсткое требование Go toolchain.
+
+**Релиз одного SDK:**
 
 ```bash
 git checkout master
 git pull origin master
-git tag -a vX.Y.Z -m "Release vX.Y.Z"
-git push origin vX.Y.Z
+git tag -a sdk-go/v0.3.0 -m "sdk-go v0.3.0"
+git push origin sdk-go/v0.3.0
 ```
+
+**Релиз нескольких SDK одновременно** (когда изменение затрагивает несколько SDK):
+
+```bash
+git tag -a sdk-go/v0.3.0 -m "sdk-go v0.3.0"
+git tag -a sdk-python/v0.2.2 -m "sdk-python v0.2.2"
+git push origin sdk-go/v0.3.0 sdk-python/v0.2.2
+```
+
+**GitHub Releases:**
+
+- Создаются per-SDK: один Release на один тег
+- Если несколько SDK меняются одновременно — несколько Releases
+- Каждый Release содержит CHANGELOG только своего SDK
+
+**Когда бампить версии:**
+
+| Изменение | Что бампить |
+| --- | --- |
+| Spec-only изменение | Ничего (до момента реализации в SDK) |
+| Баг в одном SDK | Только этот SDK |
+| Фича во всех SDK | Каждый затронутый SDK отдельным тегом |
+| Breaking change в одном SDK | Только этот SDK (minor bump, т.к. < v1.0) |
 
 CI автоматически:
 
@@ -144,6 +181,8 @@ git push origin v0.1.1
 4. **Удалять ветки после merge** — не оставлять мусор
 5. **Релизы через теги** — не через ветки
 6. **PR для значимых изменений** — code review перед merge
+7. **Независимое версионирование SDK** — каждый SDK имеет свою версию и свой тег (`sdk-go/vX.Y.Z`, `sdk-java/vX.Y.Z`, и т.д.). **НЕ** создавать общие теги вида `vX.Y.Z` для всех SDK
+8. **Semver для каждого SDK отдельно** — breaking change в Go SDK не означает bump для Python/Java/C#
 
 ## Пример полного цикла
 
@@ -168,7 +207,7 @@ git push origin master
 # 6. Cleanup
 git branch -d docs/update-readme-authentication
 
-# 7. Когда готов релиз
-git tag -a v0.2.0 -m "Release v0.2.0"
-git push origin v0.2.0
+# 7. Когда готов релиз (per-SDK теги)
+git tag -a sdk-go/v0.3.0 -m "sdk-go v0.3.0"
+git push origin sdk-go/v0.3.0
 ```
