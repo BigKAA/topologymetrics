@@ -46,10 +46,11 @@ app = FastAPI(
     title="dephealth-test-python",
     version="0.1.0",
     lifespan=dephealth_lifespan(
-        postgres_check("postgres", url=DATABASE_URL),
-        redis_check("redis", url=REDIS_URL),
-        http_check("http-stub", url=HTTP_STUB_URL, health_path="/health"),
-        grpc_check("grpc-stub", host=GRPC_STUB_HOST, port=GRPC_STUB_PORT),
+        "dephealth-test-python",
+        postgres_check("postgres", url=DATABASE_URL, critical=True),
+        redis_check("redis", url=REDIS_URL, critical=True),
+        http_check("http-stub", url=HTTP_STUB_URL, health_path="/health", critical=False),
+        grpc_check("grpc-stub", host=GRPC_STUB_HOST, port=GRPC_STUB_PORT, critical=False),
         check_interval=timedelta(seconds=CHECK_INTERVAL),
     ),
 )

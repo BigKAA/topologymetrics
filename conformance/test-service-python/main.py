@@ -70,6 +70,7 @@ app = FastAPI(
     title="dephealth-conformance-python",
     version="0.1.0",
     lifespan=dephealth_lifespan(
+        "conformance-service",
         # PostgreSQL primary
         postgres_check("postgres-primary", url=PRIMARY_DATABASE_URL, critical=True),
         # PostgreSQL replica
@@ -77,13 +78,13 @@ app = FastAPI(
         # Redis
         redis_check("redis-cache", url=REDIS_URL, critical=True),
         # RabbitMQ
-        amqp_check("rabbitmq", url=RABBITMQ_URL),
+        amqp_check("rabbitmq", url=RABBITMQ_URL, critical=False),
         # Kafka
-        kafka_check("kafka-main", host=KAFKA_HOST, port=KAFKA_PORT),
+        kafka_check("kafka-main", host=KAFKA_HOST, port=KAFKA_PORT, critical=False),
         # HTTP stub
-        http_check("http-service", url=HTTP_STUB_URL, health_path="/health"),
+        http_check("http-service", url=HTTP_STUB_URL, health_path="/health", critical=False),
         # gRPC stub
-        grpc_check("grpc-service", host=GRPC_STUB_HOST, port=GRPC_STUB_PORT),
+        grpc_check("grpc-service", host=GRPC_STUB_HOST, port=GRPC_STUB_PORT, critical=False),
         check_interval=timedelta(seconds=CHECK_INTERVAL),
     ),
 )

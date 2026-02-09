@@ -121,7 +121,7 @@ func initRedis(ctx context.Context, rawURL string) (*redis.Client, error) {
 }
 
 func initDepHealth(cfg *Config, primaryDB, replicaDB *sql.DB, rdb *redis.Client, logger *slog.Logger) (*dephealth.DepHealth, error) {
-	dh, err := dephealth.New(
+	dh, err := dephealth.New("conformance-service",
 		dephealth.WithCheckInterval(cfg.CheckInterval),
 		dephealth.WithLogger(logger),
 
@@ -134,6 +134,7 @@ func initDepHealth(cfg *Config, primaryDB, replicaDB *sql.DB, rdb *redis.Client,
 		// PostgreSQL replica — через connection pool
 		sqldb.FromDB("postgres-replica", replicaDB,
 			dephealth.FromURL(cfg.ReplicaDBURL),
+			dephealth.Critical(false),
 		),
 
 		// Redis — через connection pool (auto host:port)
@@ -145,22 +146,26 @@ func initDepHealth(cfg *Config, primaryDB, replicaDB *sql.DB, rdb *redis.Client,
 		dephealth.AMQP("rabbitmq",
 			dephealth.FromParams("rabbitmq.dephealth-conformance.svc", "5672"),
 			dephealth.WithAMQPURL(cfg.RabbitMQURL),
+			dephealth.Critical(false),
 		),
 
 		// Kafka — standalone
 		dephealth.Kafka("kafka-main",
 			dephealth.FromParams(cfg.KafkaHost, cfg.KafkaPort),
+			dephealth.Critical(false),
 		),
 
 		// HTTP stub — standalone
 		dephealth.HTTP("http-service",
 			dephealth.FromURL(cfg.HTTPStubURL),
 			dephealth.WithHTTPHealthPath("/health"),
+			dephealth.Critical(false),
 		),
 
 		// gRPC stub — standalone
 		dephealth.GRPC("grpc-service",
 			dephealth.FromParams(cfg.GRPCStubHost, cfg.GRPCStubPort),
+			dephealth.Critical(false),
 		),
 	)
 	if err != nil {

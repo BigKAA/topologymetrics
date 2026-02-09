@@ -23,12 +23,12 @@ var intervalStr = Environment.GetEnvironmentVariable("DEPHEALTH_INTERVAL")
 var checkInterval = TimeSpan.FromSeconds(int.Parse(intervalStr));
 
 // --- Регистрация DepHealth ---
-builder.Services.AddDepHealth(dh =>
+builder.Services.AddDepHealth("dephealth-test-csharp", dh =>
 {
     dh.AddPostgres("postgres-main", postgresUrl, critical: true);
-    dh.AddRedis("redis-cache", redisUrl);
-    dh.AddHttp("http-service", httpServiceUrl, healthPath: httpHealthPath);
-    dh.AddGrpc("grpc-service", grpcHost, grpcPort);
+    dh.AddRedis("redis-cache", redisUrl, critical: false);
+    dh.AddHttp("http-service", httpServiceUrl, healthPath: httpHealthPath, critical: false);
+    dh.AddGrpc("grpc-service", grpcHost, grpcPort, critical: false);
     dh.WithCheckInterval(checkInterval);
 });
 

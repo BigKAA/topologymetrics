@@ -28,15 +28,15 @@ var intervalStr = Environment.GetEnvironmentVariable("CHECK_INTERVAL") ?? "10";
 var checkInterval = TimeSpan.FromSeconds(int.Parse(intervalStr));
 
 // --- Регистрация DepHealth с 7 зависимостями ---
-builder.Services.AddDepHealth(dh =>
+builder.Services.AddDepHealth("conformance-service", dh =>
 {
     dh.AddPostgres("postgres-primary", primaryDbUrl, critical: true);
-    dh.AddPostgres("postgres-replica", replicaDbUrl);
+    dh.AddPostgres("postgres-replica", replicaDbUrl, critical: false);
     dh.AddRedis("redis-cache", redisUrl, critical: true);
-    dh.AddAmqp("rabbitmq", rabbitmqUrl);
-    dh.AddKafka("kafka-main", $"kafka://{kafkaHost}:{kafkaPort}");
-    dh.AddHttp("http-service", httpStubUrl, healthPath: "/health");
-    dh.AddGrpc("grpc-service", grpcStubHost, grpcStubPort);
+    dh.AddAmqp("rabbitmq", rabbitmqUrl, critical: false);
+    dh.AddKafka("kafka-main", $"kafka://{kafkaHost}:{kafkaPort}", critical: false);
+    dh.AddHttp("http-service", httpStubUrl, healthPath: "/health", critical: false);
+    dh.AddGrpc("grpc-service", grpcStubHost, grpcStubPort, critical: false);
     dh.WithCheckInterval(checkInterval);
 });
 

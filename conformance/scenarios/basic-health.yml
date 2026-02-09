@@ -23,40 +23,57 @@ checks:
 
   - type: histogram_buckets
 
+  - type: label_values
+    metric: app_dependency_health
+
   - type: expected_dependencies
     dependencies:
       - dependency: postgres-primary
         type: postgres
         host: postgres-primary.dephealth-conformance.svc
         port: 5432
+        name: conformance-service
+        critical: "yes"
         value: 1
       - dependency: postgres-replica
         type: postgres
         host: postgres-replica.dephealth-conformance.svc
         port: 5432
+        name: conformance-service
+        critical: "no"
         value: 1
       - dependency: redis-cache
         type: redis
         host: redis.dephealth-conformance.svc
         port: 6379
+        name: conformance-service
+        critical: "yes"
         value: 1
       - dependency: rabbitmq
         type: amqp
         host: rabbitmq.dephealth-conformance.svc
         port: 5672
+        name: conformance-service
+        critical: "no"
         value: 1
       - dependency: kafka-main
         type: kafka
         host: kafka.dephealth-conformance.svc
         port: 9092
+        name: conformance-service
+        critical: "no"
         value: 1
       - dependency: http-service
         type: http
         host: http-stub.dephealth-conformance.svc
         port: 8080
+        name: conformance-service
+        critical: "no"
         value: 1
       - dependency: grpc-service
         type: grpc
         host: grpc-stub.dephealth-conformance.svc
         port: 9090
+        name: conformance-service
+        critical: "no"
         value: 1

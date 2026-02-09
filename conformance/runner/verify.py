@@ -25,7 +25,7 @@ logger = logging.getLogger("conformance.verify")
 # Ожидаемые имена метрик из спецификации
 HEALTH_METRIC = "app_dependency_health"
 LATENCY_METRIC = "app_dependency_latency_seconds"
-REQUIRED_LABELS = {"dependency", "type", "host", "port"}
+REQUIRED_LABELS = {"name", "dependency", "type", "host", "port", "critical"}
 EXPECTED_BUCKETS = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0]
 VALID_TYPES = {"http", "grpc", "tcp", "postgres", "mysql", "redis", "amqp", "kafka"}
 
@@ -135,9 +135,28 @@ def check_label_values(metrics: dict, name: str) -> list[CheckResult]:
             continue
 
         labels = sample["labels"]
+        instance_name = labels.get("name", "")
         dep = labels.get("dependency", "")
         dep_type = labels.get("type", "")
         port = labels.get("port", "")
+        critical = labels.get("critical", "")
+
+        # Проверить формат name ([a-z][a-z0-9-]*, 1-63 символа)
+        if instance_name:
+            import re
+            if not re.fullmatch(r"[a-z][a-z0-9-]{0,62}", instance_name):
+                results.append(CheckResult(
+                    f"label_name_{dep}", False,
+                    f"невалидный формат name: '{instance_name}' "
+                    f"(ожидается [a-z][a-z0-9-]*, 1-63 символа)",
+                ))
+
+        # Проверить значение critical (yes/no)
+        if critical and critical not in ("yes", "no"):
+            results.append(CheckResult(
+                f"label_critical_{dep}", False,
+                f"невалидное значение critical: '{critical}' (ожидается 'yes' или 'no')",
+            ))
 
         # Проверить формат dependency name
         if dep and not all(c.isalnum() or c == "-" for c in dep):
@@ -226,7 +245,7 @@ def check_expected_dependencies(
         results.append(CheckResult("expected_deps", False, f"метрика {HEALTH_METRIC} не найдена"))
         return results
 
-    # Построить lookup: (dependency, host, port) -> value
+    # Построить lookup: (dependency, host, port) -> {value, name, critical}
     actual = {}
     for sample in metrics[HEALTH_METRIC]["samples"]:
         if sample["name"] != HEALTH_METRIC:
@@ -236,7 +255,11 @@ def check_expected_dependencies(
             sample["labels"].get("host"),
             sample["labels"].get("port"),
         )
-        actual[key] = sample["value"]
+        actual[key] = {
+            "value": sample["value"],
+            "name": sample["labels"].get("name", ""),
+            "critical": sample["labels"].get("critical", ""),
+        }
 
     for exp in expected:
         key = (exp["dependency"], exp["host"], str(exp["port"]))
@@ -248,17 +271,37 @@ def check_expected_dependencies(
                 False,
                 f"метрика не найдена для {key}",
             ))
-        elif actual[key] != exp_value:
+            continue
+
+        entry = actual[key]
+
+        if entry["value"] != exp_value:
             results.append(CheckResult(
                 f"dep_{exp['dependency']}_{exp['host']}",
                 False,
-                f"значение {actual[key]}, ожидалось {exp_value}",
+                f"значение {entry['value']}, ожидалось {exp_value}",
             ))
         else:
             results.append(CheckResult(
                 f"dep_{exp['dependency']}_{exp['host']}",
                 True,
                 f"OK: {exp['dependency']} = {exp_value}",
+            ))
+
+        # Проверить name, если указано в сценарии
+        if "name" in exp and entry["name"] != exp["name"]:
+            results.append(CheckResult(
+                f"dep_{exp['dependency']}_name",
+                False,
+                f"name: '{entry['name']}', ожидалось '{exp['name']}'",
+            ))
+
+        # Проверить critical, если указано в сценарии
+        if "critical" in exp and entry["critical"] != exp["critical"]:
+            results.append(CheckResult(
+                f"dep_{exp['dependency']}_critical",
+                False,
+                f"critical: '{entry['critical']}', ожидалось '{exp['critical']}'",
             ))
 
     return results

@@ -16,6 +16,8 @@ checks:
         type: redis
         host: redis.dephealth-conformance.svc
         port: 6379
+        name: conformance-service
+        critical: "yes"
         value: 0
 
 post_actions:

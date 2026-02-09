@@ -95,7 +95,7 @@ RabbitMQ, Kafka, HTTP/gRPC-заглушки) и все 4 тестовых сер
 | `full-failure` | Все зависимости отключены, все значения = 0 |
 | `recovery` | Восстановление после сбоя: 0 → 1 |
 | `latency` | Histogram бакеты, `_sum`, `_count` присутствуют |
-| `labels` | Обязательные метки (dependency, type, host, port), корректные значения |
+| `labels` | Обязательные метки (name, dependency, type, host, port, critical), корректные значения |
 | `timeout` | Поведение при недоступности зависимости (таймаут) |
 | `initial-state` | Начальное состояние при запуске сервиса |
 

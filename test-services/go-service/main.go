@@ -111,7 +111,7 @@ func initRedis(ctx context.Context, rawURL string) (*redis.Client, error) {
 }
 
 func initDepHealth(cfg *Config, db *sql.DB, rdb *redis.Client, logger *slog.Logger) (*dephealth.DepHealth, error) {
-	dh, err := dephealth.New(
+	dh, err := dephealth.New("dephealth-test-go",
 		dephealth.WithCheckInterval(cfg.CheckInterval),
 		dephealth.WithLogger(logger),
 
@@ -130,11 +130,13 @@ func initDepHealth(cfg *Config, db *sql.DB, rdb *redis.Client, logger *slog.Logg
 		dephealth.HTTP("http-stub",
 			dephealth.FromURL(cfg.HTTPStubURL),
 			dephealth.WithHTTPHealthPath("/health"),
+			dephealth.Critical(false),
 		),
 
 		// gRPC stub — standalone check
 		dephealth.GRPC("grpc-stub",
 			dephealth.FromParams(cfg.GRPCStubHost, cfg.GRPCStubPort),
+			dephealth.Critical(false),
 		),
 	)
 	if err != nil {

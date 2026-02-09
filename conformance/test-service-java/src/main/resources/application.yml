@@ -15,6 +15,7 @@ management:
         enabled: true
 
 dephealth:
+  name: conformance-service
   interval: ${CHECK_INTERVAL:10}s
   timeout: 5s
   dependencies:
@@ -25,6 +26,7 @@ dephealth:
     postgres-replica:
       type: postgres
       url: ${REPLICA_DATABASE_URL:postgres://localhost:5433/dephealth}
+      critical: false
     redis-cache:
       type: redis
       url: ${REDIS_URL:redis://localhost:6379/0}
@@ -33,15 +35,19 @@ dephealth:
       type: amqp
       url: ${RABBITMQ_URL:amqp://guest:guest@localhost:5672/}
       timeout: 10s
+      critical: false
     kafka-main:
       type: kafka
       host: ${KAFKA_HOST:localhost}
       port: ${KAFKA_PORT:9092}
+      critical: false
     http-service:
       type: http
       url: ${HTTP_STUB_URL:http://localhost:8081}
       health-path: /health
+      critical: false
     grpc-service:
       type: grpc
       host: ${GRPC_STUB_HOST:localhost}
       port: ${GRPC_STUB_PORT:9090}
+      critical: false

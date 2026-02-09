@@ -15,6 +15,7 @@ management:
         enabled: true
 
 dephealth:
+  name: dephealth-test-java
   interval: ${DEPHEALTH_INTERVAL:15}s
   timeout: ${DEPHEALTH_TIMEOUT:5}s
   dependencies:
@@ -27,11 +28,14 @@ dephealth:
     redis-cache:
       type: redis
       url: ${REDIS_URL:redis://localhost:6379}
+      critical: false
     http-service:
       type: http
       url: ${HTTP_SERVICE_URL:http://localhost:8081}
       health-path: ${HTTP_HEALTH_PATH:/health}
+      critical: false
     grpc-service:
       type: grpc
       host: ${GRPC_SERVICE_HOST:localhost}
       port: ${GRPC_SERVICE_PORT:50051}
+      critical: false

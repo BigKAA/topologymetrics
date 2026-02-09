@@ -3,7 +3,7 @@
 
 Снимает метрики со всех 4 SDK-сервисов и проверяет:
 - Имена метрик (app_dependency_health, app_dependency_latency_seconds)
-- Метки (dependency, type, host, port)
+- Метки (name, dependency, type, host, port, critical + custom)
 - HELP-строки
 - Бакеты histogram
 - Формат Prometheus text format
@@ -18,7 +18,7 @@ from prometheus_client.parser import text_string_to_metric_families
 
 HEALTH_METRIC = "app_dependency_health"
 LATENCY_METRIC = "app_dependency_latency_seconds"
-REQUIRED_LABELS = {"dependency", "type", "host", "port"}
+REQUIRED_LABELS = {"name", "dependency", "type", "host", "port", "critical"}
 EXPECTED_BUCKETS = {0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0}
 
 EXPECTED_HELP = {

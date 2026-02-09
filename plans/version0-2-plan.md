@@ -277,7 +277,7 @@ cd sdk-csharp && make test && make lint
 
 **Цель**: обновить conformance runner, сценарии и все тестовые/conformance-сервисы.
 
-**Статус**: [ ] Не начата
+**Статус**: [x] Завершена
 
 ### Conformance runner
 
