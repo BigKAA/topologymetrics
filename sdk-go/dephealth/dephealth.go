@@ -45,10 +45,6 @@ func New(name string, opts ...Option) (*DepHealth, error) {
 		}
 	}
 
-	if len(cfg.entries) == 0 {
-		return nil, fmt.Errorf("dephealth: no dependencies configured")
-	}
-
 	// Собираем все custom label keys из всех endpoints.
 	customLabelKeys := collectCustomLabelKeys(cfg.entries)
 

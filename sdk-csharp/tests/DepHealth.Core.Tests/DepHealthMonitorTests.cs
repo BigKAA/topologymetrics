@@ -199,6 +199,28 @@ public class DepHealthMonitorTests
         Assert.NotNull(dh);
     }
 
+    [Fact]
+    public void Builder_NoDependencies_Succeeds()
+    {
+        using var dh = DepHealthMonitor.CreateBuilder("leaf-app").Build();
+        Assert.NotNull(dh);
+    }
+
+    [Fact]
+    public void Health_NoDependencies_ReturnsEmpty()
+    {
+        using var dh = DepHealthMonitor.CreateBuilder("leaf-app").Build();
+        Assert.Empty(dh.Health());
+    }
+
+    [Fact]
+    public void StartStop_NoDependencies_Succeeds()
+    {
+        using var dh = DepHealthMonitor.CreateBuilder("leaf-app").Build();
+        dh.Start();
+        dh.Stop();
+    }
+
     private sealed class FakeChecker : IHealthChecker
     {
         public DependencyType Type => DependencyType.Http;

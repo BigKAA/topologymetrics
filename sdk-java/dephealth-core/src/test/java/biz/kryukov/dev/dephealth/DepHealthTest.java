@@ -68,9 +68,17 @@ class DepHealthTest {
     }
 
     @Test
-    void noDependenciesThrows() {
-        assertThrows(ConfigurationException.class, () ->
-                DepHealth.builder("test-app", registry).build());
+    void noDependenciesAllowed() {
+        DepHealth dh = DepHealth.builder("test-app", registry).build();
+        assertNotNull(dh);
+
+        // health() возвращает пустую коллекцию
+        Map<String, Boolean> health = dh.health();
+        assertTrue(health.isEmpty());
+
+        // start()/stop() — no-op
+        dh.start();
+        dh.stop();
     }
 
     @Test

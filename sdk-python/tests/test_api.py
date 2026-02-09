@@ -83,6 +83,38 @@ class TestDependencyHealth:
             assert "svc" in result
 
 
+class TestZeroDependencies:
+    def test_creation_succeeds(self) -> None:
+        dh = DependencyHealth(
+            "leaf-app",
+            registry=CollectorRegistry(),
+        )
+        assert dh is not None
+
+    def test_health_returns_empty(self) -> None:
+        dh = DependencyHealth(
+            "leaf-app",
+            registry=CollectorRegistry(),
+        )
+        assert dh.health() == {}
+
+    async def test_start_stop_async(self) -> None:
+        dh = DependencyHealth(
+            "leaf-app",
+            registry=CollectorRegistry(),
+        )
+        await dh.start()
+        await dh.stop()
+
+    def test_start_stop_sync(self) -> None:
+        dh = DependencyHealth(
+            "leaf-app",
+            registry=CollectorRegistry(),
+        )
+        dh.start_sync()
+        dh.stop_sync()
+
+
 class TestInstanceName:
     def test_missing_name_raises(self) -> None:
         with pytest.raises(ValueError, match="instance name is required"):

@@ -44,10 +44,25 @@ func TestNew_ValidHTTP(t *testing.T) {
 func TestNew_NoDependencies(t *testing.T) {
 	reg := prometheus.NewRegistry()
 
-	_, err := New("test-app", WithRegisterer(reg))
-	if err == nil {
-		t.Fatal("ожидали ошибку при отсутствии зависимостей")
+	dh, err := New("test-app", WithRegisterer(reg))
+	if err != nil {
+		t.Fatalf("zero deps должен быть допустим: %v", err)
 	}
+	if dh == nil {
+		t.Fatal("DepHealth не должен быть nil")
+	}
+
+	// Health() до Start — пустая коллекция.
+	health := dh.Health()
+	if len(health) != 0 {
+		t.Fatalf("ожидали пустую Health(), получили %d записей", len(health))
+	}
+
+	// Start()/Stop() — no-op, без паники.
+	if err := dh.Start(context.Background()); err != nil {
+		t.Fatalf("Start() не должен возвращать ошибку: %v", err)
+	}
+	dh.Stop()
 }
 
 func TestNew_MissingName(t *testing.T) {

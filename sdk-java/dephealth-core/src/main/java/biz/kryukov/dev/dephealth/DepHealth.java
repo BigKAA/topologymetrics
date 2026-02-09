@@ -323,10 +323,6 @@ public final class DepHealth {
         }
 
         public DepHealth build() {
-            if (entries.isEmpty()) {
-                throw new ConfigurationException("At least one dependency must be configured");
-            }
-
             // Собираем все уникальные custom label keys из всех зависимостей
             List<String> customLabelKeys = collectCustomLabelKeys();
 

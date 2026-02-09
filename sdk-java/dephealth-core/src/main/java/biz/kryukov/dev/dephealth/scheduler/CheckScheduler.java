@@ -69,6 +69,12 @@ public final class CheckScheduler {
         if (stopped) {
             throw new IllegalStateException("Scheduler already stopped");
         }
+        started = true;
+
+        if (deps.isEmpty()) {
+            logger.info("dephealth: scheduler started, 0 dependencies, 0 endpoints");
+            return;
+        }
 
         int threadCount = Math.max(1, deps.stream()
                 .mapToInt(d -> d.dependency.endpoints().size())
@@ -96,7 +102,6 @@ public final class CheckScheduler {
             }
         }
 
-        started = true;
         logger.info("dephealth: scheduler started, {} dependencies, {} endpoints",
                 deps.size(), states.size());
     }
@@ -113,14 +118,16 @@ public final class CheckScheduler {
         for (ScheduledFuture<?> f : futures) {
             f.cancel(false);
         }
-        executor.shutdown();
-        try {
-            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+        if (executor != null) {
+            executor.shutdown();
+            try {
+                if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                    executor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
                 executor.shutdownNow();
+                Thread.currentThread().interrupt();
             }
-        } catch (InterruptedException e) {
-            executor.shutdownNow();
-            Thread.currentThread().interrupt();
         }
 
         logger.info("dephealth: scheduler stopped");
