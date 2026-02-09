@@ -2,11 +2,10 @@
 # Скрипт полного цикла conformance-тестирования dephealth SDK
 #
 # Использование:
-#   ./run.sh [--lang LANG] [--no-cleanup] [--scenario SCENARIO] [--deploy-mode MODE]
+#   ./run.sh [--lang LANG] [--scenario SCENARIO] [--deploy-mode MODE]
 #
 # Опции:
 #   --lang          Язык SDK: go|python|java|csharp|all (по умолчанию: go)
-#   --no-cleanup    Не удалять инфраструктуру после тестов
 #   --scenario      Запустить только один сценарий (имя файла без расширения)
 #   --metrics-url   URL метрик тестового сервиса (по умолчанию: через port-forward)
 #   --deploy-mode   Режим деплоя: helm|kubectl (по умолчанию: helm)
@@ -17,7 +16,6 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NAMESPACE="${NAMESPACE:-dephealth-conformance}"
-CLEANUP=true
 SINGLE_SCENARIO=""
 METRICS_URL=""
 PORT_FORWARD_PID=""
@@ -53,18 +51,12 @@ cleanup() {
         return
     fi
 
-    if [ "$CLEANUP" = true ]; then
-        if [ "$DEPLOY_MODE" = "helm" ]; then
-            log_info "Удаление Helm-релиза $HELM_RELEASE"
-            helm uninstall "$HELM_RELEASE" -n "$NAMESPACE" --wait 2>/dev/null || true
-            kubectl delete namespace "$NAMESPACE" --ignore-not-found --timeout=60s || true
-        else
-            log_info "Очистка namespace $NAMESPACE"
-            kubectl delete namespace "$NAMESPACE" --ignore-not-found --timeout=60s || true
-        fi
-    else
-        log_warn "Оставляем namespace $NAMESPACE (--no-cleanup)"
+    if [ "$DEPLOY_MODE" = "helm" ]; then
+        log_info "Удаление Helm-релиза $HELM_RELEASE"
+        helm uninstall "$HELM_RELEASE" -n "$NAMESPACE" --wait 2>/dev/null || true
     fi
+    log_info "Удаление namespace $NAMESPACE"
+    kubectl delete namespace "$NAMESPACE" --ignore-not-found --timeout=60s || true
 }
 
 trap cleanup EXIT
@@ -73,7 +65,6 @@ trap cleanup EXIT
 while [[ $# -gt 0 ]]; do
     case $1 in
         --lang) LANG_SDK="$2"; shift 2 ;;
-        --no-cleanup) CLEANUP=false; shift ;;
         --scenario) SINGLE_SCENARIO="$2"; shift 2 ;;
         --metrics-url) METRICS_URL="$2"; shift 2 ;;
         --deploy-mode) DEPLOY_MODE="$2"; shift 2 ;;
@@ -84,7 +75,6 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Опции:"
             echo "  --lang LANG          Язык SDK: go|python|java|csharp|all (по умолчанию: go)"
-            echo "  --no-cleanup         Не удалять инфраструктуру после тестов"
             echo "  --scenario NAME      Запустить только один сценарий (имя без .yml)"
             echo "  --metrics-url URL    URL метрик тестового сервиса"
             echo "  --deploy-mode MODE   Режим деплоя: helm|kubectl (по умолчанию: helm)"

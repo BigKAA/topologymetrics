@@ -62,7 +62,6 @@ RabbitMQ, Kafka, HTTP/gRPC-заглушки) и все 4 тестовых сер
 ./run.sh [опции]
 
   --lang LANG          Язык SDK: go|python|java|csharp|all (по умолчанию: go)
-  --no-cleanup         Не удалять инфраструктуру после тестов
   --scenario NAME      Запустить только один сценарий (имя без .yml)
   --metrics-url URL    URL метрик тестового сервиса (по умолчанию: через port-forward)
   --deploy-mode MODE   Режим деплоя: helm|kubectl (по умолчанию: helm)
