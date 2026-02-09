@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # SDK
 COPY sdk-python/pyproject.toml sdk-python/pyproject.toml
+COPY sdk-python/README.md sdk-python/README.md
 COPY sdk-python/dephealth/ sdk-python/dephealth/
 COPY sdk-python/dephealth_fastapi/ sdk-python/dephealth_fastapi/
 RUN pip install --no-cache-dir "./sdk-python[fastapi]"
