@@ -52,6 +52,16 @@ sdk-csharp/**/bin/
 sdk-csharp/**/obj/
 *.nupkg
 
+# Conformance test build artifacts
+conformance/**/target/
+conformance/**/bin/
+conformance/**/obj/
+
+# Test services build artifacts
+test-services/**/target/
+test-services/**/bin/
+test-services/**/obj/
+
 # Docker Compose
 docker-compose.override.yml
 
