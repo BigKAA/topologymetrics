@@ -38,9 +38,11 @@ func (p *panicChecker) Check(_ context.Context, _ Endpoint) error {
 func (p *panicChecker) Type() string { return "panic" }
 
 func testDep(name string, interval, timeout, initialDelay time.Duration) Dependency { //nolint:unparam // name параметризован для читаемости тестов
+	crit := false
 	return Dependency{
-		Name: name,
-		Type: TypeTCP,
+		Name:     name,
+		Type:     TypeTCP,
+		Critical: &crit,
 		Endpoints: []Endpoint{
 			{Host: "127.0.0.1", Port: "1234"},
 		},
@@ -55,9 +57,11 @@ func testDep(name string, interval, timeout, initialDelay time.Duration) Depende
 }
 
 func testDepWithThresholds(name string, failThreshold, successThreshold int) Dependency {
+	crit := false
 	return Dependency{
-		Name: name,
-		Type: TypeTCP,
+		Name:     name,
+		Type:     TypeTCP,
+		Critical: &crit,
 		Endpoints: []Endpoint{
 			{Host: "127.0.0.1", Port: "1234"},
 		},
@@ -74,7 +78,7 @@ func testDepWithThresholds(name string, failThreshold, successThreshold int) Dep
 func newTestScheduler(t *testing.T) (*Scheduler, *prometheus.Registry) {
 	t.Helper()
 	reg := prometheus.NewRegistry()
-	metrics, err := NewMetricsExporter(WithMetricsRegisterer(reg))
+	metrics, err := NewMetricsExporter("test-app", WithMetricsRegisterer(reg))
 	if err != nil {
 		t.Fatalf("не удалось создать MetricsExporter: %v", err)
 	}
@@ -143,9 +147,11 @@ func TestScheduler_AddAfterStart(t *testing.T) {
 	defer sched.Stop()
 
 	// Добавление после старта через Add — должно вернуть ErrAlreadyStarted.
+	crit := false
 	dep2 := Dependency{
-		Name: "test-dep-2",
-		Type: TypeTCP,
+		Name:     "test-dep-2",
+		Type:     TypeTCP,
+		Critical: &crit,
 		Endpoints: []Endpoint{
 			{Host: "127.0.0.1", Port: "5678"},
 		},
@@ -193,7 +199,7 @@ func TestScheduler_HealthyMetric(t *testing.T) {
 	expected := `
 		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 		# TYPE app_dependency_health gauge
-		app_dependency_health{dependency="test-dep",host="127.0.0.1",port="1234",type="tcp"} 1
+		app_dependency_health{critical="no",dependency="test-dep",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 1
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
 		t.Errorf("метрика health не совпадает: %v", err)
@@ -218,7 +224,7 @@ func TestScheduler_UnhealthyMetric(t *testing.T) {
 	expected := `
 		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 		# TYPE app_dependency_health gauge
-		app_dependency_health{dependency="test-dep",host="127.0.0.1",port="1234",type="tcp"} 0
+		app_dependency_health{critical="no",dependency="test-dep",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 0
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
 		t.Errorf("метрика health не совпадает: %v", err)
@@ -227,7 +233,7 @@ func TestScheduler_UnhealthyMetric(t *testing.T) {
 
 func TestScheduler_FailureThreshold(t *testing.T) {
 	reg := prometheus.NewRegistry()
-	metrics, _ := NewMetricsExporter(WithMetricsRegisterer(reg))
+	metrics, _ := NewMetricsExporter("test-app", WithMetricsRegisterer(reg))
 	sched := NewScheduler(metrics)
 
 	callCount := atomic.Int64{}
@@ -252,7 +258,7 @@ func TestScheduler_FailureThreshold(t *testing.T) {
 	expected := `
 		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 		# TYPE app_dependency_health gauge
-		app_dependency_health{dependency="test-dep",host="127.0.0.1",port="1234",type="tcp"} 1
+		app_dependency_health{critical="no",dependency="test-dep",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 1
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
 		t.Errorf("метрика должна быть 1 до достижения порога: %v", err)
@@ -265,7 +271,7 @@ func TestScheduler_FailureThreshold(t *testing.T) {
 	expected = `
 		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 		# TYPE app_dependency_health gauge
-		app_dependency_health{dependency="test-dep",host="127.0.0.1",port="1234",type="tcp"} 0
+		app_dependency_health{critical="no",dependency="test-dep",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 0
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
 		t.Errorf("метрика должна быть 0 после достижения порога: %v", err)
@@ -274,7 +280,7 @@ func TestScheduler_FailureThreshold(t *testing.T) {
 
 func TestScheduler_Recovery(t *testing.T) {
 	reg := prometheus.NewRegistry()
-	metrics, _ := NewMetricsExporter(WithMetricsRegisterer(reg))
+	metrics, _ := NewMetricsExporter("test-app", WithMetricsRegisterer(reg))
 	sched := NewScheduler(metrics)
 
 	shouldFail := atomic.Bool{}
@@ -299,7 +305,7 @@ func TestScheduler_Recovery(t *testing.T) {
 	expected := `
 		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 		# TYPE app_dependency_health gauge
-		app_dependency_health{dependency="test-dep",host="127.0.0.1",port="1234",type="tcp"} 0
+		app_dependency_health{critical="no",dependency="test-dep",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 0
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
 		t.Errorf("метрика должна быть 0: %v", err)
@@ -313,7 +319,7 @@ func TestScheduler_Recovery(t *testing.T) {
 	expected = `
 		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 		# TYPE app_dependency_health gauge
-		app_dependency_health{dependency="test-dep",host="127.0.0.1",port="1234",type="tcp"} 1
+		app_dependency_health{critical="no",dependency="test-dep",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 1
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
 		t.Errorf("метрика должна быть 1 после восстановления: %v", err)
@@ -368,7 +374,7 @@ func TestScheduler_PanicRecovery(t *testing.T) {
 	expected := `
 		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 		# TYPE app_dependency_health gauge
-		app_dependency_health{dependency="test-dep",host="127.0.0.1",port="1234",type="tcp"} 0
+		app_dependency_health{critical="no",dependency="test-dep",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 0
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
 		t.Errorf("метрика должна быть 0 после паники: %v", err)
@@ -377,13 +383,15 @@ func TestScheduler_PanicRecovery(t *testing.T) {
 
 func TestScheduler_MultipleEndpoints(t *testing.T) {
 	reg := prometheus.NewRegistry()
-	metrics, _ := NewMetricsExporter(WithMetricsRegisterer(reg))
+	metrics, _ := NewMetricsExporter("test-app", WithMetricsRegisterer(reg))
 	sched := NewScheduler(metrics)
 
+	crit := false
 	checker := &mockChecker{}
 	dep := Dependency{
-		Name: "multi-ep",
-		Type: TypeTCP,
+		Name:     "multi-ep",
+		Type:     TypeTCP,
+		Critical: &crit,
 		Endpoints: []Endpoint{
 			{Host: "host-1", Port: "1111"},
 			{Host: "host-2", Port: "2222"},
@@ -407,8 +415,8 @@ func TestScheduler_MultipleEndpoints(t *testing.T) {
 	expected := `
 		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 		# TYPE app_dependency_health gauge
-		app_dependency_health{dependency="multi-ep",host="host-1",port="1111",type="tcp"} 1
-		app_dependency_health{dependency="multi-ep",host="host-2",port="2222",type="tcp"} 1
+		app_dependency_health{critical="no",dependency="multi-ep",host="host-1",name="test-app",port="1111",type="tcp"} 1
+		app_dependency_health{critical="no",dependency="multi-ep",host="host-2",name="test-app",port="2222",type="tcp"} 1
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
 		t.Errorf("метрики для нескольких endpoint-ов не совпадают: %v", err)
@@ -446,10 +454,12 @@ func TestScheduler_ContextCancellation(t *testing.T) {
 func TestScheduler_InvalidDependency(t *testing.T) {
 	sched, _ := newTestScheduler(t)
 
+	crit := false
 	// Зависимость без endpoint-ов — невалидна.
 	dep := Dependency{
 		Name:      "bad-dep",
 		Type:      TypeTCP,
+		Critical:  &crit,
 		Endpoints: nil,
 		Config:    DefaultCheckConfig(),
 	}
@@ -463,9 +473,11 @@ func TestScheduler_InvalidDependency(t *testing.T) {
 func TestScheduler_ValidAdd(t *testing.T) {
 	sched, _ := newTestScheduler(t)
 
+	crit := true
 	dep := Dependency{
-		Name: "valid-dep",
-		Type: TypeTCP,
+		Name:     "valid-dep",
+		Type:     TypeTCP,
+		Critical: &crit,
 		Endpoints: []Endpoint{
 			{Host: "127.0.0.1", Port: "5432"},
 		},

@@ -37,6 +37,75 @@ func TestValidateName(t *testing.T) {
 	}
 }
 
+func TestValidateLabelName(t *testing.T) {
+	tests := []struct {
+		name    string
+		wantErr bool
+	}{
+		{"role", false},
+		{"shard", false},
+		{"vhost", false},
+		{"env", false},
+		{"_private", false},
+		{"my_label_123", false},
+
+		// Зарезервированные
+		{"name", true},
+		{"dependency", true},
+		{"type", true},
+		{"host", true},
+		{"port", true},
+		{"critical", true},
+
+		// Невалидные
+		{"0invalid", true}, // начинается с цифры
+		{"invalid-", true}, // содержит дефис
+		{"my label", true}, // содержит пробел
+		{"my.label", true}, // содержит точку
+		{"", true},         // пустое
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateLabelName(tt.name)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateLabelName(%q) error = %v, wantErr %v", tt.name, err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateLabels(t *testing.T) {
+	// Валидные.
+	if err := ValidateLabels(map[string]string{"role": "primary", "shard": "01"}); err != nil {
+		t.Errorf("ValidateLabels(valid) = %v", err)
+	}
+
+	// Пустые — валидно.
+	if err := ValidateLabels(nil); err != nil {
+		t.Errorf("ValidateLabels(nil) = %v", err)
+	}
+
+	// Зарезервированная метка.
+	if err := ValidateLabels(map[string]string{"dependency": "bad"}); err == nil {
+		t.Error("ожидали ошибку для зарезервированной метки")
+	}
+
+	// Невалидное имя.
+	if err := ValidateLabels(map[string]string{"0bad": "val"}); err == nil {
+		t.Error("ожидали ошибку для невалидного имени метки")
+	}
+}
+
+func TestBoolToYesNo(t *testing.T) {
+	if got := BoolToYesNo(true); got != "yes" {
+		t.Errorf("BoolToYesNo(true) = %q, want yes", got)
+	}
+	if got := BoolToYesNo(false); got != "no" {
+		t.Errorf("BoolToYesNo(false) = %q, want no", got)
+	}
+}
+
 func TestCheckConfigValidate(t *testing.T) {
 	valid := DefaultCheckConfig()
 	if err := valid.Validate(); err != nil {
@@ -165,10 +234,11 @@ func TestCheckConfigValidate(t *testing.T) {
 }
 
 func TestDependencyValidate(t *testing.T) {
+	crit := true
 	validDep := Dependency{
 		Name:     "postgres-main",
 		Type:     TypePostgres,
-		Critical: true,
+		Critical: &crit,
 		Endpoints: []Endpoint{
 			{Host: "pg.svc", Port: "5432"},
 		},
@@ -179,6 +249,7 @@ func TestDependencyValidate(t *testing.T) {
 		t.Fatalf("valid dependency: Validate() = %v", err)
 	}
 
+	critFalse := false
 	tests := []struct {
 		name    string
 		dep     Dependency
@@ -194,6 +265,7 @@ func TestDependencyValidate(t *testing.T) {
 			dep: Dependency{
 				Name:      "INVALID",
 				Type:      TypeRedis,
+				Critical:  &critFalse,
 				Endpoints: []Endpoint{{Host: "redis", Port: "6379"}},
 				Config:    DefaultCheckConfig(),
 			},
@@ -204,7 +276,19 @@ func TestDependencyValidate(t *testing.T) {
 			dep: Dependency{
 				Name:      "test",
 				Type:      "unknown",
+				Critical:  &critFalse,
 				Endpoints: []Endpoint{{Host: "host", Port: "80"}},
+				Config:    DefaultCheckConfig(),
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing critical",
+			dep: Dependency{
+				Name:      "test",
+				Type:      TypeRedis,
+				Critical:  nil,
+				Endpoints: []Endpoint{{Host: "redis", Port: "6379"}},
 				Config:    DefaultCheckConfig(),
 			},
 			wantErr: true,
@@ -214,6 +298,7 @@ func TestDependencyValidate(t *testing.T) {
 			dep: Dependency{
 				Name:      "test",
 				Type:      TypeRedis,
+				Critical:  &critFalse,
 				Endpoints: nil,
 				Config:    DefaultCheckConfig(),
 			},
@@ -224,6 +309,7 @@ func TestDependencyValidate(t *testing.T) {
 			dep: Dependency{
 				Name:      "test",
 				Type:      TypeRedis,
+				Critical:  &critFalse,
 				Endpoints: []Endpoint{{Host: "", Port: "6379"}},
 				Config:    DefaultCheckConfig(),
 			},
@@ -234,10 +320,41 @@ func TestDependencyValidate(t *testing.T) {
 			dep: Dependency{
 				Name:      "test",
 				Type:      TypeRedis,
+				Critical:  &critFalse,
 				Endpoints: []Endpoint{{Host: "redis", Port: ""}},
 				Config:    DefaultCheckConfig(),
 			},
 			wantErr: true,
+		},
+		{
+			name: "invalid endpoint label",
+			dep: Dependency{
+				Name:     "test",
+				Type:     TypeRedis,
+				Critical: &critFalse,
+				Endpoints: []Endpoint{{
+					Host:   "redis",
+					Port:   "6379",
+					Labels: map[string]string{"name": "bad"},
+				}},
+				Config: DefaultCheckConfig(),
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid endpoint labels",
+			dep: Dependency{
+				Name:     "test",
+				Type:     TypeRedis,
+				Critical: &critFalse,
+				Endpoints: []Endpoint{{
+					Host:   "redis",
+					Port:   "6379",
+					Labels: map[string]string{"role": "primary", "shard": "01"},
+				}},
+				Config: DefaultCheckConfig(),
+			},
+			wantErr: false,
 		},
 	}
 

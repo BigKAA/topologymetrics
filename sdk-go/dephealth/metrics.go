@@ -16,22 +16,18 @@ const (
 // Бакеты histogram из спецификации.
 var defaultLatencyBuckets = []float64{0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0}
 
-// labelNames — порядок обязательных меток (dependency, type, host, port).
-var labelNames = []string{"dependency", "type", "host", "port"}
-
-// allowedOptionalLabels — допустимые опциональные метки.
-var allowedOptionalLabels = map[string]bool{
-	"role":  true,
-	"shard": true,
-	"vhost": true,
-}
+// requiredLabelNames — обязательные метки v2.0 (name, dependency, type, host, port, critical).
+var requiredLabelNames = []string{"name", "dependency", "type", "host", "port", "critical"}
 
 // MetricsExporter управляет Prometheus-метриками для зависимостей.
 type MetricsExporter struct {
 	health  *prometheus.GaugeVec
 	latency *prometheus.HistogramVec
 
-	// allLabelNames содержит полный набор меток (обязательные + опциональные),
+	// instanceName — имя приложения (метка name).
+	instanceName string
+
+	// allLabelNames содержит полный набор меток (обязательные + произвольные),
 	// определяемый при создании exporter.
 	allLabelNames []string
 }
@@ -40,8 +36,8 @@ type MetricsExporter struct {
 type MetricsOption func(*metricsConfig)
 
 type metricsConfig struct {
-	registerer     prometheus.Registerer
-	optionalLabels []string
+	registerer       prometheus.Registerer
+	customLabelNames []string
 }
 
 // WithMetricsRegisterer задаёт кастомный prometheus.Registerer.
@@ -52,17 +48,18 @@ func WithMetricsRegisterer(r prometheus.Registerer) MetricsOption {
 	}
 }
 
-// WithOptionalLabels задаёт список опциональных меток (role, shard, vhost).
-// Метки должны быть из допустимого набора. Порядок: алфавитный (после обязательных).
-func WithOptionalLabels(labels ...string) MetricsOption {
+// WithCustomLabels задаёт список произвольных меток (custom labels).
+// Имена валидируются при создании exporter. Порядок: алфавитный (после обязательных).
+func WithCustomLabels(labels ...string) MetricsOption {
 	return func(c *metricsConfig) {
-		c.optionalLabels = labels
+		c.customLabelNames = labels
 	}
 }
 
 // NewMetricsExporter создаёт и регистрирует Prometheus-метрики.
+// instanceName — имя приложения (метка name), добавляется ко всем метрикам.
 // Возвращает ошибку, если регистрация не удалась или указаны недопустимые метки.
-func NewMetricsExporter(opts ...MetricsOption) (*MetricsExporter, error) {
+func NewMetricsExporter(instanceName string, opts ...MetricsOption) (*MetricsExporter, error) {
 	cfg := metricsConfig{
 		registerer: prometheus.DefaultRegisterer,
 	}
@@ -71,18 +68,18 @@ func NewMetricsExporter(opts ...MetricsOption) (*MetricsExporter, error) {
 	}
 
 	// Формируем полный набор меток.
-	allLabels := make([]string, len(labelNames))
-	copy(allLabels, labelNames)
+	allLabels := make([]string, len(requiredLabelNames))
+	copy(allLabels, requiredLabelNames)
 
-	if len(cfg.optionalLabels) > 0 {
+	if len(cfg.customLabelNames) > 0 {
 		// Проверяем допустимость и сортируем.
-		sorted := make([]string, len(cfg.optionalLabels))
-		copy(sorted, cfg.optionalLabels)
+		sorted := make([]string, len(cfg.customLabelNames))
+		copy(sorted, cfg.customLabelNames)
 		sort.Strings(sorted)
 
 		for _, l := range sorted {
-			if !allowedOptionalLabels[l] {
-				return nil, &InvalidLabelError{Label: l}
+			if err := ValidateLabelName(l); err != nil {
+				return nil, err
 			}
 		}
 		allLabels = append(allLabels, sorted...)
@@ -109,6 +106,7 @@ func NewMetricsExporter(opts ...MetricsOption) (*MetricsExporter, error) {
 	return &MetricsExporter{
 		health:        health,
 		latency:       latency,
+		instanceName:  instanceName,
 		allLabelNames: allLabels,
 	}, nil
 }
@@ -134,16 +132,23 @@ func (m *MetricsExporter) DeleteMetrics(dep Dependency, ep Endpoint) {
 
 // labels формирует набор меток из Dependency и Endpoint.
 func (m *MetricsExporter) labels(dep Dependency, ep Endpoint) prometheus.Labels {
+	critical := "no"
+	if dep.Critical != nil && *dep.Critical {
+		critical = "yes"
+	}
+
 	labels := prometheus.Labels{
+		"name":       m.instanceName,
 		"dependency": dep.Name,
 		"type":       string(dep.Type),
 		"host":       ep.Host,
 		"port":       ep.Port,
+		"critical":   critical,
 	}
 
-	// Опциональные метки берём из Endpoint.Metadata.
-	for _, name := range m.allLabelNames[len(labelNames):] {
-		val, ok := ep.Metadata[name]
+	// Произвольные метки берём из Endpoint.Labels.
+	for _, name := range m.allLabelNames[len(requiredLabelNames):] {
+		val, ok := ep.Labels[name]
 		if !ok {
 			val = ""
 		}
@@ -153,11 +158,11 @@ func (m *MetricsExporter) labels(dep Dependency, ep Endpoint) prometheus.Labels 
 	return labels
 }
 
-// InvalidLabelError — ошибка при указании недопустимой опциональной метки.
+// InvalidLabelError — ошибка при указании недопустимой метки.
 type InvalidLabelError struct {
 	Label string
 }
 
 func (e *InvalidLabelError) Error() string {
-	return "invalid optional label: " + e.Label
+	return "invalid label name: " + e.Label
 }

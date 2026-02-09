@@ -21,10 +21,11 @@ func TestFromDB(t *testing.T) {
 	mock.ExpectQuery("SELECT 1").WillReturnRows(sqlmock.NewRows([]string{"1"}).AddRow(1))
 
 	reg := prometheus.NewRegistry()
-	dh, err := dephealth.New(
+	dh, err := dephealth.New("test-app",
 		dephealth.WithRegisterer(reg),
 		FromDB("pg-main", db,
 			dephealth.FromParams("pg.svc", "5432"),
+			dephealth.Critical(true),
 		),
 	)
 	if err != nil {
@@ -41,9 +42,9 @@ func TestFromDB_MissingAddr(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	reg := prometheus.NewRegistry()
-	_, err = dephealth.New(
+	_, err = dephealth.New("test-app",
 		dephealth.WithRegisterer(reg),
-		FromDB("pg-main", db),
+		FromDB("pg-main", db, dephealth.Critical(true)),
 	)
 	if err == nil {
 		t.Fatal("ожидали ошибку при отсутствии адреса")
@@ -60,10 +61,11 @@ func TestFromMySQLDB(t *testing.T) {
 	mock.ExpectQuery("SELECT 1").WillReturnRows(sqlmock.NewRows([]string{"1"}).AddRow(1))
 
 	reg := prometheus.NewRegistry()
-	dh, err := dephealth.New(
+	dh, err := dephealth.New("test-app",
 		dephealth.WithRegisterer(reg),
 		FromMySQLDB("mysql-main", db,
 			dephealth.FromParams("mysql.svc", "3306"),
+			dephealth.Critical(true),
 		),
 	)
 	if err != nil {

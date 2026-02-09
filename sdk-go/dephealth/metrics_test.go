@@ -9,11 +9,13 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 )
 
-func newTestExporter(t *testing.T, opts ...MetricsOption) (*MetricsExporter, *prometheus.Registry) {
+func boolPtr(b bool) *bool { return &b }
+
+func newTestExporter(t *testing.T, instanceName string, opts ...MetricsOption) (*MetricsExporter, *prometheus.Registry) {
 	t.Helper()
 	reg := prometheus.NewRegistry()
 	allOpts := append([]MetricsOption{WithMetricsRegisterer(reg)}, opts...)
-	m, err := NewMetricsExporter(allOpts...)
+	m, err := NewMetricsExporter(instanceName, allOpts...)
 	if err != nil {
 		t.Fatalf("не удалось создать MetricsExporter: %v", err)
 	}
@@ -21,9 +23,9 @@ func newTestExporter(t *testing.T, opts ...MetricsOption) (*MetricsExporter, *pr
 }
 
 func TestMetricsExporter_SetHealth(t *testing.T) {
-	m, _ := newTestExporter(t)
+	m, _ := newTestExporter(t, "test-app")
 
-	dep := Dependency{Name: "postgres-main", Type: TypePostgres}
+	dep := Dependency{Name: "postgres-main", Type: TypePostgres, Critical: boolPtr(true)}
 	ep := Endpoint{Host: "pg.svc", Port: "5432"}
 
 	m.SetHealth(dep, ep, 1)
@@ -31,7 +33,7 @@ func TestMetricsExporter_SetHealth(t *testing.T) {
 	expected := `
 		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 		# TYPE app_dependency_health gauge
-		app_dependency_health{dependency="postgres-main",host="pg.svc",port="5432",type="postgres"} 1
+		app_dependency_health{critical="yes",dependency="postgres-main",host="pg.svc",name="test-app",port="5432",type="postgres"} 1
 	`
 	if err := testutil.CollectAndCompare(m.health, strings.NewReader(expected)); err != nil {
 		t.Errorf("метрика health не совпадает: %v", err)
@@ -39,9 +41,9 @@ func TestMetricsExporter_SetHealth(t *testing.T) {
 }
 
 func TestMetricsExporter_SetHealth_Unhealthy(t *testing.T) {
-	m, _ := newTestExporter(t)
+	m, _ := newTestExporter(t, "test-app")
 
-	dep := Dependency{Name: "redis-cache", Type: TypeRedis}
+	dep := Dependency{Name: "redis-cache", Type: TypeRedis, Critical: boolPtr(false)}
 	ep := Endpoint{Host: "redis.svc", Port: "6379"}
 
 	m.SetHealth(dep, ep, 0)
@@ -49,7 +51,7 @@ func TestMetricsExporter_SetHealth_Unhealthy(t *testing.T) {
 	expected := `
 		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 		# TYPE app_dependency_health gauge
-		app_dependency_health{dependency="redis-cache",host="redis.svc",port="6379",type="redis"} 0
+		app_dependency_health{critical="no",dependency="redis-cache",host="redis.svc",name="test-app",port="6379",type="redis"} 0
 	`
 	if err := testutil.CollectAndCompare(m.health, strings.NewReader(expected)); err != nil {
 		t.Errorf("метрика health не совпадает: %v", err)
@@ -57,9 +59,9 @@ func TestMetricsExporter_SetHealth_Unhealthy(t *testing.T) {
 }
 
 func TestMetricsExporter_ObserveLatency(t *testing.T) {
-	m, reg := newTestExporter(t)
+	m, reg := newTestExporter(t, "test-app")
 
-	dep := Dependency{Name: "redis-cache", Type: TypeRedis}
+	dep := Dependency{Name: "redis-cache", Type: TypeRedis, Critical: boolPtr(false)}
 	ep := Endpoint{Host: "redis.svc", Port: "6379"}
 
 	m.ObserveLatency(dep, ep, 3*time.Millisecond)
@@ -86,11 +88,11 @@ func TestMetricsExporter_ObserveLatency(t *testing.T) {
 }
 
 func TestMetricsExporter_MultipleEndpoints(t *testing.T) {
-	m, _ := newTestExporter(t, WithOptionalLabels("role"))
+	m, _ := newTestExporter(t, "test-app", WithCustomLabels("role"))
 
-	dep := Dependency{Name: "postgres-main", Type: TypePostgres}
-	primary := Endpoint{Host: "pg-primary.svc", Port: "5432", Metadata: map[string]string{"role": "primary"}}
-	replica := Endpoint{Host: "pg-replica.svc", Port: "5432", Metadata: map[string]string{"role": "replica"}}
+	dep := Dependency{Name: "postgres-main", Type: TypePostgres, Critical: boolPtr(true)}
+	primary := Endpoint{Host: "pg-primary.svc", Port: "5432", Labels: map[string]string{"role": "primary"}}
+	replica := Endpoint{Host: "pg-replica.svc", Port: "5432", Labels: map[string]string{"role": "replica"}}
 
 	m.SetHealth(dep, primary, 1)
 	m.SetHealth(dep, replica, 0)
@@ -98,19 +100,19 @@ func TestMetricsExporter_MultipleEndpoints(t *testing.T) {
 	expected := `
 		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 		# TYPE app_dependency_health gauge
-		app_dependency_health{dependency="postgres-main",host="pg-primary.svc",port="5432",role="primary",type="postgres"} 1
-		app_dependency_health{dependency="postgres-main",host="pg-replica.svc",port="5432",role="replica",type="postgres"} 0
+		app_dependency_health{critical="yes",dependency="postgres-main",host="pg-primary.svc",name="test-app",port="5432",role="primary",type="postgres"} 1
+		app_dependency_health{critical="yes",dependency="postgres-main",host="pg-replica.svc",name="test-app",port="5432",role="replica",type="postgres"} 0
 	`
 	if err := testutil.CollectAndCompare(m.health, strings.NewReader(expected)); err != nil {
 		t.Errorf("метрики для нескольких endpoint-ов не совпадают: %v", err)
 	}
 }
 
-func TestMetricsExporter_OptionalLabels_Sorted(t *testing.T) {
-	m, _ := newTestExporter(t, WithOptionalLabels("vhost", "role"))
+func TestMetricsExporter_CustomLabels_Sorted(t *testing.T) {
+	m, _ := newTestExporter(t, "test-app", WithCustomLabels("vhost", "role"))
 
-	// Проверяем что метки отсортированы: role, vhost (после обязательных).
-	expectedLabels := []string{"dependency", "type", "host", "port", "role", "vhost"}
+	// Проверяем что метки отсортированы: name, dependency, type, host, port, critical, role, vhost.
+	expectedLabels := []string{"name", "dependency", "type", "host", "port", "critical", "role", "vhost"}
 	if len(m.allLabelNames) != len(expectedLabels) {
 		t.Fatalf("ожидали %d меток, получили %d", len(expectedLabels), len(m.allLabelNames))
 	}
@@ -121,24 +123,32 @@ func TestMetricsExporter_OptionalLabels_Sorted(t *testing.T) {
 	}
 }
 
-func TestMetricsExporter_InvalidLabel(t *testing.T) {
+func TestMetricsExporter_InvalidCustomLabel(t *testing.T) {
 	reg := prometheus.NewRegistry()
-	_, err := NewMetricsExporter(WithMetricsRegisterer(reg), WithOptionalLabels("invalid"))
+	_, err := NewMetricsExporter("test-app", WithMetricsRegisterer(reg), WithCustomLabels("dependency"))
 	if err == nil {
-		t.Fatal("ожидали ошибку для недопустимой метки, получили nil")
+		t.Fatal("ожидали ошибку для зарезервированной метки, получили nil")
 	}
+	if !strings.Contains(err.Error(), "reserved label") {
+		t.Errorf("ожидали ошибку reserved label, получили: %v", err)
+	}
+}
 
-	var labelErr *InvalidLabelError
-	if !strings.Contains(err.Error(), "invalid optional label") {
-		t.Errorf("ожидали InvalidLabelError, получили: %v", err)
+func TestMetricsExporter_InvalidLabelFormat(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	_, err := NewMetricsExporter("test-app", WithMetricsRegisterer(reg), WithCustomLabels("0invalid"))
+	if err == nil {
+		t.Fatal("ожидали ошибку для невалидной метки, получили nil")
 	}
-	_ = labelErr
+	if !strings.Contains(err.Error(), "invalid label name") {
+		t.Errorf("ожидали ошибку invalid label name, получили: %v", err)
+	}
 }
 
 func TestMetricsExporter_DeleteMetrics(t *testing.T) {
-	m, reg := newTestExporter(t)
+	m, reg := newTestExporter(t, "test-app")
 
-	dep := Dependency{Name: "redis-cache", Type: TypeRedis}
+	dep := Dependency{Name: "redis-cache", Type: TypeRedis, Critical: boolPtr(false)}
 	ep := Endpoint{Host: "redis.svc", Port: "6379"}
 
 	m.SetHealth(dep, ep, 1)
@@ -162,22 +172,22 @@ func TestMetricsExporter_DeleteMetrics(t *testing.T) {
 
 func TestMetricsExporter_DuplicateRegister(t *testing.T) {
 	reg := prometheus.NewRegistry()
-	_, err := NewMetricsExporter(WithMetricsRegisterer(reg))
+	_, err := NewMetricsExporter("test-app", WithMetricsRegisterer(reg))
 	if err != nil {
 		t.Fatalf("первая регистрация не должна вернуть ошибку: %v", err)
 	}
 
 	// Повторная регистрация должна вернуть ошибку.
-	_, err = NewMetricsExporter(WithMetricsRegisterer(reg))
+	_, err = NewMetricsExporter("test-app", WithMetricsRegisterer(reg))
 	if err == nil {
 		t.Fatal("ожидали ошибку при повторной регистрации, получили nil")
 	}
 }
 
 func TestMetricsExporter_LatencyBuckets(t *testing.T) {
-	m, _ := newTestExporter(t)
+	m, _ := newTestExporter(t, "test-app")
 
-	dep := Dependency{Name: "redis-cache", Type: TypeRedis}
+	dep := Dependency{Name: "redis-cache", Type: TypeRedis, Critical: boolPtr(false)}
 	ep := Endpoint{Host: "redis.svc", Port: "6379"}
 
 	// Записываем наблюдение 50ms — должно попасть в бакет 0.05.
@@ -190,11 +200,11 @@ func TestMetricsExporter_LatencyBuckets(t *testing.T) {
 	}
 }
 
-func TestMetricsExporter_MetadataEmptyFallback(t *testing.T) {
-	m, _ := newTestExporter(t, WithOptionalLabels("role"))
+func TestMetricsExporter_LabelEmptyFallback(t *testing.T) {
+	m, _ := newTestExporter(t, "test-app", WithCustomLabels("role"))
 
-	dep := Dependency{Name: "redis-cache", Type: TypeRedis}
-	// Endpoint без Metadata — опциональная метка должна быть пустой строкой.
+	dep := Dependency{Name: "redis-cache", Type: TypeRedis, Critical: boolPtr(false)}
+	// Endpoint без Labels — custom метка должна быть пустой строкой.
 	ep := Endpoint{Host: "redis.svc", Port: "6379"}
 
 	m.SetHealth(dep, ep, 1)
@@ -202,9 +212,27 @@ func TestMetricsExporter_MetadataEmptyFallback(t *testing.T) {
 	expected := `
 		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 		# TYPE app_dependency_health gauge
-		app_dependency_health{dependency="redis-cache",host="redis.svc",port="6379",role="",type="redis"} 1
+		app_dependency_health{critical="no",dependency="redis-cache",host="redis.svc",name="test-app",port="6379",role="",type="redis"} 1
 	`
 	if err := testutil.CollectAndCompare(m.health, strings.NewReader(expected)); err != nil {
-		t.Errorf("метрика с пустой опциональной меткой не совпадает: %v", err)
+		t.Errorf("метрика с пустой custom меткой не совпадает: %v", err)
+	}
+}
+
+func TestMetricsExporter_InstanceName(t *testing.T) {
+	m, _ := newTestExporter(t, "order-api")
+
+	dep := Dependency{Name: "postgres-main", Type: TypePostgres, Critical: boolPtr(true)}
+	ep := Endpoint{Host: "pg.svc", Port: "5432"}
+
+	m.SetHealth(dep, ep, 1)
+
+	expected := `
+		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
+		# TYPE app_dependency_health gauge
+		app_dependency_health{critical="yes",dependency="postgres-main",host="pg.svc",name="order-api",port="5432",type="postgres"} 1
+	`
+	if err := testutil.CollectAndCompare(m.health, strings.NewReader(expected)); err != nil {
+		t.Errorf("метрика с instanceName не совпадает: %v", err)
 	}
 }

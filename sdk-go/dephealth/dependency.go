@@ -56,6 +56,19 @@ const (
 // namePattern validates dependency names: lowercase letters, digits, hyphens.
 var namePattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 
+// labelNamePattern validates custom label names per Prometheus naming conventions.
+var labelNamePattern = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+
+// reservedLabels contains label names that cannot be used as custom labels.
+var reservedLabels = map[string]bool{
+	"name":       true,
+	"dependency": true,
+	"type":       true,
+	"host":       true,
+	"port":       true,
+	"critical":   true,
+}
+
 const (
 	minNameLen = 1
 	maxNameLen = 63
@@ -106,16 +119,16 @@ func (c CheckConfig) Validate() error {
 
 // Endpoint represents a single network endpoint of a dependency.
 type Endpoint struct {
-	Host     string
-	Port     string
-	Metadata map[string]string // Optional labels: role, shard, vhost, etc.
+	Host   string
+	Port   string
+	Labels map[string]string // Custom labels via WithLabel.
 }
 
 // Dependency describes a monitored dependency.
 type Dependency struct {
 	Name      string
 	Type      DependencyType
-	Critical  bool
+	Critical  *bool // nil = not set (validation error)
 	Endpoints []Endpoint
 	Config    CheckConfig
 }
@@ -131,6 +144,35 @@ func ValidateName(name string) error {
 	return nil
 }
 
+// ValidateLabelName checks that a custom label name is valid.
+func ValidateLabelName(name string) error {
+	if !labelNamePattern.MatchString(name) {
+		return fmt.Errorf("invalid label name: %q", name)
+	}
+	if reservedLabels[name] {
+		return fmt.Errorf("reserved label: %q", name)
+	}
+	return nil
+}
+
+// ValidateLabels checks that all custom labels have valid names.
+func ValidateLabels(labels map[string]string) error {
+	for k := range labels {
+		if err := ValidateLabelName(k); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// BoolToYesNo converts a bool to "yes"/"no" for the critical label.
+func BoolToYesNo(v bool) string {
+	if v {
+		return "yes"
+	}
+	return "no"
+}
+
 // Validate checks that the dependency configuration is valid.
 func (d Dependency) Validate() error {
 	if err := ValidateName(d.Name); err != nil {
@@ -138,6 +180,9 @@ func (d Dependency) Validate() error {
 	}
 	if !ValidTypes[d.Type] {
 		return fmt.Errorf("unknown dependency type %q", d.Type)
+	}
+	if d.Critical == nil {
+		return fmt.Errorf("missing critical for dependency %q", d.Name)
 	}
 	if len(d.Endpoints) == 0 {
 		return fmt.Errorf("dependency %q has no endpoints", d.Name)
@@ -148,6 +193,9 @@ func (d Dependency) Validate() error {
 		}
 		if ep.Port == "" {
 			return fmt.Errorf("missing port for dependency %q endpoint %d", d.Name, i)
+		}
+		if err := ValidateLabels(ep.Labels); err != nil {
+			return fmt.Errorf("dependency %q endpoint %d: %w", d.Name, i, err)
 		}
 	}
 	return d.Config.Validate()

@@ -22,9 +22,9 @@ func TestFromClient(t *testing.T) {
 	defer func() { _ = client.Close() }()
 
 	reg := prometheus.NewRegistry()
-	dh, err := dephealth.New(
+	dh, err := dephealth.New("test-app",
 		dephealth.WithRegisterer(reg),
-		FromClient("redis-cache", client),
+		FromClient("redis-cache", client, dephealth.Critical(false)),
 	)
 	if err != nil {
 		t.Fatalf("ошибка создания DepHealth: %v", err)
@@ -60,7 +60,7 @@ func TestFromClient_WithCritical(t *testing.T) {
 	defer func() { _ = client.Close() }()
 
 	reg := prometheus.NewRegistry()
-	dh, err := dephealth.New(
+	dh, err := dephealth.New("test-app",
 		dephealth.WithRegisterer(reg),
 		FromClient("redis-cache", client,
 			dephealth.Critical(true),
@@ -81,9 +81,9 @@ func TestFromClient_AutoExtractsAddr(t *testing.T) {
 	defer func() { _ = client.Close() }()
 
 	reg := prometheus.NewRegistry()
-	dh, err := dephealth.New(
+	dh, err := dephealth.New("test-app",
 		dephealth.WithRegisterer(reg),
-		FromClient("redis-cache", client),
+		FromClient("redis-cache", client, dephealth.Critical(false)),
 	)
 	if err != nil {
 		t.Fatalf("ошибка создания: %v", err)

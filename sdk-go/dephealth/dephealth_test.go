@@ -29,9 +29,9 @@ func TestNew_ValidHTTP(t *testing.T) {
 	checker := &mockChecker{}
 	registerMockFactory(t, TypeHTTP, checker)
 
-	dh, err := New(
+	dh, err := New("test-app",
 		WithRegisterer(reg),
-		HTTP("web-api", FromURL("http://api.svc:8080")),
+		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(true)),
 	)
 	if err != nil {
 		t.Fatalf("ошибка создания DepHealth: %v", err)
@@ -44,9 +44,40 @@ func TestNew_ValidHTTP(t *testing.T) {
 func TestNew_NoDependencies(t *testing.T) {
 	reg := prometheus.NewRegistry()
 
-	_, err := New(WithRegisterer(reg))
+	_, err := New("test-app", WithRegisterer(reg))
 	if err == nil {
 		t.Fatal("ожидали ошибку при отсутствии зависимостей")
+	}
+}
+
+func TestNew_MissingName(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	registerMockFactory(t, TypeHTTP, &mockChecker{})
+
+	_, err := New("",
+		WithRegisterer(reg),
+		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(true)),
+	)
+	if err == nil {
+		t.Fatal("ожидали ошибку при отсутствии name")
+	}
+}
+
+func TestNew_NameFromEnv(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	registerMockFactory(t, TypeHTTP, &mockChecker{})
+
+	t.Setenv("DEPHEALTH_NAME", "env-app")
+
+	dh, err := New("",
+		WithRegisterer(reg),
+		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(true)),
+	)
+	if err != nil {
+		t.Fatalf("ожидали успех с name из env: %v", err)
+	}
+	if dh == nil {
+		t.Fatal("DepHealth не должен быть nil")
 	}
 }
 
@@ -54,9 +85,9 @@ func TestNew_InvalidURL(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	registerMockFactory(t, TypeHTTP, &mockChecker{})
 
-	_, err := New(
+	_, err := New("test-app",
 		WithRegisterer(reg),
-		HTTP("bad", FromURL("://invalid")),
+		HTTP("bad", FromURL("://invalid"), Critical(true)),
 	)
 	if err == nil {
 		t.Fatal("ожидали ошибку для невалидного URL")
@@ -67,12 +98,25 @@ func TestNew_MissingHostPort(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	registerMockFactory(t, TypeHTTP, &mockChecker{})
 
-	_, err := New(
+	_, err := New("test-app",
 		WithRegisterer(reg),
-		HTTP("no-addr"),
+		HTTP("no-addr", Critical(true)),
 	)
 	if err == nil {
 		t.Fatal("ожидали ошибку при отсутствии URL и host/port")
+	}
+}
+
+func TestNew_MissingCritical(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	registerMockFactory(t, TypeHTTP, &mockChecker{})
+
+	_, err := New("test-app",
+		WithRegisterer(reg),
+		HTTP("web-api", FromURL("http://api.svc:8080")),
+	)
+	if err == nil {
+		t.Fatal("ожидали ошибку при отсутствии critical")
 	}
 }
 
@@ -80,9 +124,9 @@ func TestNew_FromParams(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	registerMockFactory(t, TypeTCP, &mockChecker{})
 
-	dh, err := New(
+	dh, err := New("test-app",
 		WithRegisterer(reg),
-		TCP("my-tcp", FromParams("127.0.0.1", "8080")),
+		TCP("my-tcp", FromParams("127.0.0.1", "8080"), Critical(false)),
 	)
 	if err != nil {
 		t.Fatalf("ошибка создания DepHealth: %v", err)
@@ -97,7 +141,7 @@ func TestNew_CriticalFlag(t *testing.T) {
 	checker := &mockChecker{}
 	registerMockFactory(t, TypeHTTP, checker)
 
-	dh, err := New(
+	dh, err := New("test-app",
 		WithRegisterer(reg),
 		HTTP("critical-api",
 			FromURL("http://api.svc:8080"),
@@ -109,8 +153,88 @@ func TestNew_CriticalFlag(t *testing.T) {
 	}
 
 	// Проверяем, что зависимость помечена как critical.
-	if !dh.scheduler.deps[0].dep.Critical {
+	if dh.scheduler.deps[0].dep.Critical == nil || !*dh.scheduler.deps[0].dep.Critical {
 		t.Error("ожидали Critical=true")
+	}
+}
+
+func TestNew_CriticalFromEnv(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	registerMockFactory(t, TypeHTTP, &mockChecker{})
+
+	t.Setenv("DEPHEALTH_WEB_API_CRITICAL", "yes")
+
+	dh, err := New("test-app",
+		WithRegisterer(reg),
+		HTTP("web-api", FromURL("http://api.svc:8080")),
+	)
+	if err != nil {
+		t.Fatalf("ожидали успех с critical из env: %v", err)
+	}
+	if dh.scheduler.deps[0].dep.Critical == nil || !*dh.scheduler.deps[0].dep.Critical {
+		t.Error("ожидали Critical=true из env")
+	}
+}
+
+func TestNew_WithLabel(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	registerMockFactory(t, TypeHTTP, &mockChecker{})
+
+	dh, err := New("test-app",
+		WithRegisterer(reg),
+		HTTP("web-api",
+			FromURL("http://api.svc:8080"),
+			Critical(true),
+			WithLabel("role", "primary"),
+		),
+	)
+	if err != nil {
+		t.Fatalf("ошибка создания: %v", err)
+	}
+
+	ep := dh.scheduler.deps[0].dep.Endpoints[0]
+	if ep.Labels["role"] != "primary" {
+		t.Errorf("ожидали label role=primary, получили %q", ep.Labels["role"])
+	}
+}
+
+func TestNew_ReservedLabel(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	registerMockFactory(t, TypeHTTP, &mockChecker{})
+
+	_, err := New("test-app",
+		WithRegisterer(reg),
+		HTTP("web-api",
+			FromURL("http://api.svc:8080"),
+			Critical(true),
+			WithLabel("dependency", "bad"),
+		),
+	)
+	if err == nil {
+		t.Fatal("ожидали ошибку для зарезервированной метки")
+	}
+}
+
+func TestNew_LabelFromEnv(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	registerMockFactory(t, TypeHTTP, &mockChecker{})
+
+	t.Setenv("DEPHEALTH_WEB_API_LABEL_ROLE", "replica")
+
+	dh, err := New("test-app",
+		WithRegisterer(reg),
+		HTTP("web-api",
+			FromURL("http://api.svc:8080"),
+			Critical(true),
+		),
+	)
+	if err != nil {
+		t.Fatalf("ошибка создания: %v", err)
+	}
+
+	ep := dh.scheduler.deps[0].dep.Endpoints[0]
+	if ep.Labels["role"] != "replica" {
+		t.Errorf("ожидали label role=replica из env, получили %q", ep.Labels["role"])
 	}
 }
 
@@ -119,9 +243,9 @@ func TestDepHealth_StartStop(t *testing.T) {
 	checker := &mockChecker{}
 	registerMockFactory(t, TypeHTTP, checker)
 
-	dh, err := New(
+	dh, err := New("test-app",
 		WithRegisterer(reg),
-		HTTP("web-api", FromURL("http://api.svc:8080")),
+		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(false)),
 	)
 	if err != nil {
 		t.Fatalf("ошибка создания: %v", err)
@@ -144,9 +268,9 @@ func TestDepHealth_Health(t *testing.T) {
 	checker := &mockChecker{}
 	registerMockFactory(t, TypeHTTP, checker)
 
-	dh, err := New(
+	dh, err := New("test-app",
 		WithRegisterer(reg),
-		HTTP("web-api", FromURL("http://api.svc:8080")),
+		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(false)),
 	)
 	if err != nil {
 		t.Fatalf("ошибка создания: %v", err)
@@ -179,10 +303,10 @@ func TestNew_GlobalCheckInterval(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	registerMockFactory(t, TypeHTTP, &mockChecker{})
 
-	dh, err := New(
+	dh, err := New("test-app",
 		WithRegisterer(reg),
 		WithCheckInterval(30*time.Second),
-		HTTP("web-api", FromURL("http://api.svc:8080")),
+		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(false)),
 	)
 	if err != nil {
 		t.Fatalf("ошибка: %v", err)
@@ -198,11 +322,12 @@ func TestNew_PerDepCheckInterval(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	registerMockFactory(t, TypeHTTP, &mockChecker{})
 
-	dh, err := New(
+	dh, err := New("test-app",
 		WithRegisterer(reg),
 		WithCheckInterval(30*time.Second),
 		HTTP("web-api",
 			FromURL("http://api.svc:8080"),
+			Critical(false),
 			CheckInterval(10*time.Second),
 		),
 	)
@@ -220,10 +345,10 @@ func TestNew_GlobalTimeout(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	registerMockFactory(t, TypeHTTP, &mockChecker{})
 
-	dh, err := New(
+	dh, err := New("test-app",
 		WithRegisterer(reg),
 		WithTimeout(3*time.Second),
-		HTTP("web-api", FromURL("http://api.svc:8080")),
+		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(false)),
 	)
 	if err != nil {
 		t.Fatalf("ошибка: %v", err)
@@ -253,9 +378,9 @@ func TestNew_HTTPSAutoTLS(t *testing.T) {
 		}
 	})
 
-	_, err := New(
+	_, err := New("test-app",
 		WithRegisterer(reg),
-		HTTP("secure-api", FromURL("https://api.svc:443")),
+		HTTP("secure-api", FromURL("https://api.svc:443"), Critical(false)),
 	)
 	if err != nil {
 		t.Fatalf("ошибка: %v", err)
@@ -270,10 +395,11 @@ func TestNew_AddDependency(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	checker := &mockChecker{}
 
-	dh, err := New(
+	dh, err := New("test-app",
 		WithRegisterer(reg),
 		AddDependency("custom-dep", TypeTCP, checker,
 			FromParams("10.0.0.1", "9999"),
+			Critical(false),
 		),
 	)
 	if err != nil {
@@ -293,10 +419,10 @@ func TestNew_MultipleDependencies(t *testing.T) {
 	registerMockFactory(t, TypeHTTP, &mockChecker{})
 	registerMockFactory(t, TypeTCP, &mockChecker{})
 
-	dh, err := New(
+	dh, err := New("test-app",
 		WithRegisterer(reg),
-		HTTP("web-api", FromURL("http://api.svc:8080")),
-		TCP("cache", FromParams("redis.svc", "6379")),
+		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(true)),
+		TCP("cache", FromParams("redis.svc", "6379"), Critical(false)),
 	)
 	if err != nil {
 		t.Fatalf("ошибка: %v", err)
@@ -311,9 +437,9 @@ func TestNew_NoFactoryRegistered(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	// Не регистрируем фабрику — должна быть ошибка.
 
-	_, err := New(
+	_, err := New("test-app",
 		WithRegisterer(reg),
-		HTTP("web-api", FromURL("http://api.svc:8080")),
+		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(false)),
 	)
 	if err == nil {
 		t.Fatal("ожидали ошибку при отсутствии зарегистрированной фабрики")
@@ -337,10 +463,11 @@ func TestNew_CheckerWrappers(t *testing.T) {
 		}
 	})
 
-	_, err := New(
+	_, err := New("test-app",
 		WithRegisterer(reg),
 		HTTP("web-api",
 			FromURL("http://api.svc:8080"),
+			Critical(false),
 			WithHTTPHealthPath("/ready"),
 			WithHTTPTLSSkipVerify(true),
 		),
