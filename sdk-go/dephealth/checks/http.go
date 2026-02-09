@@ -14,8 +14,8 @@ import (
 type HTTPOption func(*HTTPChecker)
 
 // HTTPChecker performs health checks via HTTP GET requests.
-// The check succeeds if the response status code is 2xx.
-// Redirects are not followed (3xx is considered a failure).
+// The check succeeds if the final response status code is 2xx.
+// Redirects (3xx) are followed automatically.
 type HTTPChecker struct {
 	healthPath    string
 	tlsEnabled    bool
@@ -79,9 +79,6 @@ func (c *HTTPChecker) Check(ctx context.Context, endpoint dephealth.Endpoint) er
 
 	client := &http.Client{
 		Transport: transport,
-		CheckRedirect: func(*http.Request, []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
 	}
 
 	resp, err := client.Do(req)

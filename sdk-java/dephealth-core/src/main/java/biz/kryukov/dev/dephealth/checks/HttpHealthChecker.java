@@ -16,7 +16,7 @@ import java.time.Duration;
 public final class HttpHealthChecker implements HealthChecker {
 
     private static final String DEFAULT_HEALTH_PATH = "/health";
-    private static final String USER_AGENT = "dephealth/0.1.0";
+    private static final String USER_AGENT = "dephealth/0.2.0";
 
     private final String healthPath;
     private final boolean tlsEnabled;
@@ -40,7 +40,7 @@ public final class HttpHealthChecker implements HealthChecker {
 
         HttpClient.Builder clientBuilder = HttpClient.newBuilder()
                 .connectTimeout(timeout)
-                .followRedirects(HttpClient.Redirect.NEVER);
+                .followRedirects(HttpClient.Redirect.NORMAL);
 
         if (tlsEnabled && tlsSkipVerify) {
             clientBuilder.sslContext(InsecureSslContext.create());

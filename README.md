@@ -142,7 +142,7 @@ app.UseDepHealth(); // /metrics + /health/dependencies
 
 | Тип | Метод проверки |
 | --- | --- |
-| `http` | HTTP GET к `healthPath`, ожидание 2xx |
+| `http` | HTTP GET к `healthPath`, следует редиректам, ожидание 2xx |
 | `grpc` | gRPC Health Check Protocol (grpc.health.v1) |
 | `tcp` | Установка TCP-соединения |
 | `postgres` | `SELECT 1` через connection pool или новое соединение |
