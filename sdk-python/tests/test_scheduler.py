@@ -14,6 +14,7 @@ def _make_dep(interval: float = 0.1, initial_delay: float = 0.0) -> Dependency:
     return Dependency(
         name="test",
         type=DependencyType.TCP,
+        critical=True,
         endpoints=[Endpoint(host="localhost", port="8080")],
         config=CheckConfig(interval=interval, timeout=5.0, initial_delay=initial_delay),
     )
@@ -21,7 +22,7 @@ def _make_dep(interval: float = 0.1, initial_delay: float = 0.0) -> Dependency:
 
 def _make_scheduler() -> tuple[CheckScheduler, CollectorRegistry]:
     registry = CollectorRegistry()
-    metrics = MetricsExporter(registry=registry)
+    metrics = MetricsExporter(instance_name="test-app", registry=registry)
     scheduler = CheckScheduler(metrics=metrics)
     return scheduler, registry
 

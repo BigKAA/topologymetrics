@@ -5,7 +5,6 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any
 
 
 class DependencyType(StrEnum):
@@ -39,6 +38,28 @@ MIN_THRESHOLD: int = 1
 MAX_THRESHOLD: int = 100
 
 _NAME_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z0-9_-]{0,62}$")
+
+LABEL_NAME_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+
+RESERVED_LABELS: frozenset[str] = frozenset(
+    {"name", "dependency", "type", "host", "port", "critical"}
+)
+
+
+def validate_label_name(label: str) -> None:
+    """Проверяет имя произвольной метки."""
+    if not LABEL_NAME_PATTERN.match(label):
+        msg = f"invalid label name {label!r}: must match [a-zA-Z_][a-zA-Z0-9_]*"
+        raise ValueError(msg)
+    if label in RESERVED_LABELS:
+        msg = f"label name {label!r} is reserved"
+        raise ValueError(msg)
+
+
+def validate_labels(labels: dict[str, str]) -> None:
+    """Проверяет все произвольные метки."""
+    for key in labels:
+        validate_label_name(key)
 
 
 @dataclass
@@ -81,7 +102,12 @@ class Endpoint:
 
     host: str
     port: str
-    metadata: dict[str, Any] = field(default_factory=dict)
+    labels: dict[str, str] = field(default_factory=dict)
+
+
+def bool_to_yes_no(value: bool) -> str:
+    """Конвертирует bool в 'yes'/'no'."""
+    return "yes" if value else "no"
 
 
 @dataclass
@@ -90,7 +116,7 @@ class Dependency:
 
     name: str
     type: DependencyType
-    critical: bool = True
+    critical: bool
     endpoints: list[Endpoint] = field(default_factory=list)
     config: CheckConfig = field(default_factory=default_check_config)
 
@@ -100,6 +126,8 @@ class Dependency:
         if not self.endpoints:
             msg = "at least one endpoint required"
             raise ValueError(msg)
+        for ep in self.endpoints:
+            validate_labels(ep.labels)
         self.config.validate()
 
 

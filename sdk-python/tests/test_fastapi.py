@@ -130,10 +130,9 @@ class TestDephealthLifespan:
             patch.object(DependencyHealth, "start", new_callable=AsyncMock) as mock_start,
             patch.object(DependencyHealth, "stop", new_callable=AsyncMock) as mock_stop,
         ):
-            lifespan_fn = dephealth_lifespan(registry=registry)
+            lifespan_fn = dephealth_lifespan("test-app", registry=registry)
             app = FastAPI()
 
-            # Вызываем lifespan напрямую (как FastAPI делает внутри)
             async with lifespan_fn(app) as state:  # type: ignore[misc]
                 assert "dephealth" in state
                 mock_start.assert_called_once()
@@ -146,7 +145,7 @@ class TestDephealthLifespan:
             patch.object(DependencyHealth, "start", new_callable=AsyncMock),
             patch.object(DependencyHealth, "stop", new_callable=AsyncMock),
         ):
-            lifespan_fn = dephealth_lifespan(registry=registry)
+            lifespan_fn = dephealth_lifespan("test-app", registry=registry)
             app = FastAPI()
 
             async with lifespan_fn(app) as _:  # type: ignore[misc]

@@ -179,7 +179,7 @@ cd sdk-java && make test && make lint
 
 **Цель**: реализация изменений в Python SDK.
 
-**Статус**: [ ] Не начата
+**Статус**: [x] Завершена
 
 ### `sdk-python/dephealth/dependency.py`
 

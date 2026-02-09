@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import os
+import re
 from datetime import timedelta
 from typing import Any
 
@@ -22,12 +24,22 @@ from dephealth.dependency import (
     Dependency,
     DependencyType,
     Endpoint,
+    validate_labels,
 )
 from dephealth.metrics import MetricsExporter
 from dephealth.parser import parse_params, parse_url
 from dephealth.scheduler import CheckScheduler
 
 logger = logging.getLogger("dephealth")
+
+_INSTANCE_NAME_PATTERN = re.compile(r"^[a-z][a-z0-9-]{0,62}$")
+
+
+def _validate_instance_name(name: str) -> None:
+    """Проверяет имя экземпляра (instance name)."""
+    if not _INSTANCE_NAME_PATTERN.match(name):
+        msg = f"invalid instance name {name!r}: must match [a-z][a-z0-9-]{{{{0,62}}}}"
+        raise ValueError(msg)
 
 
 class _DependencySpec:
@@ -39,9 +51,10 @@ class _DependencySpec:
         dep_type: DependencyType,
         checker: HealthChecker,
         endpoints: list[Endpoint],
-        critical: bool = True,
+        critical: bool,
         interval: timedelta | None = None,
         timeout: timedelta | None = None,
+        labels: dict[str, str] | None = None,
     ) -> None:
         self.name = name
         self.dep_type = dep_type
@@ -50,6 +63,39 @@ class _DependencySpec:
         self.critical = critical
         self.interval = interval
         self.timeout = timeout
+        self.labels = labels or {}
+
+
+def _apply_env_vars(spec: _DependencySpec) -> None:
+    """Применяет переменные окружения DEPHEALTH_<DEP>_CRITICAL и DEPHEALTH_<DEP>_LABEL_<KEY>."""
+    dep_key = spec.name.upper().replace("-", "_")
+
+    critical_env = os.environ.get(f"DEPHEALTH_{dep_key}_CRITICAL")
+    if critical_env is not None:
+        if critical_env.lower() == "yes":
+            spec.critical = True
+        elif critical_env.lower() == "no":
+            spec.critical = False
+        else:
+            msg = (
+                f"invalid value for DEPHEALTH_{dep_key}_CRITICAL: "
+                f"{critical_env!r}, expected 'yes' or 'no'"
+            )
+            raise ValueError(msg)
+
+    label_prefix = f"DEPHEALTH_{dep_key}_LABEL_"
+    for key, value in os.environ.items():
+        if key.startswith(label_prefix):
+            label_name = key[len(label_prefix) :].lower()
+            spec.labels[label_name] = value
+
+
+def _collect_custom_label_keys(specs: tuple[_DependencySpec, ...]) -> tuple[str, ...]:
+    """Собирает все произвольные label keys из всех specs и возвращает отсортированный tuple."""
+    keys: set[str] = set()
+    for spec in specs:
+        keys.update(spec.labels.keys())
+    return tuple(sorted(keys))
 
 
 class DependencyHealth:
@@ -58,9 +104,10 @@ class DependencyHealth:
     Пример использования:
 
         dh = DependencyHealth(
-            http_check("payment", url="http://payment:8080"),
-            postgres_check("db", url="postgres://db:5432/mydb"),
-            redis_check("cache", url="redis://cache:6379"),
+            "my-service",
+            http_check("payment", url="http://payment:8080", critical=True),
+            postgres_check("db", url="postgres://db:5432/mydb", critical=True),
+            redis_check("cache", url="redis://cache:6379", critical=False),
             check_interval=timedelta(seconds=30),
         )
         await dh.start()
@@ -70,14 +117,30 @@ class DependencyHealth:
 
     def __init__(
         self,
+        name: str,
         *specs: _DependencySpec,
         check_interval: timedelta | None = None,
         timeout: timedelta | None = None,
         registry: CollectorRegistry | None = None,
         log: logging.Logger | None = None,
     ) -> None:
+        instance_name = name or os.environ.get("DEPHEALTH_NAME", "")
+        if not instance_name:
+            msg = "instance name is required: pass as first argument or set DEPHEALTH_NAME"
+            raise ValueError(msg)
+        _validate_instance_name(instance_name)
+
         self._log = log or logger
-        self._metrics = MetricsExporter(registry=registry)
+
+        for spec in specs:
+            _apply_env_vars(spec)
+
+        custom_label_keys = _collect_custom_label_keys(specs)
+        self._metrics = MetricsExporter(
+            instance_name=instance_name,
+            custom_label_names=custom_label_keys,
+            registry=registry,
+        )
         self._scheduler = CheckScheduler(metrics=self._metrics, log=self._log)
 
         for spec in specs:
@@ -92,11 +155,18 @@ class DependencyHealth:
             if to is not None:
                 config.timeout = to.total_seconds()
 
+            validate_labels(spec.labels)
+
+            endpoints = []
+            for ep in spec.endpoints:
+                merged_labels = {**spec.labels, **ep.labels}
+                endpoints.append(Endpoint(host=ep.host, port=ep.port, labels=merged_labels))
+
             dep = Dependency(
                 name=spec.name,
                 type=spec.dep_type,
                 critical=spec.critical,
-                endpoints=spec.endpoints,
+                endpoints=endpoints,
                 config=config,
             )
             dep.validate()
@@ -141,9 +211,10 @@ def http_check(
     health_path: str = "/health",
     tls: bool = False,
     tls_skip_verify: bool = False,
-    critical: bool = True,
+    critical: bool,
     timeout: timedelta | None = None,
     interval: timedelta | None = None,
+    labels: dict[str, str] | None = None,
 ) -> _DependencySpec:
     """Создаёт HTTP-проверку."""
     endpoints = _endpoints_from_url(url) if url else [parse_params(host, port)]
@@ -161,6 +232,7 @@ def http_check(
         critical=critical,
         interval=interval,
         timeout=timeout,
+        labels=labels,
     )
 
 
@@ -173,9 +245,10 @@ def grpc_check(
     service_name: str = "",
     tls: bool = False,
     tls_skip_verify: bool = False,
-    critical: bool = True,
+    critical: bool,
     timeout: timedelta | None = None,
     interval: timedelta | None = None,
+    labels: dict[str, str] | None = None,
 ) -> _DependencySpec:
     """Создаёт gRPC-проверку."""
     if url:
@@ -197,6 +270,7 @@ def grpc_check(
         critical=critical,
         interval=interval,
         timeout=timeout,
+        labels=labels,
     )
 
 
@@ -205,9 +279,10 @@ def tcp_check(
     *,
     host: str = "",
     port: str = "",
-    critical: bool = True,
+    critical: bool,
     timeout: timedelta | None = None,
     interval: timedelta | None = None,
+    labels: dict[str, str] | None = None,
 ) -> _DependencySpec:
     """Создаёт TCP-проверку."""
     endpoints = [parse_params(host, port)]
@@ -220,6 +295,7 @@ def tcp_check(
         critical=critical,
         interval=interval,
         timeout=timeout,
+        labels=labels,
     )
 
 
@@ -231,9 +307,10 @@ def postgres_check(
     port: str = "5432",
     query: str = "SELECT 1",
     pool: Any = None,  # noqa: ANN401
-    critical: bool = True,
+    critical: bool,
     timeout: timedelta | None = None,
     interval: timedelta | None = None,
+    labels: dict[str, str] | None = None,
 ) -> _DependencySpec:
     """Создаёт PostgreSQL-проверку."""
     endpoints = _endpoints_from_url(url) if url else [parse_params(host, port)]
@@ -251,6 +328,7 @@ def postgres_check(
         critical=critical,
         interval=interval,
         timeout=timeout,
+        labels=labels,
     )
 
 
@@ -262,9 +340,10 @@ def mysql_check(
     port: str = "3306",
     query: str = "SELECT 1",
     pool: Any = None,  # noqa: ANN401
-    critical: bool = True,
+    critical: bool,
     timeout: timedelta | None = None,
     interval: timedelta | None = None,
+    labels: dict[str, str] | None = None,
 ) -> _DependencySpec:
     """Создаёт MySQL-проверку."""
     endpoints = _endpoints_from_url(url) if url else [parse_params(host, port)]
@@ -281,6 +360,7 @@ def mysql_check(
         critical=critical,
         interval=interval,
         timeout=timeout,
+        labels=labels,
     )
 
 
@@ -293,9 +373,10 @@ def redis_check(
     password: str = "",
     db: int = 0,
     client: Any = None,  # noqa: ANN401
-    critical: bool = True,
+    critical: bool,
     timeout: timedelta | None = None,
     interval: timedelta | None = None,
+    labels: dict[str, str] | None = None,
 ) -> _DependencySpec:
     """Создаёт Redis-проверку."""
     endpoints = _endpoints_from_url(url) if url else [parse_params(host, port)]
@@ -313,6 +394,7 @@ def redis_check(
         critical=critical,
         interval=interval,
         timeout=timeout,
+        labels=labels,
     )
 
 
@@ -322,9 +404,10 @@ def amqp_check(
     url: str = "",
     host: str = "",
     port: str = "5672",
-    critical: bool = True,
+    critical: bool,
     timeout: timedelta | None = None,
     interval: timedelta | None = None,
+    labels: dict[str, str] | None = None,
 ) -> _DependencySpec:
     """Создаёт AMQP-проверку."""
     endpoints = _endpoints_from_url(url) if url else [parse_params(host, port)]
@@ -340,6 +423,7 @@ def amqp_check(
         critical=critical,
         interval=interval,
         timeout=timeout,
+        labels=labels,
     )
 
 
@@ -349,9 +433,10 @@ def kafka_check(
     url: str = "",
     host: str = "",
     port: str = "9092",
-    critical: bool = True,
+    critical: bool,
     timeout: timedelta | None = None,
     interval: timedelta | None = None,
+    labels: dict[str, str] | None = None,
 ) -> _DependencySpec:
     """Создаёт Kafka-проверку."""
     endpoints = _endpoints_from_url(url) if url else [parse_params(host, port)]
@@ -364,4 +449,5 @@ def kafka_check(
         critical=critical,
         interval=interval,
         timeout=timeout,
+        labels=labels,
     )
