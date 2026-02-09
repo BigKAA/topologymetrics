@@ -5,8 +5,8 @@ package sqldb
 import (
 	"database/sql"
 
-	"github.com/BigKAA/topologymetrics/dephealth"
-	"github.com/BigKAA/topologymetrics/dephealth/checks"
+	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
+	"github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks"
 )
 
 // FromDB создаёт Option для мониторинга PostgreSQL через существующий *sql.DB.

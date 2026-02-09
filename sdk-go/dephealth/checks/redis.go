@@ -7,7 +7,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/BigKAA/topologymetrics/dephealth"
+	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 )
 
 // RedisOption configures the RedisChecker.

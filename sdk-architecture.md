@@ -213,9 +213,9 @@ SDK автоматически извлекает `host` и `port` из любо
 
 **Модули**:
 
-- `github.com/BigKAA/topologymetrics` — ядро
-- `github.com/BigKAA/topologymetrics/contrib/sqldb` — интеграция с `database/sql`
-- `github.com/BigKAA/topologymetrics/contrib/redispool` — интеграция с `go-redis`
+- `github.com/BigKAA/topologymetrics/sdk-go` — ядро
+- `github.com/BigKAA/topologymetrics/sdk-go/contrib/sqldb` — интеграция с `database/sql`
+- `github.com/BigKAA/topologymetrics/sdk-go/contrib/redispool` — интеграция с `go-redis`
 
 **API инициализации**:
 
@@ -223,8 +223,8 @@ SDK автоматически извлекает `host` и `port` из любо
 package main
 
 import (
-    "github.com/BigKAA/topologymetrics"
-    "github.com/BigKAA/topologymetrics/contrib/sqldb"
+    "github.com/BigKAA/topologymetrics/sdk-go"
+    "github.com/BigKAA/topologymetrics/sdk-go/contrib/sqldb"
 )
 
 func main() {

@@ -89,7 +89,7 @@ fmt:
 	$(call remove_old,fmt)
 	$(DOCKER_RUN) --name $(CN)-fmt $(GO_IMAGE) \
 		sh -c 'go install golang.org/x/tools/cmd/goimports@latest && \
-			goimports -w -local github.com/BigKAA/topologymetrics . && \
+			goimports -w -local github.com/BigKAA/topologymetrics/sdk-go . && \
 			gofmt -w .'
 
 ## image: сборка Docker-образа тестового сервиса

@@ -7,7 +7,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/BigKAA/topologymetrics/dephealth"
+	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 )
 
 // HTTPOption configures the HTTPChecker.

@@ -9,8 +9,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
 
-	"github.com/BigKAA/topologymetrics/dephealth"
-	_ "github.com/BigKAA/topologymetrics/dephealth/checks" // регистрация фабрик
+	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
+	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks" // регистрация фабрик
 )
 
 func TestFromClient(t *testing.T) {

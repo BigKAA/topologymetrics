@@ -35,8 +35,8 @@ app_dependency_latency_seconds_bucket{name="order-service",dependency="postgres-
 
 ```go
 import (
-    "github.com/BigKAA/topologymetrics/dephealth"
-    _ "github.com/BigKAA/topologymetrics/dephealth/checks"
+    "github.com/BigKAA/topologymetrics/sdk-go/dephealth"
+    _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks"
 )
 
 dh, err := dephealth.New("order-service",

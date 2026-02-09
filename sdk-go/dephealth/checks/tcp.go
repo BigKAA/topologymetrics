@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/BigKAA/topologymetrics/dephealth"
+	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 )
 
 // TCPChecker performs health checks by establishing a TCP connection.

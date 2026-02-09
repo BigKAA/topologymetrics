@@ -48,7 +48,7 @@
 
 | Язык | Команда |
 | --- | --- |
-| Go | `go get github.com/BigKAA/topologymetrics@latest` |
+| Go | `go get github.com/BigKAA/topologymetrics/sdk-go@latest` |
 | Python | `pip install dephealth[fastapi]` |
 | Java | Maven: `biz.kryukov.dev:dephealth-spring-boot-starter:0.2.1` |
 | C# | `dotnet add package DepHealth.AspNetCore` |

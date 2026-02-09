@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/BigKAA/topologymetrics/dephealth"
+	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 )
 
 func TestAMQPChecker_Check_ConnectionRefused(t *testing.T) {

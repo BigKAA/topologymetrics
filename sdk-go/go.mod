@@ -1,4 +1,4 @@
-module github.com/BigKAA/topologymetrics
+module github.com/BigKAA/topologymetrics/sdk-go
 
 go 1.25.6
 

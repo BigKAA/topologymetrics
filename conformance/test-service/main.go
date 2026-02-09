@@ -13,14 +13,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/BigKAA/topologymetrics/dephealth"
-	"github.com/BigKAA/topologymetrics/dephealth/contrib/redispool"
-	"github.com/BigKAA/topologymetrics/dephealth/contrib/sqldb"
+	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
+	"github.com/BigKAA/topologymetrics/sdk-go/dephealth/contrib/redispool"
+	"github.com/BigKAA/topologymetrics/sdk-go/dephealth/contrib/sqldb"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 
 	// Регистрация фабрик чекеров
-	_ "github.com/BigKAA/topologymetrics/dephealth/checks"
+	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks"
 
 	// PostgreSQL драйвер
 	_ "github.com/jackc/pgx/v5/stdlib"

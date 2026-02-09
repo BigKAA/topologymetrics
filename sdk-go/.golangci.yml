@@ -22,7 +22,7 @@ formatters:
     - goimports
   settings:
     goimports:
-      local-prefixes: github.com/BigKAA/topologymetrics
+      local-prefixes: github.com/BigKAA/topologymetrics/sdk-go
 
 issues:
   exclude-use-default: false

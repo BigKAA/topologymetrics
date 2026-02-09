@@ -3,6 +3,53 @@
 Пошаговая инструкция по добавлению мониторинга зависимостей
 в работающий микросервис.
 
+## Миграция с v0.2 на v0.3
+
+### Breaking change: новый module path
+
+В v0.3.0 module path изменён с `github.com/BigKAA/topologymetrics`
+на `github.com/BigKAA/topologymetrics/sdk-go`.
+
+Это исправляет работу `go get` — стандартный подход для Go-модулей
+в монорепозиториях, где `go.mod` находится в поддиректории.
+
+### Шаги миграции
+
+1. Обновите зависимость:
+
+```bash
+go get github.com/BigKAA/topologymetrics/sdk-go@latest
+```
+
+2. Замените import paths во всех файлах:
+
+```bash
+# Массовая замена (Linux/macOS)
+find . -name '*.go' -exec sed -i '' \
+  's|github.com/BigKAA/topologymetrics/dephealth|github.com/BigKAA/topologymetrics/sdk-go/dephealth|g' {} +
+```
+
+3. Обновите `go.mod` — удалите старую зависимость:
+
+```bash
+go mod tidy
+```
+
+### Примеры замены импортов
+
+```go
+// v0.2
+import (
+    "github.com/BigKAA/topologymetrics/sdk-go/dephealth"
+    "github.com/BigKAA/topologymetrics/sdk-go/dephealth/contrib/sqldb"
+    _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks"
+)
+```
+
+API и поведение SDK не изменились — только module path.
+
+---
+
 ## Миграция с v0.1 на v0.2
 
 ### Изменения API
@@ -77,7 +124,7 @@ app_dependency_health{name="my-service",dependency="postgres-main",type="postgre
 ## Шаг 1. Установка зависимостей
 
 ```bash
-go get github.com/BigKAA/topologymetrics@latest
+go get github.com/BigKAA/topologymetrics/sdk-go@latest
 ```
 
 ## Шаг 2. Импорт пакетов
@@ -86,10 +133,10 @@ go get github.com/BigKAA/topologymetrics@latest
 
 ```go
 import (
-    "github.com/BigKAA/topologymetrics/dephealth"
+    "github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 
     // Регистрация встроенных чекеров — обязательный blank import
-    _ "github.com/BigKAA/topologymetrics/dephealth/checks"
+    _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks"
 )
 ```
 
@@ -97,8 +144,8 @@ import (
 
 ```go
 import (
-    "github.com/BigKAA/topologymetrics/dephealth/contrib/sqldb"     // для *sql.DB
-    "github.com/BigKAA/topologymetrics/dephealth/contrib/redispool"  // для *redis.Client
+    "github.com/BigKAA/topologymetrics/sdk-go/dephealth/contrib/sqldb"     // для *sql.DB
+    "github.com/BigKAA/topologymetrics/sdk-go/dephealth/contrib/redispool"  // для *redis.Client
 )
 ```
 
@@ -316,7 +363,7 @@ dh, _ := dephealth.New("my-service",
 **Решение**: добавьте blank import:
 
 ```go
-import _ "github.com/BigKAA/topologymetrics/dephealth/checks"
+import _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks"
 ```
 
 ### Метрики не появляются на `/metrics`

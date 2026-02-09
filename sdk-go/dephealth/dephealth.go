@@ -22,7 +22,7 @@ type DepHealth struct {
 // Для использования встроенных фабрик (HTTP, Postgres, Redis и т.д.)
 // необходимо импортировать пакет checks:
 //
-//	import _ "github.com/BigKAA/topologymetrics/dephealth/checks"
+//	import _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks"
 func New(name string, opts ...Option) (*DepHealth, error) {
 	// API > env var.
 	if name == "" {

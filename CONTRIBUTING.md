@@ -144,7 +144,7 @@ cd sdk-csharp && make lint   # dotnet format --verify-no-changes
 
 ### Go
 
-- Модуль: `github.com/BigKAA/topologymetrics`
+- Модуль: `github.com/BigKAA/topologymetrics/sdk-go`
 - Пакет: `dephealth` (каталог `sdk-go/dephealth/`)
 - `checks` регистрируются через `init()` в `checks/factories.go`
 - Линтер: golangci-lint v2 (конфиг `.golangci.yml` в `sdk-go/`)

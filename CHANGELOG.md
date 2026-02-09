@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Go SDK 0.3.0] - 2026-02-09
+
+### Breaking Changes
+
+- **Go SDK**: module path изменён с `github.com/BigKAA/topologymetrics` на `github.com/BigKAA/topologymetrics/sdk-go` — стандартный подход для Go-модулей в монорепозиториях. Требуется обновление всех import paths. API и поведение SDK не изменились. Подробнее: [руководство по миграции](docs/migration/go.md#миграция-с-v02-на-v03).
+
 ## [0.2.1] - 2026-02-09
 
 ### Fixed
@@ -149,6 +155,7 @@ verifying cross-language compatibility.
 - SDK comparison table
 - CONTRIBUTING.md with development workflow
 
+[Go SDK 0.3.0]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-go/v0.3.0
 [0.2.1]: https://github.com/BigKAA/topologymetrics/releases/tag/v0.2.1
 [0.2.0]: https://github.com/BigKAA/topologymetrics/releases/tag/v0.2.0
 [0.1.0]: https://github.com/BigKAA/topologymetrics/releases/tag/v0.1.0

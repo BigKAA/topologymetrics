@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/BigKAA/topologymetrics/dephealth"
+	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 )
 
 func TestHTTPChecker_Check_Success(t *testing.T) {

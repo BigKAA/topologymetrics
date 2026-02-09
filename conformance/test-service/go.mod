@@ -2,10 +2,10 @@ module github.com/BigKAA/topologymetrics/conformance/test-service
 
 go 1.25.6
 
-replace github.com/BigKAA/topologymetrics => ../../sdk-go
+replace github.com/BigKAA/topologymetrics/sdk-go => ../../sdk-go
 
 require (
-	github.com/BigKAA/topologymetrics v0.0.0-00010101000000-000000000000
+	github.com/BigKAA/topologymetrics/sdk-go v0.0.0-00010101000000-000000000000
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/redis/go-redis/v9 v9.17.3

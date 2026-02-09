@@ -5,7 +5,7 @@
 ## Установка
 
 ```bash
-go get github.com/BigKAA/topologymetrics@latest
+go get github.com/BigKAA/topologymetrics/sdk-go@latest
 ```
 
 ## Минимальный пример
@@ -23,10 +23,10 @@ import (
     "os/signal"
     "syscall"
 
-    "github.com/BigKAA/topologymetrics/dephealth"
+    "github.com/BigKAA/topologymetrics/sdk-go/dephealth"
     "github.com/prometheus/client_golang/prometheus/promhttp"
 
-    _ "github.com/BigKAA/topologymetrics/dephealth/checks" // регистрация чекеров
+    _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks" // регистрация чекеров
 )
 
 func main() {
@@ -143,9 +143,9 @@ app_dependency_health{name="my-service",dependency="postgres-main",type="postgre
 import (
     "database/sql"
 
-    "github.com/BigKAA/topologymetrics/dephealth"
-    "github.com/BigKAA/topologymetrics/dephealth/contrib/sqldb"
-    _ "github.com/BigKAA/topologymetrics/dephealth/checks"
+    "github.com/BigKAA/topologymetrics/sdk-go/dephealth"
+    "github.com/BigKAA/topologymetrics/sdk-go/dephealth/contrib/sqldb"
+    _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks"
     _ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -163,7 +163,7 @@ dh, err := dephealth.New("my-service",
 ### MySQL через `*sql.DB`
 
 ```go
-import "github.com/BigKAA/topologymetrics/dephealth/contrib/sqldb"
+import "github.com/BigKAA/topologymetrics/sdk-go/dephealth/contrib/sqldb"
 
 db, _ := sql.Open("mysql", "user:pass@tcp(mysql.svc:3306)/mydb")
 
@@ -179,7 +179,7 @@ dh, err := dephealth.New("my-service",
 
 ```go
 import (
-    "github.com/BigKAA/topologymetrics/dephealth/contrib/redispool"
+    "github.com/BigKAA/topologymetrics/sdk-go/dephealth/contrib/redispool"
     "github.com/redis/go-redis/v9"
 )
 

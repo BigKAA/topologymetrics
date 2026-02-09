@@ -258,7 +258,7 @@ func makeDepOption(name string, depType DependencyType, opts []DependencyOption)
 
 		factory, ok := checkerFactories[depType]
 		if !ok {
-			return fmt.Errorf("dependency %q: no checker factory registered for type %q; import github.com/BigKAA/topologymetrics/dephealth/checks", name, depType)
+			return fmt.Errorf("dependency %q: no checker factory registered for type %q; import github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks", name, depType)
 		}
 
 		c.entries = append(c.entries, dependencyEntry{

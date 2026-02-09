@@ -5,7 +5,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/BigKAA/topologymetrics/dephealth"
+	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 )
 
 func TestTCPChecker_Check_Success(t *testing.T) {
