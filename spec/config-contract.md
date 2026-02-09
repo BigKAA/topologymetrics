@@ -78,6 +78,10 @@ scheme://[user:password@]host[:port][/path][?query]
 | `database` | Path компонент (`redis://host/0`) | Выбор БД Redis |
 | Credentials | Userinfo (`user:pass@`) | Аутентификация при автономной проверке |
 
+Если credentials указаны в URL, они **ДОЛЖНЫ** быть переданы checker
+для автономной проверки.
+Приоритет: явные параметры API > credentials из URL > дефолтные значения.
+
 ### 2.3. URL с несколькими хостами
 
 Некоторые зависимости поддерживают указание нескольких хостов в URL:

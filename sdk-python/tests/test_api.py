@@ -11,7 +11,9 @@ from prometheus_client import CollectorRegistry
 from dephealth.api import (
     DependencyHealth,
     http_check,
+    mysql_check,
     postgres_check,
+    redis_check,
     tcp_check,
 )
 
@@ -254,3 +256,33 @@ class TestEnvVars:
                 registry=registry,
             )
             assert dh is not None
+
+
+class TestURLCredentials:
+    def test_mysql_dsn_passed(self) -> None:
+        """mysql_check(url=...) должен передать dsn в MySQLChecker."""
+        spec = mysql_check(
+            "mysql-db",
+            url="mysql://user:pass@mysql.svc:3306/mydb",
+            critical=True,
+        )
+        assert spec.checker._dsn == "mysql://user:pass@mysql.svc:3306/mydb"
+
+    def test_redis_url_passed(self) -> None:
+        """redis_check(url=...) должен передать url в RedisChecker."""
+        spec = redis_check(
+            "redis-cache",
+            url="redis://:secret@redis.svc:6379/2",
+            critical=False,
+        )
+        assert spec.checker._url == "redis://:secret@redis.svc:6379/2"
+
+    def test_redis_explicit_password_priority(self) -> None:
+        """Явный password имеет приоритет над URL."""
+        spec = redis_check(
+            "redis-cache",
+            url="redis://:url-pass@redis.svc:6379/0",
+            password="explicit-pass",
+            critical=False,
+        )
+        assert spec.checker._password == "explicit-pass"

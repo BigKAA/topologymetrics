@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import urlparse
 
 from dephealth.checker import CheckConnectionRefusedError, CheckTimeoutError
 from dephealth.dependency import Endpoint
@@ -16,10 +17,12 @@ class MySQLChecker:
         timeout: float = 5.0,
         query: str = "SELECT 1",
         pool: Any = None,  # noqa: ANN401
+        dsn: str = "",
     ) -> None:
         self._timeout = timeout
         self._query = query
         self._pool = pool
+        self._dsn = dsn
 
     async def check(self, endpoint: Endpoint) -> None:
         """Выполняет SELECT 1 на MySQL."""
@@ -34,12 +37,22 @@ class MySQLChecker:
                 await cur.execute(self._query)
             return
 
+        kwargs: dict[str, Any] = {
+            "host": endpoint.host,
+            "port": int(endpoint.port),
+            "connect_timeout": self._timeout,
+        }
+        if self._dsn:
+            parsed = urlparse(self._dsn)
+            if parsed.username:
+                kwargs["user"] = parsed.username
+            if parsed.password:
+                kwargs["password"] = parsed.password
+            if parsed.path and parsed.path != "/":
+                kwargs["db"] = parsed.path.lstrip("/")
+
         try:
-            conn = await aiomysql.connect(
-                host=endpoint.host,
-                port=int(endpoint.port),
-                connect_timeout=self._timeout,
-            )
+            conn = await aiomysql.connect(**kwargs)
             try:
                 async with conn.cursor() as cur:
                     await cur.execute(self._query)

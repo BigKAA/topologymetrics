@@ -351,6 +351,7 @@ def mysql_check(
         timeout=timeout.total_seconds() if timeout else 5.0,
         query=query,
         pool=pool,
+        dsn=url,
     )
     return _DependencySpec(
         name=name,
@@ -385,6 +386,7 @@ def redis_check(
         password=password,
         db=db,
         client=client,
+        url=url,
     )
     return _DependencySpec(
         name=name,

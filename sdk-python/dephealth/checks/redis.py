@@ -17,11 +17,13 @@ class RedisChecker:
         password: str = "",
         db: int = 0,
         client: Any = None,  # noqa: ANN401
+        url: str = "",
     ) -> None:
         self._timeout = timeout
         self._password = password
         self._db = db
         self._client = client
+        self._url = url
 
     async def check(self, endpoint: Endpoint) -> None:
         """Выполняет PING на Redis."""
@@ -35,13 +37,17 @@ class RedisChecker:
             await self._client.ping()
             return
 
-        url = f"redis://{endpoint.host}:{endpoint.port}/{self._db}"
-        client = Redis.from_url(
-            url,
-            password=self._password or None,
-            socket_timeout=self._timeout,
-            socket_connect_timeout=self._timeout,
-        )
+        conn_url = self._url or f"redis://{endpoint.host}:{endpoint.port}/{self._db}"
+        kwargs: dict[str, Any] = {
+            "socket_timeout": self._timeout,
+            "socket_connect_timeout": self._timeout,
+        }
+        # Явный password имеет приоритет над URL.
+        if self._password:
+            kwargs["password"] = self._password
+        elif not self._url:
+            kwargs["password"] = None
+        client = Redis.from_url(conn_url, **kwargs)
         try:
             await client.ping()
         except TimeoutError:
