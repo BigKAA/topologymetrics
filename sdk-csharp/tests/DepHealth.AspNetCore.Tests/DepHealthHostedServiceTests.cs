@@ -7,8 +7,8 @@ public class DepHealthHostedServiceTests
     [Fact]
     public async Task StartAsync_StartsMonitor()
     {
-        using var monitor = DepHealthMonitor.CreateBuilder()
-            .AddHttp("test", "http://localhost:8080")
+        using var monitor = DepHealthMonitor.CreateBuilder("test-app")
+            .AddHttp("test", "http://localhost:8080", critical: true)
             .Build();
 
         var service = new DepHealthHostedService(monitor);

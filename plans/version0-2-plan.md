@@ -228,7 +228,7 @@ cd sdk-python && make test && make lint
 
 **Цель**: реализация изменений в C# SDK.
 
-**Статус**: [ ] Не начата
+**Статус**: [x] Завершена
 
 ### `sdk-csharp/DepHealth.Core/Endpoint.cs`
 

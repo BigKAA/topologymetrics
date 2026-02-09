@@ -11,9 +11,9 @@ public class ServiceCollectionExtensionsTests
         var services = new ServiceCollection();
         services.AddLogging();
 
-        services.AddDepHealth(dh =>
+        services.AddDepHealth("test-app", dh =>
         {
-            dh.AddHttp("test-api", "http://localhost:8080");
+            dh.AddHttp("test-api", "http://localhost:8080", critical: true);
         });
 
         var sp = services.BuildServiceProvider();

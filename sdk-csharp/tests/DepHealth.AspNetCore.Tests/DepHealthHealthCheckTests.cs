@@ -7,8 +7,8 @@ public class DepHealthHealthCheckTests
     [Fact]
     public async Task CheckHealth_NoChecksCompleted_ReturnsHealthy()
     {
-        using var monitor = DepHealthMonitor.CreateBuilder()
-            .AddHttp("test", "http://localhost:8080")
+        using var monitor = DepHealthMonitor.CreateBuilder("test-app")
+            .AddHttp("test", "http://localhost:8080", critical: true)
             .Build();
 
         var check = new DepHealthHealthCheck(monitor);

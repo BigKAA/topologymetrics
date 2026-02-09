@@ -23,10 +23,12 @@ public sealed partial class Dependency
     {
         Name = builder.NameValue;
         Type = builder.TypeValue;
-        Critical = builder.CriticalValue;
+        Critical = builder.CriticalValue!.Value;
         Endpoints = new ReadOnlyCollection<Endpoint>(new List<Endpoint>(builder.EndpointsValue));
         Config = builder.ConfigValue;
     }
+
+    public static string BoolToYesNo(bool value) => value ? "yes" : "no";
 
     public static Builder CreateBuilder(string name, DependencyType type) => new(name, type);
 
@@ -34,7 +36,7 @@ public sealed partial class Dependency
     {
         internal string NameValue;
         internal DependencyType TypeValue;
-        internal bool CriticalValue;
+        internal bool? CriticalValue;
         internal List<Endpoint> EndpointsValue = [];
         internal CheckConfig ConfigValue = CheckConfig.Defaults();
 
@@ -88,10 +90,21 @@ public sealed partial class Dependency
                     $"dependency name must match ^[a-z][a-z0-9-]*$, got '{NameValue}'");
             }
 
+            if (CriticalValue is null)
+            {
+                throw new ValidationException(
+                    $"dependency '{NameValue}': critical must be explicitly set");
+            }
+
             if (EndpointsValue.Count == 0)
             {
                 throw new ValidationException(
                     $"dependency '{NameValue}' must have at least one endpoint");
+            }
+
+            foreach (var ep in EndpointsValue)
+            {
+                Endpoint.ValidateLabels(ep.Labels);
             }
         }
     }

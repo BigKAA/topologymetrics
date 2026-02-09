@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using DepHealth.Checks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -10,10 +11,10 @@ namespace DepHealth;
 /// <para>
 /// Использование:
 /// <code>
-/// var dh = DepHealth.DepHealthBuilder.Create()
-///     .AddPostgres("db", "postgres://user:pass@host:5432/mydb")
-///     .AddRedis("cache", "redis://cache:6379")
-///     .AddHttp("payment", "http://payment:8080")
+/// var dh = DepHealthMonitor.CreateBuilder("my-service")
+///     .AddPostgres("db", "postgres://user:pass@host:5432/mydb", critical: true)
+///     .AddRedis("cache", "redis://cache:6379", critical: false)
+///     .AddHttp("payment", "http://payment:8080", critical: true)
 ///     .Build();
 /// dh.Start();
 /// // ...
@@ -21,8 +22,13 @@ namespace DepHealth;
 /// </code>
 /// </para>
 /// </summary>
-public sealed class DepHealthMonitor : IDisposable
+public sealed partial class DepHealthMonitor : IDisposable
 {
+    private const int MaxNameLength = 63;
+
+    [GeneratedRegex("^[a-z][a-z0-9-]*$")]
+    private static partial Regex NamePattern();
+
     private readonly CheckScheduler _scheduler;
 
     private DepHealthMonitor(CheckScheduler scheduler)
@@ -41,14 +47,15 @@ public sealed class DepHealthMonitor : IDisposable
 
     public void Dispose() => _scheduler.Dispose();
 
-    /// <summary>Создаёт новый builder.</summary>
-    public static Builder CreateBuilder() => new();
+    /// <summary>Создаёт новый builder с обязательным именем приложения.</summary>
+    public static Builder CreateBuilder(string name) => new(name);
 
     /// <summary>
     /// Fluent builder для конфигурации dephealth.
     /// </summary>
     public sealed class Builder
     {
+        private readonly string _name;
         private CollectorRegistry? _registry;
         private ILogger? _logger;
         private TimeSpan _defaultInterval = CheckConfig.DefaultInterval;
@@ -56,7 +63,23 @@ public sealed class DepHealthMonitor : IDisposable
         private TimeSpan _defaultInitialDelay = TimeSpan.Zero;
         private readonly List<DependencyEntry> _entries = [];
 
-        internal Builder() { }
+        internal Builder(string name)
+        {
+            var resolvedName = name;
+            var envName = Environment.GetEnvironmentVariable("DEPHEALTH_NAME");
+            if (!string.IsNullOrEmpty(envName) && string.IsNullOrEmpty(resolvedName))
+            {
+                resolvedName = envName;
+            }
+
+            if (string.IsNullOrEmpty(resolvedName))
+            {
+                resolvedName = name;
+            }
+
+            ValidateInstanceName(resolvedName);
+            _name = resolvedName;
+        }
 
         public Builder WithRegistry(CollectorRegistry registry)
         {
@@ -91,58 +114,64 @@ public sealed class DepHealthMonitor : IDisposable
         // --- Convenience methods ---
 
         public Builder AddHttp(string name, string url,
-            string healthPath = "/health", bool critical = false)
+            string healthPath = "/health", bool? critical = null,
+            Dictionary<string, string>? labels = null)
         {
             var parsed = ConfigParser.ParseUrl(url);
             var checker = new HttpChecker(
                 healthPath: healthPath,
                 tlsEnabled: url.StartsWith("https://", StringComparison.OrdinalIgnoreCase));
 
-            return AddDependency(name, DependencyType.Http, parsed, checker, critical);
+            return AddDependency(name, DependencyType.Http, parsed, checker, critical, labels);
         }
 
         public Builder AddGrpc(string name, string host, string port,
-            bool tlsEnabled = false, bool critical = false)
+            bool tlsEnabled = false, bool? critical = null,
+            Dictionary<string, string>? labels = null)
         {
             var ep = ConfigParser.ParseParams(host, port);
             var checker = new GrpcChecker(tlsEnabled: tlsEnabled);
 
             return AddDependency(name, DependencyType.Grpc,
                 [new ParsedConnection(ep.Host, ep.Port, DependencyType.Grpc)],
-                checker, critical);
+                checker, critical, labels);
         }
 
-        public Builder AddTcp(string name, string host, string port, bool critical = false)
+        public Builder AddTcp(string name, string host, string port,
+            bool? critical = null, Dictionary<string, string>? labels = null)
         {
             var ep = ConfigParser.ParseParams(host, port);
             var checker = new TcpChecker();
 
             return AddDependency(name, DependencyType.Tcp,
                 [new ParsedConnection(ep.Host, ep.Port, DependencyType.Tcp)],
-                checker, critical);
+                checker, critical, labels);
         }
 
-        public Builder AddPostgres(string name, string url, bool critical = false)
+        public Builder AddPostgres(string name, string url,
+            bool? critical = null, Dictionary<string, string>? labels = null)
         {
             var parsed = ConfigParser.ParseUrl(url);
             var (username, password) = ExtractUrlCredentials(url);
             var connStr = BuildPostgresConnectionString(parsed[0], username, password, url);
             var checker = new PostgresChecker(connStr);
 
-            return AddDependency(name, DependencyType.Postgres, parsed, checker, critical);
+            return AddDependency(name, DependencyType.Postgres, parsed, checker, critical, labels);
         }
 
-        public Builder AddMySql(string name, string url, bool critical = false)
+        public Builder AddMySql(string name, string url,
+            bool? critical = null, Dictionary<string, string>? labels = null)
         {
             var parsed = ConfigParser.ParseUrl(url);
             var (username, password) = ExtractUrlCredentials(url);
             var connStr = BuildMySqlConnectionString(parsed[0], username, password, url);
             var checker = new MySqlChecker(connStr);
 
-            return AddDependency(name, DependencyType.MySql, parsed, checker, critical);
+            return AddDependency(name, DependencyType.MySql, parsed, checker, critical, labels);
         }
 
-        public Builder AddRedis(string name, string url, bool critical = false)
+        public Builder AddRedis(string name, string url,
+            bool? critical = null, Dictionary<string, string>? labels = null)
         {
             var parsed = ConfigParser.ParseUrl(url);
             var (_, password) = ExtractUrlCredentials(url);
@@ -153,42 +182,48 @@ public sealed class DepHealthMonitor : IDisposable
             }
 
             var checker = new RedisChecker(connStr);
-            return AddDependency(name, DependencyType.Redis, parsed, checker, critical);
+            return AddDependency(name, DependencyType.Redis, parsed, checker, critical, labels);
         }
 
-        public Builder AddAmqp(string name, string url, bool critical = false)
+        public Builder AddAmqp(string name, string url,
+            bool? critical = null, Dictionary<string, string>? labels = null)
         {
             var parsed = ConfigParser.ParseUrl(url);
             var (username, password) = ExtractUrlCredentials(url);
             var vhost = ExtractAmqpVhost(url);
             var checker = new AmqpChecker(username: username, password: password, vhost: vhost);
 
-            return AddDependency(name, DependencyType.Amqp, parsed, checker, critical);
+            return AddDependency(name, DependencyType.Amqp, parsed, checker, critical, labels);
         }
 
-        public Builder AddKafka(string name, string url, bool critical = false)
+        public Builder AddKafka(string name, string url,
+            bool? critical = null, Dictionary<string, string>? labels = null)
         {
             var parsed = ConfigParser.ParseUrl(url);
             var checker = new KafkaChecker();
 
-            return AddDependency(name, DependencyType.Kafka, parsed, checker, critical);
+            return AddDependency(name, DependencyType.Kafka, parsed, checker, critical, labels);
         }
 
         /// <summary>
         /// Добавляет зависимость с кастомным чекером.
         /// </summary>
         public Builder AddCustom(string name, DependencyType type, string host, string port,
-            IHealthChecker checker, bool critical = false)
+            IHealthChecker checker, bool? critical = null,
+            Dictionary<string, string>? labels = null)
         {
             var ep = ConfigParser.ParseParams(host, port);
             return AddDependency(name, type,
                 [new ParsedConnection(ep.Host, ep.Port, type)],
-                checker, critical);
+                checker, critical, labels);
         }
 
         public DepHealthMonitor Build()
         {
-            var metrics = new PrometheusExporter(_registry);
+            ApplyEnvVars();
+
+            var customLabelKeys = CollectCustomLabelKeys();
+            var metrics = new PrometheusExporter(_name, customLabelKeys, _registry);
             var scheduler = new CheckScheduler(metrics, _logger);
 
             foreach (var entry in _entries)
@@ -199,11 +234,16 @@ public sealed class DepHealthMonitor : IDisposable
                     .WithInitialDelay(_defaultInitialDelay)
                     .Build();
 
-                var dep = Dependency.CreateBuilder(entry.Name, entry.Type)
+                var depBuilder = Dependency.CreateBuilder(entry.Name, entry.Type)
                     .WithEndpoints(entry.Endpoints)
-                    .WithCritical(entry.Critical)
-                    .WithConfig(config)
-                    .Build();
+                    .WithConfig(config);
+
+                if (entry.Critical is not null)
+                {
+                    depBuilder.WithCritical(entry.Critical.Value);
+                }
+
+                var dep = depBuilder.Build();
 
                 scheduler.AddDependency(dep, entry.Checker);
             }
@@ -212,11 +252,104 @@ public sealed class DepHealthMonitor : IDisposable
         }
 
         private Builder AddDependency(string name, DependencyType type,
-            List<ParsedConnection> parsed, IHealthChecker checker, bool critical)
+            List<ParsedConnection> parsed, IHealthChecker checker,
+            bool? critical, Dictionary<string, string>? labels)
         {
-            var endpoints = parsed.Select(p => new Endpoint(p.Host, p.Port)).ToList();
-            _entries.Add(new DependencyEntry(name, type, endpoints, checker, critical));
+            var mergedLabels = labels ?? new Dictionary<string, string>();
+            Endpoint.ValidateLabels(mergedLabels);
+            var endpoints = parsed.Select(p =>
+                new Endpoint(p.Host, p.Port, mergedLabels)).ToList();
+            _entries.Add(new DependencyEntry(name, type, endpoints, checker, critical, mergedLabels));
             return this;
+        }
+
+        private void ApplyEnvVars()
+        {
+            for (var i = 0; i < _entries.Count; i++)
+            {
+                var entry = _entries[i];
+                var depKey = entry.Name.ToUpperInvariant().Replace('-', '_');
+
+                // DEPHEALTH_<DEP>_CRITICAL
+                if (entry.Critical is null)
+                {
+                    var criticalEnv = Environment.GetEnvironmentVariable(
+                        $"DEPHEALTH_{depKey}_CRITICAL");
+                    if (!string.IsNullOrEmpty(criticalEnv))
+                    {
+                        var criticalValue = criticalEnv.Equals("yes",
+                            StringComparison.OrdinalIgnoreCase);
+                        _entries[i] = entry with { Critical = criticalValue };
+                        entry = _entries[i];
+                    }
+                }
+
+                // DEPHEALTH_<DEP>_LABEL_<KEY>
+                var prefix = $"DEPHEALTH_{depKey}_LABEL_";
+                foreach (var envVar in Environment.GetEnvironmentVariables().Keys)
+                {
+                    var envKey = envVar.ToString()!;
+                    if (envKey.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    {
+                        var labelKey = envKey[prefix.Length..].ToLowerInvariant();
+                        var labelValue = Environment.GetEnvironmentVariable(envKey) ?? "";
+                        if (!entry.Labels.ContainsKey(labelKey))
+                        {
+                            entry.Labels[labelKey] = labelValue;
+                            // Обновить labels в endpoints
+                            var updatedEndpoints = entry.Endpoints
+                                .Select(ep =>
+                                {
+                                    var newLabels = new Dictionary<string, string>(ep.Labels)
+                                    {
+                                        [labelKey] = labelValue
+                                    };
+                                    return new Endpoint(ep.Host, ep.Port, newLabels);
+                                })
+                                .ToList();
+                            _entries[i] = entry with { Endpoints = updatedEndpoints };
+                            entry = _entries[i];
+                        }
+                    }
+                }
+            }
+        }
+
+        private string[]? CollectCustomLabelKeys()
+        {
+            var keys = new SortedSet<string>(StringComparer.Ordinal);
+            foreach (var entry in _entries)
+            {
+                foreach (var ep in entry.Endpoints)
+                {
+                    foreach (var key in ep.Labels.Keys)
+                    {
+                        keys.Add(key);
+                    }
+                }
+            }
+
+            return keys.Count > 0 ? keys.ToArray() : null;
+        }
+
+        private static void ValidateInstanceName(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                throw new ValidationException("instance name must not be empty");
+            }
+
+            if (name.Length > MaxNameLength)
+            {
+                throw new ValidationException(
+                    $"instance name must be 1-{MaxNameLength} characters, got '{name}' ({name.Length} chars)");
+            }
+
+            if (!NamePattern().IsMatch(name))
+            {
+                throw new ValidationException(
+                    $"instance name must match ^[a-z][a-z0-9-]*$, got '{name}'");
+            }
         }
 
         private static (string? Username, string? Password) ExtractUrlCredentials(string url)
@@ -351,6 +484,7 @@ public sealed class DepHealthMonitor : IDisposable
             DependencyType Type,
             List<Endpoint> Endpoints,
             IHealthChecker Checker,
-            bool Critical);
+            bool? Critical,
+            Dictionary<string, string> Labels);
     }
 }

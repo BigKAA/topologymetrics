@@ -16,11 +16,13 @@ public static class EntityFrameworkExtensions
     /// <param name="name">Имя зависимости.</param>
     /// <param name="context">Экземпляр DbContext.</param>
     /// <param name="critical">Критичная ли зависимость.</param>
+    /// <param name="labels">Произвольные метки.</param>
     public static DepHealthMonitor.Builder AddNpgsqlFromContext<TContext>(
         this DepHealthMonitor.Builder builder,
         string name,
         TContext context,
-        bool critical = false)
+        bool? critical = null,
+        Dictionary<string, string>? labels = null)
         where TContext : DbContext
     {
         var connStr = context.Database.GetConnectionString()
@@ -33,7 +35,7 @@ public static class EntityFrameworkExtensions
         var checker = new Checks.PostgresChecker(connStr);
 
         builder.AddCustom(name, DependencyType.Postgres,
-            endpoint.Host, endpoint.Port, checker, critical);
+            endpoint.Host, endpoint.Port, checker, critical, labels);
 
         return builder;
     }

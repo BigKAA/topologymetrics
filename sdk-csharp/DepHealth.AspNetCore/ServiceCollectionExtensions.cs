@@ -1,9 +1,9 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Prometheus;
-using System.Text.Json;
 
 namespace DepHealth.AspNetCore;
 
@@ -16,12 +16,14 @@ public static class ServiceCollectionExtensions
     /// Регистрирует dephealth в DI-контейнере.
     /// </summary>
     /// <param name="services">Коллекция сервисов.</param>
+    /// <param name="name">Уникальное имя приложения.</param>
     /// <param name="configure">Конфигурация зависимостей.</param>
     public static IServiceCollection AddDepHealth(
         this IServiceCollection services,
+        string name,
         Action<DepHealthMonitor.Builder> configure)
     {
-        var builder = DepHealthMonitor.CreateBuilder();
+        var builder = DepHealthMonitor.CreateBuilder(name);
         configure(builder);
         var monitor = builder.Build();
 
