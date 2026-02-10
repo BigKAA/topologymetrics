@@ -1,3 +1,4 @@
 # TODO
 
-- [ ] Translate documentation, source code comments, and Grafana dashboards to English
+- [x] Translate documentation to English
+- [ ] Translate source code comments and Grafana dashboards to English
