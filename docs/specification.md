@@ -185,6 +185,44 @@ Additional constraint: `timeout` must be less than `checkInterval`.
 
 `<DEP>` — dependency name in uppercase, hyphens replaced with `_`.
 
+### DNS Resolution in Kubernetes
+
+In standalone mode, dephealth creates a new connection for each health check,
+which triggers DNS resolution every time. In Kubernetes, the default
+`/etc/resolv.conf` is configured with `ndots:5` and multiple search domains
+(e.g. `<ns>.svc.cluster.local svc.cluster.local cluster.local`).
+
+When a hostname contains fewer dots than the `ndots` value, the resolver
+prepends search domain suffixes before trying the name as-is. For example,
+a name like `redis.my-namespace.svc` (2 dots < 5) will generate several
+failed DNS queries before the correct one succeeds:
+
+```text
+redis.my-namespace.svc.app-namespace.svc.cluster.local  → NXDOMAIN
+redis.my-namespace.svc.svc.cluster.local                → NXDOMAIN
+redis.my-namespace.svc.cluster.local                    → OK
+```
+
+To avoid this overhead, use a **trailing dot** to mark the hostname as an
+absolute (fully qualified) domain name. This tells the resolver to skip
+search domain expansion entirely and issue a single DNS query:
+
+```yaml
+# Relative name — triggers search domain expansion (multiple DNS queries)
+host: "redis.my-namespace.svc"
+
+# Absolute name (FQDN) — single DNS query, no search expansion
+host: "redis.my-namespace.svc.cluster.local."
+```
+
+> **Note:** The trailing dot (`.`) is part of the DNS standard (RFC 1035)
+> and is supported by all DNS resolvers. The cluster domain (`cluster.local`
+> by default) may differ in your environment — check `/etc/resolv.conf`
+> inside a pod for the actual value.
+
+This optimization applies to all dependency types and is especially
+noticeable for check types with higher connection overhead (gRPC, TLS).
+
 ## Conformance Testing
 
 All SDKs pass a unified set of conformance scenarios in Kubernetes:

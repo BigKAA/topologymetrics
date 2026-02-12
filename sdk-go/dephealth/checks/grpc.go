@@ -73,7 +73,7 @@ func (c *GRPCChecker) Check(ctx context.Context, endpoint dephealth.Endpoint) er
 		transportCreds = grpc.WithTransportCredentials(insecure.NewCredentials())
 	}
 
-	conn, err := grpc.NewClient(addr, transportCreds)
+	conn, err := grpc.NewClient("passthrough:///"+addr, transportCreds)
 	if err != nil {
 		return fmt.Errorf("grpc new client %s: %w", addr, err)
 	}
