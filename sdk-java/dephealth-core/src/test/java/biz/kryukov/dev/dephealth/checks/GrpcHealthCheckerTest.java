@@ -59,7 +59,7 @@ class GrpcHealthCheckerTest {
                 .build()
                 .start();
 
-        // Проверяем напрямую через InProcessChannel
+        // Verify directly via InProcessChannel
         ManagedChannel channel = InProcessChannelBuilder.forName(serverName)
                 .directExecutor()
                 .build();
@@ -90,7 +90,7 @@ class GrpcHealthCheckerTest {
                 .build()
                 .start();
 
-        // Проверяем через InProcessChannel напрямую
+        // Verify via InProcessChannel directly
         ManagedChannel channel = InProcessChannelBuilder.forName(serverName)
                 .directExecutor()
                 .build();

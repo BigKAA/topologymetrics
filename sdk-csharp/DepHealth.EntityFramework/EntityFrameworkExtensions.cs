@@ -4,19 +4,19 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 namespace DepHealth.EntityFramework;
 
 /// <summary>
-/// Extension-методы для автоматического добавления PostgreSQL checker из DbContext.
+/// Extension methods for automatically adding a PostgreSQL checker from DbContext.
 /// </summary>
 public static class EntityFrameworkExtensions
 {
     /// <summary>
-    /// Добавляет PostgreSQL checker из connection string, извлечённого из DbContext.
+    /// Adds a PostgreSQL checker using the connection string extracted from DbContext.
     /// </summary>
-    /// <typeparam name="TContext">Тип DbContext.</typeparam>
-    /// <param name="builder">Builder dephealth.</param>
-    /// <param name="name">Имя зависимости.</param>
-    /// <param name="context">Экземпляр DbContext.</param>
-    /// <param name="critical">Критичная ли зависимость.</param>
-    /// <param name="labels">Произвольные метки.</param>
+    /// <typeparam name="TContext">The DbContext type.</typeparam>
+    /// <param name="builder">The dephealth builder.</param>
+    /// <param name="name">Dependency name.</param>
+    /// <param name="context">The DbContext instance.</param>
+    /// <param name="critical">Whether the dependency is critical.</param>
+    /// <param name="labels">Custom labels.</param>
     public static DepHealthMonitor.Builder AddNpgsqlFromContext<TContext>(
         this DepHealthMonitor.Builder builder,
         string name,
@@ -29,7 +29,7 @@ public static class EntityFrameworkExtensions
             ?? throw new ConfigurationException(
                 $"Cannot extract connection string from DbContext {typeof(TContext).Name}");
 
-        // Извлечь host и port из connection string
+        // Extract host and port from connection string
         var endpoint = ConfigParser.ParseConnectionString(connStr);
 
         var checker = new Checks.PostgresChecker(connStr);

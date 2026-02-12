@@ -1,7 +1,7 @@
 namespace DepHealth;
 
 /// <summary>
-/// Ошибка конфигурации (парсинг URL, connection string и т.п.).
+/// Configuration error (URL parsing, connection string, etc.).
 /// </summary>
 public class ConfigurationException : Exception
 {

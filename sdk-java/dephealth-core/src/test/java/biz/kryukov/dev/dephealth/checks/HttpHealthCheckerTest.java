@@ -80,7 +80,7 @@ class HttpHealthCheckerTest {
 
     @Test
     void connectionRefused() {
-        // Не запускаем сервер
+        // Do not start the server
         HttpHealthChecker checker = HttpHealthChecker.builder().build();
         Endpoint ep = new Endpoint("localhost", String.valueOf(port));
         assertThrows(Exception.class, () -> checker.check(ep, Duration.ofSeconds(1)));

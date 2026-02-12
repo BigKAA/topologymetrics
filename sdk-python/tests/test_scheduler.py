@@ -1,4 +1,4 @@
-"""Тесты для scheduler.py — CheckScheduler."""
+"""Tests for scheduler.py — CheckScheduler."""
 
 import asyncio
 from unittest.mock import AsyncMock
@@ -60,10 +60,22 @@ class TestCheckScheduler:
         assert scheduler.health() == {"test": False}
 
     async def test_threshold_logic(self) -> None:
-        """Проверка порогов: failure_threshold=2 → нужно 2 неудачи подряд."""
+        """Threshold logic: failure_threshold=2 requires 2 consecutive failures."""
         scheduler, _ = _make_scheduler()
         dep = _make_dep()
-        dep.config.failure_threshold = 2
+        dep = Dependency(
+            name=dep.name,
+            type=dep.type,
+            critical=dep.critical,
+            endpoints=dep.endpoints,
+            config=CheckConfig(
+                interval=dep.config.interval,
+                timeout=dep.config.timeout,
+                initial_delay=dep.config.initial_delay,
+                failure_threshold=2,
+                success_threshold=dep.config.success_threshold,
+            ),
+        )
 
         call_count = 0
 
@@ -80,7 +92,7 @@ class TestCheckScheduler:
 
         scheduler.add(dep, checker)
         await scheduler.start()
-        # Первая проверка — ок, вторая — fail, третья — fail → unhealthy
+        # First check — ok, second — fail, third — fail -> unhealthy
         await asyncio.sleep(0.5)
         await scheduler.stop()
 

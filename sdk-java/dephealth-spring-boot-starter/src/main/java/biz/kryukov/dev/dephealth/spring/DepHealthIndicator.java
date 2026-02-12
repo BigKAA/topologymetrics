@@ -7,7 +7,7 @@ import org.springframework.boot.actuate.health.HealthIndicator;
 import java.util.Map;
 
 /**
- * Spring Boot Actuator HealthIndicator: отображает состояние зависимостей в /actuator/health.
+ * Spring Boot Actuator HealthIndicator: exposes dependency health status at /actuator/health.
  */
 public class DepHealthIndicator implements HealthIndicator {
 

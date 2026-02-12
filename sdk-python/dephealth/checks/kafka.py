@@ -7,13 +7,13 @@ from dephealth.dependency import Endpoint
 
 
 class KafkaChecker:
-    """Проверка доступности Kafka-брокера через получение метаданных."""
+    """Health check for a Kafka broker via cluster metadata retrieval."""
 
     def __init__(self, timeout: float = 5.0) -> None:
         self._timeout = timeout
 
     async def check(self, endpoint: Endpoint) -> None:
-        """Подключается к Kafka и запрашивает метаданные кластера."""
+        """Connect to Kafka and fetch cluster metadata."""
         try:
             from aiokafka import AIOKafkaClient
         except ImportError:
@@ -30,9 +30,9 @@ class KafkaChecker:
             if not client.cluster.brokers():
                 msg = f"Kafka broker {bootstrap}: no brokers in metadata"
                 raise CheckConnectionRefusedError(msg)
-        except TimeoutError:
+        except TimeoutError as exc:
             msg = f"Kafka connection to {bootstrap} timed out"
-            raise CheckTimeoutError(msg) from None
+            raise CheckTimeoutError(msg) from exc
         except OSError as e:
             msg = f"Kafka connection to {bootstrap} refused: {e}"
             raise CheckConnectionRefusedError(msg) from e
@@ -40,4 +40,5 @@ class KafkaChecker:
             await client.close()
 
     def checker_type(self) -> str:
+        """Return the checker type."""
         return "kafka"

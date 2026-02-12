@@ -96,7 +96,7 @@ class CheckSchedulerTest {
         scheduler.start();
 
         assertTrue(latch.await(3, TimeUnit.SECONDS));
-        // Даём время обновить state
+        // Allow time to update state
         Thread.sleep(100);
 
         Map<String, Boolean> health = scheduler.health();

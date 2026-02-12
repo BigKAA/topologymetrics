@@ -167,7 +167,7 @@ class MetricsExporterTest {
                 .gauge();
 
         assertNotNull(gauge);
-        // Проверяем порядок тегов: name, dependency, type, host, port, critical, custom
+        // Verify tag order: name, dependency, type, host, port, critical, custom
         List<String> tagKeys = gauge.getId().getTags().stream()
                 .map(Tag::getKey)
                 .collect(Collectors.toList());

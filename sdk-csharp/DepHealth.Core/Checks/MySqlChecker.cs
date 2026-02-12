@@ -3,7 +3,7 @@ using MySqlConnector;
 namespace DepHealth.Checks;
 
 /// <summary>
-/// MySQL health checker — выполняет SELECT 1.
+/// MySQL health checker — executes SELECT 1.
 /// </summary>
 public sealed class MySqlChecker : IHealthChecker
 {

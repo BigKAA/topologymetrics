@@ -20,7 +20,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Планировщик периодических проверок здоровья зависимостей.
+ * Scheduler for periodic dependency health checks.
  */
 public final class CheckScheduler {
 
@@ -46,7 +46,7 @@ public final class CheckScheduler {
     }
 
     /**
-     * Регистрирует зависимость для периодической проверки.
+     * Registers a dependency for periodic checking.
      */
     public void addDependency(Dependency dependency, HealthChecker checker) {
         if (started) {
@@ -60,7 +60,7 @@ public final class CheckScheduler {
     }
 
     /**
-     * Запускает периодические проверки.
+     * Starts periodic health checks.
      */
     public synchronized void start() {
         if (started) {
@@ -107,7 +107,7 @@ public final class CheckScheduler {
     }
 
     /**
-     * Останавливает все проверки.
+     * Stops all health checks.
      */
     public synchronized void stop() {
         if (!started || stopped) {
@@ -134,7 +134,7 @@ public final class CheckScheduler {
     }
 
     /**
-     * Возвращает текущее состояние здоровья всех эндпоинтов.
+     * Returns the current health status of all endpoints.
      */
     public Map<String, Boolean> health() {
         Map<String, Boolean> result = new LinkedHashMap<>();

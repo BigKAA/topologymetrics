@@ -14,7 +14,7 @@ func TestKafkaChecker_Check_ConnectionRefused(t *testing.T) {
 
 	err := checker.Check(context.Background(), ep)
 	if err == nil {
-		t.Error("ожидали ошибку для закрытого порта, получили nil")
+		t.Error("expected error for closed port, got nil")
 	}
 }
 
@@ -27,7 +27,7 @@ func TestKafkaChecker_Check_ContextCanceled(t *testing.T) {
 
 	err := checker.Check(ctx, ep)
 	if err == nil {
-		t.Error("ожидали ошибку для отменённого контекста, получили nil")
+		t.Error("expected error for canceled context, got nil")
 	}
 }
 
@@ -40,13 +40,13 @@ func TestKafkaChecker_Check_Timeout(t *testing.T) {
 
 	err := checker.Check(ctx, ep)
 	if err == nil {
-		t.Error("ожидали ошибку таймаута, получили nil")
+		t.Error("expected timeout error, got nil")
 	}
 }
 
 func TestKafkaChecker_Type(t *testing.T) {
 	checker := NewKafkaChecker()
 	if got := checker.Type(); got != "kafka" {
-		t.Errorf("Type() = %q, ожидали %q", got, "kafka")
+		t.Errorf("Type() = %q, expected %q", got, "kafka")
 	}
 }

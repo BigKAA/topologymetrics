@@ -1,5 +1,7 @@
 """dephealth-fastapi — FastAPI integration for the dephealth SDK."""
 
+from __future__ import annotations
+
 from dephealth_fastapi.endpoints import dependencies_router
 from dephealth_fastapi.lifespan import dephealth_lifespan
 from dephealth_fastapi.middleware import DepHealthMiddleware

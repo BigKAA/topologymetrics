@@ -3,7 +3,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 namespace DepHealth.AspNetCore;
 
 /// <summary>
-/// Интеграция с ASP.NET Core Health Checks (/health).
+/// Integration with ASP.NET Core Health Checks (/health).
 /// </summary>
 public sealed class DepHealthHealthCheck : IHealthCheck
 {

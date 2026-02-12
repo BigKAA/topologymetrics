@@ -72,7 +72,7 @@ class DepHealthTest {
         DepHealth dh = DepHealth.builder("test-app", registry).build();
         assertNotNull(dh);
 
-        // health() возвращает пустую коллекцию
+        // health() returns an empty collection
         Map<String, Boolean> health = dh.health();
         assertTrue(health.isEmpty());
 
@@ -83,7 +83,7 @@ class DepHealthTest {
 
     @Test
     void missingCriticalThrows() {
-        // critical не задан → ошибка при build (Dependency.validate)
+        // critical not set -> error on build (Dependency.validate)
         assertThrows(ValidationException.class, () ->
                 DepHealth.builder("test-app", registry)
                         .dependency("test", DependencyType.HTTP, d -> d

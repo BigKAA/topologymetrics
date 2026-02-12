@@ -16,8 +16,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Экспортирует метрики app_dependency_health и app_dependency_latency_seconds
- * в Micrometer MeterRegistry.
+ * Exports app_dependency_health and app_dependency_latency_seconds metrics
+ * to a Micrometer MeterRegistry.
  */
 public final class MetricsExporter {
 
@@ -39,21 +39,21 @@ public final class MetricsExporter {
             new ConcurrentHashMap<>();
 
     /**
-     * Создаёт экспортер метрик.
+     * Creates a metrics exporter.
      *
-     * @param registry      реестр Micrometer
-     * @param instanceName  значение метки {@code name} (имя приложения)
+     * @param registry      Micrometer meter registry
+     * @param instanceName  value of the {@code name} label (application name)
      */
     public MetricsExporter(MeterRegistry registry, String instanceName) {
         this(registry, instanceName, List.of());
     }
 
     /**
-     * Создаёт экспортер метрик с поддержкой произвольных меток.
+     * Creates a metrics exporter with custom label support.
      *
-     * @param registry          реестр Micrometer
-     * @param instanceName      значение метки {@code name} (имя приложения)
-     * @param customLabelNames  имена произвольных меток (отсортированные по алфавиту)
+     * @param registry          Micrometer meter registry
+     * @param instanceName      value of the {@code name} label (application name)
+     * @param customLabelNames  custom label names (sorted alphabetically)
      */
     public MetricsExporter(MeterRegistry registry, String instanceName,
                            List<String> customLabelNames) {
@@ -63,7 +63,7 @@ public final class MetricsExporter {
     }
 
     /**
-     * Устанавливает значение метрики health (0 или 1).
+     * Sets the health metric value (0 or 1).
      */
     public void setHealth(Dependency dep, Endpoint ep, double value) {
         String key = metricKey(dep.name(), ep);
@@ -80,7 +80,7 @@ public final class MetricsExporter {
     }
 
     /**
-     * Записывает задержку проверки в histogram.
+     * Records the check latency into the histogram.
      */
     public void observeLatency(Dependency dep, Endpoint ep, Duration duration) {
         String key = metricKey(dep.name(), ep);
@@ -96,7 +96,7 @@ public final class MetricsExporter {
     }
 
     /**
-     * Строит теги в порядке: name, dependency, type, host, port, critical, custom (алфавит).
+     * Builds tags in order: name, dependency, type, host, port, critical, custom (alphabetical).
      */
     private Tags buildTags(Dependency dep, Endpoint ep) {
         Tags tags = Tags.of(
@@ -107,7 +107,7 @@ public final class MetricsExporter {
                 "port", ep.port(),
                 "critical", Dependency.boolToYesNo(dep.critical())
         );
-        // Добавляем произвольные метки из endpoint в алфавитном порядке
+        // Add custom labels from endpoint in alphabetical order
         Map<String, String> epLabels = ep.labels();
         for (String labelName : customLabelNames) {
             String value = epLabels.getOrDefault(labelName, "");

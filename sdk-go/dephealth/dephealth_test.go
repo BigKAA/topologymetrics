@@ -8,7 +8,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// registerMockFactory регистрирует мок-фабрику для указанного типа зависимости.
+// registerMockFactory registers a mock factory for the specified dependency type.
 func registerMockFactory(t *testing.T, depType DependencyType, checker HealthChecker) {
 	t.Helper()
 	old := checkerFactories[depType]
@@ -34,10 +34,10 @@ func TestNew_ValidHTTP(t *testing.T) {
 		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(true)),
 	)
 	if err != nil {
-		t.Fatalf("ошибка создания DepHealth: %v", err)
+		t.Fatalf("failed to create DepHealth: %v", err)
 	}
 	if dh == nil {
-		t.Fatal("DepHealth не должен быть nil")
+		t.Fatal("DepHealth should not be nil")
 	}
 }
 
@@ -46,21 +46,21 @@ func TestNew_NoDependencies(t *testing.T) {
 
 	dh, err := New("test-app", WithRegisterer(reg))
 	if err != nil {
-		t.Fatalf("zero deps должен быть допустим: %v", err)
+		t.Fatalf("zero deps should be allowed: %v", err)
 	}
 	if dh == nil {
-		t.Fatal("DepHealth не должен быть nil")
+		t.Fatal("DepHealth should not be nil")
 	}
 
-	// Health() до Start — пустая коллекция.
+	// Health() before Start — empty collection.
 	health := dh.Health()
 	if len(health) != 0 {
-		t.Fatalf("ожидали пустую Health(), получили %d записей", len(health))
+		t.Fatalf("expected empty Health(), got %d entries", len(health))
 	}
 
-	// Start()/Stop() — no-op, без паники.
+	// Start()/Stop() — no-op, no panic.
 	if err := dh.Start(context.Background()); err != nil {
-		t.Fatalf("Start() не должен возвращать ошибку: %v", err)
+		t.Fatalf("Start() should not return an error: %v", err)
 	}
 	dh.Stop()
 }
@@ -74,7 +74,7 @@ func TestNew_MissingName(t *testing.T) {
 		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(true)),
 	)
 	if err == nil {
-		t.Fatal("ожидали ошибку при отсутствии name")
+		t.Fatal("expected error when name is missing")
 	}
 }
 
@@ -89,10 +89,10 @@ func TestNew_NameFromEnv(t *testing.T) {
 		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(true)),
 	)
 	if err != nil {
-		t.Fatalf("ожидали успех с name из env: %v", err)
+		t.Fatalf("expected success with name from env: %v", err)
 	}
 	if dh == nil {
-		t.Fatal("DepHealth не должен быть nil")
+		t.Fatal("DepHealth should not be nil")
 	}
 }
 
@@ -105,7 +105,7 @@ func TestNew_InvalidURL(t *testing.T) {
 		HTTP("bad", FromURL("://invalid"), Critical(true)),
 	)
 	if err == nil {
-		t.Fatal("ожидали ошибку для невалидного URL")
+		t.Fatal("expected error for invalid URL")
 	}
 }
 
@@ -118,7 +118,7 @@ func TestNew_MissingHostPort(t *testing.T) {
 		HTTP("no-addr", Critical(true)),
 	)
 	if err == nil {
-		t.Fatal("ожидали ошибку при отсутствии URL и host/port")
+		t.Fatal("expected error when URL and host/port are missing")
 	}
 }
 
@@ -131,7 +131,7 @@ func TestNew_MissingCritical(t *testing.T) {
 		HTTP("web-api", FromURL("http://api.svc:8080")),
 	)
 	if err == nil {
-		t.Fatal("ожидали ошибку при отсутствии critical")
+		t.Fatal("expected error when critical is missing")
 	}
 }
 
@@ -144,10 +144,10 @@ func TestNew_FromParams(t *testing.T) {
 		TCP("my-tcp", FromParams("127.0.0.1", "8080"), Critical(false)),
 	)
 	if err != nil {
-		t.Fatalf("ошибка создания DepHealth: %v", err)
+		t.Fatalf("failed to create DepHealth: %v", err)
 	}
 	if dh == nil {
-		t.Fatal("DepHealth не должен быть nil")
+		t.Fatal("DepHealth should not be nil")
 	}
 }
 
@@ -164,12 +164,12 @@ func TestNew_CriticalFlag(t *testing.T) {
 		),
 	)
 	if err != nil {
-		t.Fatalf("ошибка создания: %v", err)
+		t.Fatalf("creation error: %v", err)
 	}
 
-	// Проверяем, что зависимость помечена как critical.
+	// Verify that the dependency is marked as critical.
 	if dh.scheduler.deps[0].dep.Critical == nil || !*dh.scheduler.deps[0].dep.Critical {
-		t.Error("ожидали Critical=true")
+		t.Error("expected Critical=true")
 	}
 }
 
@@ -184,10 +184,10 @@ func TestNew_CriticalFromEnv(t *testing.T) {
 		HTTP("web-api", FromURL("http://api.svc:8080")),
 	)
 	if err != nil {
-		t.Fatalf("ожидали успех с critical из env: %v", err)
+		t.Fatalf("expected success with critical from env: %v", err)
 	}
 	if dh.scheduler.deps[0].dep.Critical == nil || !*dh.scheduler.deps[0].dep.Critical {
-		t.Error("ожидали Critical=true из env")
+		t.Error("expected Critical=true from env")
 	}
 }
 
@@ -204,12 +204,12 @@ func TestNew_WithLabel(t *testing.T) {
 		),
 	)
 	if err != nil {
-		t.Fatalf("ошибка создания: %v", err)
+		t.Fatalf("creation error: %v", err)
 	}
 
 	ep := dh.scheduler.deps[0].dep.Endpoints[0]
 	if ep.Labels["role"] != "primary" {
-		t.Errorf("ожидали label role=primary, получили %q", ep.Labels["role"])
+		t.Errorf("expected label role=primary, got %q", ep.Labels["role"])
 	}
 }
 
@@ -226,7 +226,7 @@ func TestNew_ReservedLabel(t *testing.T) {
 		),
 	)
 	if err == nil {
-		t.Fatal("ожидали ошибку для зарезервированной метки")
+		t.Fatal("expected error for reserved label")
 	}
 }
 
@@ -244,12 +244,12 @@ func TestNew_LabelFromEnv(t *testing.T) {
 		),
 	)
 	if err != nil {
-		t.Fatalf("ошибка создания: %v", err)
+		t.Fatalf("creation error: %v", err)
 	}
 
 	ep := dh.scheduler.deps[0].dep.Endpoints[0]
 	if ep.Labels["role"] != "replica" {
-		t.Errorf("ожидали label role=replica из env, получили %q", ep.Labels["role"])
+		t.Errorf("expected label role=replica from env, got %q", ep.Labels["role"])
 	}
 }
 
@@ -263,18 +263,18 @@ func TestDepHealth_StartStop(t *testing.T) {
 		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(false)),
 	)
 	if err != nil {
-		t.Fatalf("ошибка создания: %v", err)
+		t.Fatalf("creation error: %v", err)
 	}
 
 	if err := dh.Start(context.Background()); err != nil {
-		t.Fatalf("ошибка запуска: %v", err)
+		t.Fatalf("start error: %v", err)
 	}
 
 	time.Sleep(200 * time.Millisecond)
 	dh.Stop()
 
 	if checker.callCount.Load() == 0 {
-		t.Error("ожидали хотя бы один вызов чекера")
+		t.Error("expected at least one checker call")
 	}
 }
 
@@ -288,27 +288,27 @@ func TestDepHealth_Health(t *testing.T) {
 		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(false)),
 	)
 	if err != nil {
-		t.Fatalf("ошибка создания: %v", err)
+		t.Fatalf("creation error: %v", err)
 	}
 
 	if err := dh.Start(context.Background()); err != nil {
-		t.Fatalf("ошибка запуска: %v", err)
+		t.Fatalf("start error: %v", err)
 	}
 
 	time.Sleep(200 * time.Millisecond)
 
 	health := dh.Health()
 	if len(health) != 1 {
-		t.Fatalf("ожидали 1 запись, получили %d", len(health))
+		t.Fatalf("expected 1 entry, got %d", len(health))
 	}
 
 	key := "web-api:api.svc:8080"
 	val, ok := health[key]
 	if !ok {
-		t.Fatalf("ключ %q не найден в Health()", key)
+		t.Fatalf("key %q not found in Health()", key)
 	}
 	if !val {
-		t.Errorf("ожидали healthy=true")
+		t.Errorf("expected healthy=true")
 	}
 
 	dh.Stop()
@@ -324,12 +324,12 @@ func TestNew_GlobalCheckInterval(t *testing.T) {
 		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(false)),
 	)
 	if err != nil {
-		t.Fatalf("ошибка: %v", err)
+		t.Fatalf("error: %v", err)
 	}
 
 	got := dh.scheduler.deps[0].dep.Config.Interval
 	if got != 30*time.Second {
-		t.Errorf("ожидали интервал 30s, получили %v", got)
+		t.Errorf("expected interval 30s, got %v", got)
 	}
 }
 
@@ -347,12 +347,12 @@ func TestNew_PerDepCheckInterval(t *testing.T) {
 		),
 	)
 	if err != nil {
-		t.Fatalf("ошибка: %v", err)
+		t.Fatalf("error: %v", err)
 	}
 
 	got := dh.scheduler.deps[0].dep.Config.Interval
 	if got != 10*time.Second {
-		t.Errorf("per-dep интервал должен перекрыть глобальный: ожидали 10s, получили %v", got)
+		t.Errorf("per-dep interval should override global: expected 10s, got %v", got)
 	}
 }
 
@@ -366,19 +366,19 @@ func TestNew_GlobalTimeout(t *testing.T) {
 		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(false)),
 	)
 	if err != nil {
-		t.Fatalf("ошибка: %v", err)
+		t.Fatalf("error: %v", err)
 	}
 
 	got := dh.scheduler.deps[0].dep.Config.Timeout
 	if got != 3*time.Second {
-		t.Errorf("ожидали таймаут 3s, получили %v", got)
+		t.Errorf("expected timeout 3s, got %v", got)
 	}
 }
 
 func TestNew_HTTPSAutoTLS(t *testing.T) {
 	reg := prometheus.NewRegistry()
 
-	// Специальный мок, который проверяет что TLS включен.
+	// Special mock that verifies TLS is enabled.
 	var gotConfig *DependencyConfig
 	old := checkerFactories[TypeHTTP]
 	checkerFactories[TypeHTTP] = func(dc *DependencyConfig) HealthChecker {
@@ -398,11 +398,11 @@ func TestNew_HTTPSAutoTLS(t *testing.T) {
 		HTTP("secure-api", FromURL("https://api.svc:443"), Critical(false)),
 	)
 	if err != nil {
-		t.Fatalf("ошибка: %v", err)
+		t.Fatalf("error: %v", err)
 	}
 
 	if gotConfig == nil || gotConfig.HTTPTLS == nil || !*gotConfig.HTTPTLS {
-		t.Error("ожидали автоматическое включение TLS для https:// URL")
+		t.Error("expected automatic TLS enablement for https:// URL")
 	}
 }
 
@@ -418,14 +418,14 @@ func TestNew_AddDependency(t *testing.T) {
 		),
 	)
 	if err != nil {
-		t.Fatalf("ошибка: %v", err)
+		t.Fatalf("error: %v", err)
 	}
 
 	if len(dh.scheduler.deps) != 1 {
-		t.Fatalf("ожидали 1 зависимость, получили %d", len(dh.scheduler.deps))
+		t.Fatalf("expected 1 dependency, got %d", len(dh.scheduler.deps))
 	}
 	if dh.scheduler.deps[0].dep.Name != "custom-dep" {
-		t.Errorf("ожидали имя custom-dep, получили %q", dh.scheduler.deps[0].dep.Name)
+		t.Errorf("expected name custom-dep, got %q", dh.scheduler.deps[0].dep.Name)
 	}
 }
 
@@ -440,24 +440,24 @@ func TestNew_MultipleDependencies(t *testing.T) {
 		TCP("cache", FromParams("redis.svc", "6379"), Critical(false)),
 	)
 	if err != nil {
-		t.Fatalf("ошибка: %v", err)
+		t.Fatalf("error: %v", err)
 	}
 
 	if len(dh.scheduler.deps) != 2 {
-		t.Fatalf("ожидали 2 зависимости, получили %d", len(dh.scheduler.deps))
+		t.Fatalf("expected 2 dependencies, got %d", len(dh.scheduler.deps))
 	}
 }
 
 func TestNew_NoFactoryRegistered(t *testing.T) {
 	reg := prometheus.NewRegistry()
-	// Не регистрируем фабрику — должна быть ошибка.
+	// Don't register a factory — should produce an error.
 
 	_, err := New("test-app",
 		WithRegisterer(reg),
 		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(false)),
 	)
 	if err == nil {
-		t.Fatal("ожидали ошибку при отсутствии зарегистрированной фабрики")
+		t.Fatal("expected error when no factory is registered")
 	}
 }
 
@@ -488,13 +488,13 @@ func TestNew_CheckerWrappers(t *testing.T) {
 		),
 	)
 	if err != nil {
-		t.Fatalf("ошибка: %v", err)
+		t.Fatalf("error: %v", err)
 	}
 
 	if gotConfig.HTTPHealthPath != "/ready" {
-		t.Errorf("ожидали healthPath=/ready, получили %q", gotConfig.HTTPHealthPath)
+		t.Errorf("expected healthPath=/ready, got %q", gotConfig.HTTPHealthPath)
 	}
 	if gotConfig.HTTPTLSSkipVerify == nil || !*gotConfig.HTTPTLSSkipVerify {
-		t.Error("ожидали TLSSkipVerify=true")
+		t.Error("expected TLSSkipVerify=true")
 	}
 }

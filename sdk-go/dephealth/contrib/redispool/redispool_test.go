@@ -10,7 +10,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
-	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks" // регистрация фабрик
+	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks" // register checker factories
 )
 
 func TestFromClient(t *testing.T) {
@@ -27,17 +27,17 @@ func TestFromClient(t *testing.T) {
 		FromClient("redis-cache", client, dephealth.Critical(false)),
 	)
 	if err != nil {
-		t.Fatalf("ошибка создания DepHealth: %v", err)
+		t.Fatalf("failed to create DepHealth: %v", err)
 	}
 
 	if err := dh.Start(context.Background()); err != nil {
-		t.Fatalf("ошибка запуска: %v", err)
+		t.Fatalf("failed to start: %v", err)
 	}
 
 	time.Sleep(200 * time.Millisecond)
 
 	health := dh.Health()
-	// Ключ должен содержать host:port из miniredis.
+	// Key should contain host:port from miniredis.
 	found := false
 	for _, v := range health {
 		if v {
@@ -45,7 +45,7 @@ func TestFromClient(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Error("ожидали healthy=true для Redis")
+		t.Error("expected healthy=true for Redis")
 	}
 
 	dh.Stop()
@@ -67,7 +67,7 @@ func TestFromClient_WithCritical(t *testing.T) {
 		),
 	)
 	if err != nil {
-		t.Fatalf("ошибка создания: %v", err)
+		t.Fatalf("failed to create: %v", err)
 	}
 	_ = dh
 }
@@ -86,21 +86,21 @@ func TestFromClient_AutoExtractsAddr(t *testing.T) {
 		FromClient("redis-cache", client, dephealth.Critical(false)),
 	)
 	if err != nil {
-		t.Fatalf("ошибка создания: %v", err)
+		t.Fatalf("failed to create: %v", err)
 	}
 
 	if err := dh.Start(context.Background()); err != nil {
-		t.Fatalf("ошибка запуска: %v", err)
+		t.Fatalf("failed to start: %v", err)
 	}
 
 	time.Sleep(200 * time.Millisecond)
 
 	health := dh.Health()
 	if len(health) != 1 {
-		t.Fatalf("ожидали 1 запись, получили %d", len(health))
+		t.Fatalf("expected 1 entry, got %d", len(health))
 	}
 
-	// Проверяем, что ключ содержит корректный host:port.
+	// Verify that the key contains the correct host:port.
 	for key := range health {
 		t.Logf("Health key: %s", key)
 	}

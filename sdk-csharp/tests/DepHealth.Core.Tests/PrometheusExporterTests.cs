@@ -128,7 +128,7 @@ public class PrometheusExporterTests
         exporter.SetHealth(dep, ep, 1.0);
 
         var output = await ScrapeAsync(registry);
-        // Проверяем что порядок label-ов правильный
+        // Verify that label order is correct
         var nameIdx = output.IndexOf("name=\"test-app\"");
         var depIdx = output.IndexOf("dependency=\"test-db\"");
         var typeIdx = output.IndexOf("type=\"postgres\"");

@@ -1,7 +1,7 @@
 namespace DepHealth.Exceptions;
 
 /// <summary>
-/// Базовое исключение SDK dephealth.
+/// Base exception for the dephealth SDK.
 /// </summary>
 public class DepHealthException : Exception
 {

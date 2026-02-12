@@ -4,7 +4,7 @@ using DepHealth.Checks;
 namespace DepHealth.Core.Tests;
 
 /// <summary>
-/// Тесты извлечения credentials из URL при построении DepHealthMonitor.
+/// Tests for extracting credentials from URLs when building DepHealthMonitor.
 /// </summary>
 public class CredentialsTests
 {
@@ -105,7 +105,7 @@ public class CredentialsTests
         Assert.DoesNotContain("password", connStr);
     }
 
-    // --- Вспомогательные методы ---
+    // --- Helper methods ---
 
     private static T GetChecker<T>(DepHealthMonitor dh) where T : class
     {

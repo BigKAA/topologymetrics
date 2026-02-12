@@ -3,7 +3,7 @@ using Microsoft.Extensions.Hosting;
 namespace DepHealth.AspNetCore;
 
 /// <summary>
-/// IHostedService для запуска/остановки CheckScheduler вместе с приложением.
+/// IHostedService for starting/stopping the CheckScheduler with the application lifecycle.
 /// </summary>
 public sealed class DepHealthHostedService : IHostedService
 {

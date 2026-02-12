@@ -3,8 +3,8 @@ using Prometheus;
 namespace DepHealth;
 
 /// <summary>
-/// Экспортирует метрики app_dependency_health и app_dependency_latency_seconds
-/// в prometheus-net CollectorRegistry.
+/// Exports app_dependency_health and app_dependency_latency_seconds metrics
+/// to the prometheus-net CollectorRegistry.
 /// </summary>
 public sealed class PrometheusExporter
 {
@@ -47,7 +47,7 @@ public sealed class PrometheusExporter
     }
 
     /// <summary>
-    /// Устанавливает значение метрики health (0 или 1).
+    /// Sets the health metric value (0 or 1).
     /// </summary>
     public void SetHealth(Dependency dep, Endpoint ep, double value)
     {
@@ -57,7 +57,7 @@ public sealed class PrometheusExporter
     }
 
     /// <summary>
-    /// Записывает задержку проверки в histogram.
+    /// Records check latency into the histogram.
     /// </summary>
     public void ObserveLatency(Dependency dep, Endpoint ep, TimeSpan duration)
     {

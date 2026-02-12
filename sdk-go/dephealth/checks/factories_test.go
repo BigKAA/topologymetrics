@@ -17,10 +17,10 @@ func TestPostgresFactory_URLPassedAsDSN(t *testing.T) {
 	checker := newPostgresFromConfig(dc)
 	pg, ok := checker.(*PostgresChecker)
 	if !ok {
-		t.Fatal("ожидали *PostgresChecker")
+		t.Fatal("expected *PostgresChecker")
 	}
 	if pg.dsn != dc.URL {
-		t.Errorf("dsn = %q, ожидали %q", pg.dsn, dc.URL)
+		t.Errorf("dsn = %q, expected %q", pg.dsn, dc.URL)
 	}
 }
 
@@ -31,11 +31,11 @@ func TestMySQLFactory_URLConvertedToDSN(t *testing.T) {
 	checker := newMySQLFromConfig(dc)
 	my, ok := checker.(*MySQLChecker)
 	if !ok {
-		t.Fatal("ожидали *MySQLChecker")
+		t.Fatal("expected *MySQLChecker")
 	}
 	want := "user:pass@tcp(mysql.svc:3306)/mydb"
 	if my.dsn != want {
-		t.Errorf("dsn = %q, ожидали %q", my.dsn, want)
+		t.Errorf("dsn = %q, expected %q", my.dsn, want)
 	}
 }
 
@@ -50,7 +50,7 @@ func TestRedisFactory_PasswordFromURL(t *testing.T) {
 	ep := dephealth.Endpoint{Host: mr.Host(), Port: mr.Port()}
 
 	if err := checker.Check(context.Background(), ep); err != nil {
-		t.Errorf("ожидали успех с password из URL, получили ошибку: %v", err)
+		t.Errorf("expected success with password from URL, got error: %v", err)
 	}
 }
 
@@ -66,7 +66,7 @@ func TestRedisFactory_ExplicitPasswordOverridesURL(t *testing.T) {
 	ep := dephealth.Endpoint{Host: mr.Host(), Port: mr.Port()}
 
 	if err := checker.Check(context.Background(), ep); err != nil {
-		t.Errorf("ожидали успех с явным password, получили ошибку: %v", err)
+		t.Errorf("expected success with explicit password, got error: %v", err)
 	}
 }
 
@@ -77,10 +77,10 @@ func TestRedisFactory_DBFromURL(t *testing.T) {
 	checker := newRedisFromConfig(dc)
 	rc, ok := checker.(*RedisChecker)
 	if !ok {
-		t.Fatal("ожидали *RedisChecker")
+		t.Fatal("expected *RedisChecker")
 	}
 	if rc.db != 3 {
-		t.Errorf("db = %d, ожидали 3", rc.db)
+		t.Errorf("db = %d, expected 3", rc.db)
 	}
 }
 
@@ -91,10 +91,10 @@ func TestAMQPFactory_URLPassedAsAMQPURL(t *testing.T) {
 	checker := newAMQPFromConfig(dc)
 	ac, ok := checker.(*AMQPChecker)
 	if !ok {
-		t.Fatal("ожидали *AMQPChecker")
+		t.Fatal("expected *AMQPChecker")
 	}
 	if ac.url != dc.URL {
-		t.Errorf("url = %q, ожидали %q", ac.url, dc.URL)
+		t.Errorf("url = %q, expected %q", ac.url, dc.URL)
 	}
 }
 
@@ -106,10 +106,10 @@ func TestAMQPFactory_ExplicitAMQPURLHasPriority(t *testing.T) {
 	checker := newAMQPFromConfig(dc)
 	ac, ok := checker.(*AMQPChecker)
 	if !ok {
-		t.Fatal("ожидали *AMQPChecker")
+		t.Fatal("expected *AMQPChecker")
 	}
 	if ac.url != dc.AMQPURL {
-		t.Errorf("url = %q, ожидали %q (explicit AMQPURL)", ac.url, dc.AMQPURL)
+		t.Errorf("url = %q, expected %q (explicit AMQPURL)", ac.url, dc.AMQPURL)
 	}
 }
 
@@ -120,27 +120,27 @@ func TestMySQLURLToDSN(t *testing.T) {
 		want string
 	}{
 		{
-			name: "полный URL",
+			name: "full URL",
 			url:  "mysql://user:pass@host:3306/db",
 			want: "user:pass@tcp(host:3306)/db",
 		},
 		{
-			name: "без пароля",
+			name: "without password",
 			url:  "mysql://user@host:3306/db",
 			want: "user@tcp(host:3306)/db",
 		},
 		{
-			name: "без credentials",
+			name: "without credentials",
 			url:  "mysql://host:3306/db",
 			want: "@tcp(host:3306)/db",
 		},
 		{
-			name: "с query параметрами",
+			name: "with query params",
 			url:  "mysql://user:pass@host:3306/db?charset=utf8mb4",
 			want: "user:pass@tcp(host:3306)/db?charset=utf8mb4",
 		},
 		{
-			name: "без базы данных",
+			name: "without database",
 			url:  "mysql://user:pass@host:3306",
 			want: "user:pass@tcp(host:3306)",
 		},
@@ -150,7 +150,7 @@ func TestMySQLURLToDSN(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := mysqlURLToDSN(tt.url)
 			if got != tt.want {
-				t.Errorf("mysqlURLToDSN(%q) = %q, ожидали %q", tt.url, got, tt.want)
+				t.Errorf("mysqlURLToDSN(%q) = %q, expected %q", tt.url, got, tt.want)
 			}
 		})
 	}

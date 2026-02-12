@@ -10,13 +10,13 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// Option — функциональная опция для New().
+// Option is a functional option for New().
 type Option func(*config) error
 
-// DependencyOption — опция для конкретной зависимости.
+// DependencyOption is an option for a specific dependency.
 type DependencyOption func(*DependencyConfig)
 
-// config — внутренняя конфигурация DepHealth.
+// config is the internal configuration for DepHealth.
 type config struct {
 	interval   time.Duration
 	timeout    time.Duration
@@ -25,8 +25,8 @@ type config struct {
 	entries    []dependencyEntry
 }
 
-// DependencyConfig — конфигурация одной зависимости.
-// Экспортируется для использования в checkerFactory (пакет checks).
+// DependencyConfig is the configuration for a single dependency.
+// Exported for use in checkerFactory (checks package).
 type DependencyConfig struct {
 	URL      string
 	Host     string
@@ -36,7 +36,7 @@ type DependencyConfig struct {
 	Timeout  time.Duration
 	Labels   map[string]string // Custom labels via WithLabel.
 
-	// Checker-специфичные опции.
+	// Checker-specific options.
 	HTTPHealthPath    string
 	HTTPTLS           *bool
 	HTTPTLSSkipVerify *bool
@@ -54,27 +54,27 @@ type DependencyConfig struct {
 	AMQPURL string
 }
 
-// dependencyEntry — зависимость с чекером, готовая к регистрации.
+// dependencyEntry is a dependency with its checker, ready for registration.
 type dependencyEntry struct {
 	dep     Dependency
 	checker HealthChecker
 }
 
-// CheckerFactory — функция для создания чекера из DependencyConfig.
+// CheckerFactory is a function that creates a checker from DependencyConfig.
 type CheckerFactory func(dc *DependencyConfig) HealthChecker
 
-// checkerFactories — реестр фабрик чекеров по типу зависимости.
+// checkerFactories is the registry of checker factories by dependency type.
 var checkerFactories = map[DependencyType]CheckerFactory{}
 
-// RegisterCheckerFactory регистрирует фабрику чекера для указанного типа.
-// Вызывается из init() пакета checks.
+// RegisterCheckerFactory registers a checker factory for the specified type.
+// Called from the checks package init().
 func RegisterCheckerFactory(depType DependencyType, factory CheckerFactory) {
 	checkerFactories[depType] = factory
 }
 
-// --- Глобальные опции (Option) ---
+// --- Global options (Option) ---
 
-// WithCheckInterval задаёт глобальный интервал проверок.
+// WithCheckInterval sets the global check interval.
 func WithCheckInterval(d time.Duration) Option {
 	return func(c *config) error {
 		c.interval = d
@@ -82,7 +82,7 @@ func WithCheckInterval(d time.Duration) Option {
 	}
 }
 
-// WithTimeout задаёт глобальный таймаут проверки.
+// WithTimeout sets the global check timeout.
 func WithTimeout(d time.Duration) Option {
 	return func(c *config) error {
 		c.timeout = d
@@ -90,7 +90,7 @@ func WithTimeout(d time.Duration) Option {
 	}
 }
 
-// WithRegisterer задаёт кастомный prometheus.Registerer для публичного API.
+// WithRegisterer sets a custom prometheus.Registerer for the public API.
 func WithRegisterer(r prometheus.Registerer) Option {
 	return func(c *config) error {
 		c.registerer = r
@@ -98,7 +98,7 @@ func WithRegisterer(r prometheus.Registerer) Option {
 	}
 }
 
-// WithLogger задаёт логгер для публичного API.
+// WithLogger sets the logger for the public API.
 func WithLogger(l *slog.Logger) Option {
 	return func(c *config) error {
 		c.logger = l
@@ -106,16 +106,16 @@ func WithLogger(l *slog.Logger) Option {
 	}
 }
 
-// --- Опции зависимостей (DependencyOption) ---
+// --- Dependency options (DependencyOption) ---
 
-// FromURL задаёт URL для парсинга host/port зависимости.
+// FromURL sets the URL for parsing the dependency host/port.
 func FromURL(rawURL string) DependencyOption {
 	return func(dc *DependencyConfig) {
 		dc.URL = rawURL
 	}
 }
 
-// FromParams задаёт host и port зависимости явно.
+// FromParams sets the dependency host and port explicitly.
 func FromParams(host, port string) DependencyOption {
 	return func(dc *DependencyConfig) {
 		dc.Host = host
@@ -123,17 +123,17 @@ func FromParams(host, port string) DependencyOption {
 	}
 }
 
-// Critical задаёт критичность зависимости.
-// Обязательна для каждой зависимости; если не указана — ошибка конфигурации.
+// Critical sets the criticality of a dependency.
+// Required for every dependency; if not specified, a configuration error is returned.
 func Critical(v bool) DependencyOption {
 	return func(dc *DependencyConfig) {
 		dc.Critical = &v
 	}
 }
 
-// WithLabel добавляет произвольную метку к зависимости.
-// Имя метки валидируется по Prometheus naming conventions.
-// Запрещено переопределять обязательные метки (name, dependency, type, host, port, critical).
+// WithLabel adds a custom label to the dependency.
+// The label name is validated according to Prometheus naming conventions.
+// Overriding required labels (name, dependency, type, host, port, critical) is not allowed.
 func WithLabel(key, value string) DependencyOption {
 	return func(dc *DependencyConfig) {
 		if dc.Labels == nil {
@@ -143,107 +143,107 @@ func WithLabel(key, value string) DependencyOption {
 	}
 }
 
-// CheckInterval задаёт интервал проверки для конкретной зависимости.
+// CheckInterval sets the check interval for a specific dependency.
 func CheckInterval(d time.Duration) DependencyOption {
 	return func(dc *DependencyConfig) {
 		dc.Interval = d
 	}
 }
 
-// Timeout задаёт таймаут проверки для конкретной зависимости.
+// Timeout sets the check timeout for a specific dependency.
 func Timeout(d time.Duration) DependencyOption {
 	return func(dc *DependencyConfig) {
 		dc.Timeout = d
 	}
 }
 
-// --- Checker-обёртки (DependencyOption) ---
+// --- Checker wrappers (DependencyOption) ---
 
-// WithHTTPHealthPath задаёт путь для HTTP health check.
+// WithHTTPHealthPath sets the path for HTTP health checks.
 func WithHTTPHealthPath(path string) DependencyOption {
 	return func(dc *DependencyConfig) {
 		dc.HTTPHealthPath = path
 	}
 }
 
-// WithHTTPTLS включает TLS для HTTP-чекера.
+// WithHTTPTLS enables TLS for the HTTP checker.
 func WithHTTPTLS(enabled bool) DependencyOption {
 	return func(dc *DependencyConfig) {
 		dc.HTTPTLS = &enabled
 	}
 }
 
-// WithHTTPTLSSkipVerify отключает проверку TLS-сертификатов для HTTP.
+// WithHTTPTLSSkipVerify disables TLS certificate verification for HTTP.
 func WithHTTPTLSSkipVerify(skip bool) DependencyOption {
 	return func(dc *DependencyConfig) {
 		dc.HTTPTLSSkipVerify = &skip
 	}
 }
 
-// WithGRPCServiceName задаёт имя gRPC-сервиса для проверки.
+// WithGRPCServiceName sets the gRPC service name for health checks.
 func WithGRPCServiceName(name string) DependencyOption {
 	return func(dc *DependencyConfig) {
 		dc.GRPCServiceName = name
 	}
 }
 
-// WithGRPCTLS включает TLS для gRPC-чекера.
+// WithGRPCTLS enables TLS for the gRPC checker.
 func WithGRPCTLS(enabled bool) DependencyOption {
 	return func(dc *DependencyConfig) {
 		dc.GRPCTLS = &enabled
 	}
 }
 
-// WithGRPCTLSSkipVerify отключает проверку TLS-сертификатов для gRPC.
+// WithGRPCTLSSkipVerify disables TLS certificate verification for gRPC.
 func WithGRPCTLSSkipVerify(skip bool) DependencyOption {
 	return func(dc *DependencyConfig) {
 		dc.GRPCTLSSkipVerify = &skip
 	}
 }
 
-// WithPostgresQuery задаёт SQL-запрос для проверки PostgreSQL.
+// WithPostgresQuery sets the SQL query for PostgreSQL health checks.
 func WithPostgresQuery(query string) DependencyOption {
 	return func(dc *DependencyConfig) {
 		dc.PostgresQuery = query
 	}
 }
 
-// WithMySQLQuery задаёт SQL-запрос для проверки MySQL.
+// WithMySQLQuery sets the SQL query for MySQL health checks.
 func WithMySQLQuery(query string) DependencyOption {
 	return func(dc *DependencyConfig) {
 		dc.MySQLQuery = query
 	}
 }
 
-// WithRedisPassword задаёт пароль для Redis (standalone-режим).
+// WithRedisPassword sets the password for Redis (standalone mode).
 func WithRedisPassword(password string) DependencyOption {
 	return func(dc *DependencyConfig) {
 		dc.RedisPassword = password
 	}
 }
 
-// WithRedisDB задаёт номер базы данных Redis (standalone-режим).
+// WithRedisDB sets the Redis database number (standalone mode).
 func WithRedisDB(db int) DependencyOption {
 	return func(dc *DependencyConfig) {
 		dc.RedisDB = &db
 	}
 }
 
-// WithAMQPURL задаёт полный AMQP URL для подключения.
+// WithAMQPURL sets the full AMQP URL for connections.
 func WithAMQPURL(url string) DependencyOption {
 	return func(dc *DependencyConfig) {
 		dc.AMQPURL = url
 	}
 }
 
-// --- Фабрики зависимостей (Option) ---
+// --- Dependency factories (Option) ---
 
-// makeDepOption создаёт общую фабрику зависимости для заданного типа.
+// makeDepOption creates a common dependency factory for the given type.
 func makeDepOption(name string, depType DependencyType, opts []DependencyOption) Option {
 	return func(c *config) error {
 		dc := applyDepOpts(opts)
 
-		// Автоматически включаем TLS для https:// URL.
+		// Automatically enable TLS for https:// URLs.
 		if depType == TypeHTTP && dc.URL != "" && strings.HasPrefix(strings.ToLower(dc.URL), "https://") {
 			if dc.HTTPTLS == nil {
 				enabled := true
@@ -269,50 +269,50 @@ func makeDepOption(name string, depType DependencyType, opts []DependencyOption)
 	}
 }
 
-// HTTP регистрирует HTTP-зависимость.
+// HTTP registers an HTTP dependency.
 func HTTP(name string, opts ...DependencyOption) Option {
 	return makeDepOption(name, TypeHTTP, opts)
 }
 
-// GRPC регистрирует gRPC-зависимость.
+// GRPC registers a gRPC dependency.
 func GRPC(name string, opts ...DependencyOption) Option {
 	return makeDepOption(name, TypeGRPC, opts)
 }
 
-// TCP регистрирует TCP-зависимость.
+// TCP registers a TCP dependency.
 func TCP(name string, opts ...DependencyOption) Option {
 	return makeDepOption(name, TypeTCP, opts)
 }
 
-// Postgres регистрирует PostgreSQL-зависимость.
+// Postgres registers a PostgreSQL dependency.
 func Postgres(name string, opts ...DependencyOption) Option {
 	return makeDepOption(name, TypePostgres, opts)
 }
 
-// MySQL регистрирует MySQL-зависимость.
+// MySQL registers a MySQL dependency.
 func MySQL(name string, opts ...DependencyOption) Option {
 	return makeDepOption(name, TypeMySQL, opts)
 }
 
-// Redis регистрирует Redis-зависимость.
+// Redis registers a Redis dependency.
 func Redis(name string, opts ...DependencyOption) Option {
 	return makeDepOption(name, TypeRedis, opts)
 }
 
-// AMQP регистрирует AMQP-зависимость.
+// AMQP registers an AMQP dependency.
 func AMQP(name string, opts ...DependencyOption) Option {
 	return makeDepOption(name, TypeAMQP, opts)
 }
 
-// Kafka регистрирует Kafka-зависимость.
+// Kafka registers a Kafka dependency.
 func Kafka(name string, opts ...DependencyOption) Option {
 	return makeDepOption(name, TypeKafka, opts)
 }
 
-// --- Contrib-хелпер ---
+// --- Contrib helper ---
 
-// AddDependency создаёт Option для регистрации произвольной зависимости.
-// Используется contrib-модулями для интеграции с пулами соединений.
+// AddDependency creates an Option for registering an arbitrary dependency.
+// Used by contrib modules for connection pool integration.
 func AddDependency(name string, depType DependencyType, checker HealthChecker, opts ...DependencyOption) Option {
 	return func(c *config) error {
 		dc := applyDepOpts(opts)
@@ -329,9 +329,9 @@ func AddDependency(name string, depType DependencyType, checker HealthChecker, o
 	}
 }
 
-// --- Вспомогательные функции ---
+// --- Helper functions ---
 
-// applyDepOpts применяет опции зависимости и возвращает конфигурацию.
+// applyDepOpts applies dependency options and returns the configuration.
 func applyDepOpts(opts []DependencyOption) *DependencyConfig {
 	dc := &DependencyConfig{}
 	for _, o := range opts {
@@ -346,7 +346,7 @@ func envDepName(name string) string {
 	return strings.ToUpper(strings.ReplaceAll(name, "-", "_"))
 }
 
-// buildDependency собирает Dependency из DependencyConfig и глобальной config.
+// buildDependency assembles a Dependency from DependencyConfig and global config.
 func buildDependency(name string, depType DependencyType, dc *DependencyConfig, c *config) (Dependency, error) {
 	var endpoints []Endpoint
 
@@ -368,7 +368,7 @@ func buildDependency(name string, depType DependencyType, dc *DependencyConfig, 
 		return Dependency{}, fmt.Errorf("dependency %q: missing URL or host/port parameters", name)
 	}
 
-	// Critical: API > env var. Env var значения: "yes"/"no".
+	// Critical: API > env var. Env var values: "yes"/"no".
 	if dc.Critical == nil {
 		envKey := "DEPHEALTH_" + envDepName(name) + "_CRITICAL"
 		if v := os.Getenv(envKey); v != "" {
@@ -383,17 +383,17 @@ func buildDependency(name string, depType DependencyType, dc *DependencyConfig, 
 		}
 	}
 
-	// Critical обязателен.
+	// Critical is required.
 	if dc.Critical == nil {
 		return Dependency{}, fmt.Errorf("missing critical for dependency %q", name)
 	}
 
-	// Валидация labels.
+	// Validate labels.
 	if err := ValidateLabels(dc.Labels); err != nil {
 		return Dependency{}, fmt.Errorf("dependency %q: %w", name, err)
 	}
 
-	// Читаем custom labels из env vars: DEPHEALTH_<DEP>_LABEL_<KEY>.
+	// Read custom labels from env vars: DEPHEALTH_<DEP>_LABEL_<KEY>.
 	envPrefix := "DEPHEALTH_" + envDepName(name) + "_LABEL_"
 	for _, env := range os.Environ() {
 		if strings.HasPrefix(env, envPrefix) {
@@ -416,7 +416,7 @@ func buildDependency(name string, depType DependencyType, dc *DependencyConfig, 
 		}
 	}
 
-	// Мержим labels в endpoints.
+	// Merge labels into endpoints.
 	if len(dc.Labels) > 0 {
 		for i := range endpoints {
 			if endpoints[i].Labels == nil {
@@ -428,7 +428,7 @@ func buildDependency(name string, depType DependencyType, dc *DependencyConfig, 
 		}
 	}
 
-	// Определяем интервал: per-dependency → global → default.
+	// Determine interval: per-dependency > global > default.
 	interval := DefaultCheckInterval
 	if c.interval > 0 {
 		interval = c.interval
@@ -437,7 +437,7 @@ func buildDependency(name string, depType DependencyType, dc *DependencyConfig, 
 		interval = dc.Interval
 	}
 
-	// Определяем таймаут: per-dependency → global → default.
+	// Determine timeout: per-dependency > global > default.
 	timeout := DefaultTimeout
 	if c.timeout > 0 {
 		timeout = c.timeout

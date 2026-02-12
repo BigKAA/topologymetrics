@@ -11,7 +11,7 @@ import java.sql.Statement;
 import java.time.Duration;
 
 /**
- * Postgres health checker — SELECT 1 через JDBC (pool DataSource или standalone).
+ * Postgres health checker — SELECT 1 via JDBC (pool DataSource or standalone).
  */
 public final class PostgresHealthChecker implements HealthChecker {
 

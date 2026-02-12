@@ -1,4 +1,4 @@
-"""ASGI-middleware для экспорта Prometheus-метрик на /metrics."""
+"""ASGI middleware for exporting Prometheus metrics at /metrics."""
 
 from __future__ import annotations
 
@@ -10,15 +10,15 @@ from starlette.types import ASGIApp
 
 
 class DepHealthMiddleware(BaseHTTPMiddleware):
-    """Middleware для FastAPI: обслуживает ``/metrics`` endpoint.
+    """FastAPI middleware that serves the ``/metrics`` endpoint.
 
-    Перехватывает запросы к ``/metrics`` и возвращает Prometheus-метрики.
-    Все остальные запросы проходят к приложению без изменений.
+    Intercepts requests to ``/metrics`` and returns Prometheus metrics.
+    All other requests are passed through to the application unchanged.
 
-    Пример::
+    Example::
 
         app.add_middleware(DepHealthMiddleware)
-        # или с кастомным registry:
+        # or with a custom registry:
         app.add_middleware(DepHealthMiddleware, registry=my_registry, metrics_path="/custom")
     """
 
@@ -33,7 +33,7 @@ class DepHealthMiddleware(BaseHTTPMiddleware):
         self._metrics_path = metrics_path
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        """Перехватывает /metrics, остальное — передаёт дальше."""
+        """Intercept /metrics; pass everything else through."""
         if request.url.path == self._metrics_path:
             body = generate_latest(self._registry)
             return Response(

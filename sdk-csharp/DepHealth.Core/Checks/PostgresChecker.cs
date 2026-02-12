@@ -3,8 +3,8 @@ using Npgsql;
 namespace DepHealth.Checks;
 
 /// <summary>
-/// PostgreSQL health checker — выполняет SELECT 1.
-/// Поддерживает автономный режим и интеграцию с NpgsqlDataSource.
+/// PostgreSQL health checker — executes SELECT 1.
+/// Supports standalone mode and integration with NpgsqlDataSource.
 /// </summary>
 public sealed class PostgresChecker : IHealthChecker
 {
@@ -14,7 +14,7 @@ public sealed class PostgresChecker : IHealthChecker
     public DependencyType Type => DependencyType.Postgres;
 
     /// <summary>
-    /// Автономный режим: создаёт новое соединение.
+    /// Standalone mode: creates a new connection.
     /// </summary>
     public PostgresChecker(string? connectionString = null)
     {
@@ -22,7 +22,7 @@ public sealed class PostgresChecker : IHealthChecker
     }
 
     /// <summary>
-    /// Pool-режим: использует существующий NpgsqlDataSource.
+    /// Pool mode: uses an existing NpgsqlDataSource.
     /// </summary>
     public PostgresChecker(NpgsqlDataSource dataSource)
     {

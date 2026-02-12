@@ -1,4 +1,4 @@
-"""Публичный API: DependencyHealth и фабрики зависимостей."""
+"""Public API: DependencyHealth and dependency factory functions."""
 
 from __future__ import annotations
 
@@ -36,14 +36,14 @@ _INSTANCE_NAME_PATTERN = re.compile(r"^[a-z][a-z0-9-]{0,62}$")
 
 
 def _validate_instance_name(name: str) -> None:
-    """Проверяет имя экземпляра (instance name)."""
+    """Validate the instance name."""
     if not _INSTANCE_NAME_PATTERN.match(name):
         msg = f"invalid instance name {name!r}: must match [a-z][a-z0-9-]{{{{0,62}}}}"
         raise ValueError(msg)
 
 
 class _DependencySpec:
-    """Спецификация зависимости (результат фабричной функции)."""
+    """Dependency specification (result of a factory function)."""
 
     def __init__(
         self,
@@ -67,7 +67,7 @@ class _DependencySpec:
 
 
 def _apply_env_vars(spec: _DependencySpec) -> None:
-    """Применяет переменные окружения DEPHEALTH_<DEP>_CRITICAL и DEPHEALTH_<DEP>_LABEL_<KEY>."""
+    """Apply DEPHEALTH_<DEP>_CRITICAL and DEPHEALTH_<DEP>_LABEL_<KEY> environment variables."""
     dep_key = spec.name.upper().replace("-", "_")
 
     critical_env = os.environ.get(f"DEPHEALTH_{dep_key}_CRITICAL")
@@ -91,7 +91,7 @@ def _apply_env_vars(spec: _DependencySpec) -> None:
 
 
 def _collect_custom_label_keys(specs: tuple[_DependencySpec, ...]) -> tuple[str, ...]:
-    """Собирает все произвольные label keys из всех specs и возвращает отсортированный tuple."""
+    """Collect all custom label keys from all specs and return a sorted tuple."""
     keys: set[str] = set()
     for spec in specs:
         keys.update(spec.labels.keys())
@@ -99,9 +99,9 @@ def _collect_custom_label_keys(specs: tuple[_DependencySpec, ...]) -> tuple[str,
 
 
 class DependencyHealth:
-    """Главный объект SDK: управление мониторингом зависимостей.
+    """Main SDK object: manages dependency health monitoring.
 
-    Пример использования:
+    Usage example::
 
         dh = DependencyHealth(
             "my-service",
@@ -147,13 +147,12 @@ class DependencyHealth:
             interval = spec.interval or check_interval
             to = spec.timeout or timeout
 
-            config = CheckConfig(
-                initial_delay=0,
-            )
+            config_kwargs: dict[str, Any] = {"initial_delay": 0}
             if interval is not None:
-                config.interval = interval.total_seconds()
+                config_kwargs["interval"] = interval.total_seconds()
             if to is not None:
-                config.timeout = to.total_seconds()
+                config_kwargs["timeout"] = to.total_seconds()
+            config = CheckConfig(**config_kwargs)
 
             validate_labels(spec.labels)
 
@@ -173,31 +172,31 @@ class DependencyHealth:
             self._scheduler.add(dep, spec.checker)
 
     async def start(self) -> None:
-        """Запуск мониторинга (asyncio)."""
+        """Start monitoring (asyncio)."""
         await self._scheduler.start()
 
     async def stop(self) -> None:
-        """Остановка мониторинга (asyncio)."""
+        """Stop monitoring (asyncio)."""
         await self._scheduler.stop()
 
     def start_sync(self) -> None:
-        """Запуск мониторинга (threading fallback)."""
+        """Start monitoring (threading fallback)."""
         self._scheduler.start_sync()
 
     def stop_sync(self) -> None:
-        """Остановка мониторинга (threading fallback)."""
+        """Stop monitoring (threading fallback)."""
         self._scheduler.stop_sync()
 
     def health(self) -> dict[str, bool]:
-        """Текущее состояние всех зависимостей."""
+        """Return current health status of all dependencies."""
         return self._scheduler.health()
 
 
-# --- Фабрики зависимостей ---
+# --- Dependency factory functions ---
 
 
 def _endpoints_from_url(url: str) -> list[Endpoint]:
-    """Парсит URL и возвращает список Endpoint."""
+    """Parse a URL and return a list of Endpoints."""
     parsed = parse_url(url)
     return [Endpoint(host=p.host, port=p.port) for p in parsed]
 
@@ -216,7 +215,7 @@ def http_check(
     interval: timedelta | None = None,
     labels: dict[str, str] | None = None,
 ) -> _DependencySpec:
-    """Создаёт HTTP-проверку."""
+    """Create an HTTP health check."""
     endpoints = _endpoints_from_url(url) if url else [parse_params(host, port)]
     checker = HTTPChecker(
         health_path=health_path,
@@ -250,7 +249,7 @@ def grpc_check(
     interval: timedelta | None = None,
     labels: dict[str, str] | None = None,
 ) -> _DependencySpec:
-    """Создаёт gRPC-проверку."""
+    """Create a gRPC health check."""
     if url:
         parsed = parse_url(url)
         endpoints = [Endpoint(host=p.host, port=p.port) for p in parsed]
@@ -284,7 +283,7 @@ def tcp_check(
     interval: timedelta | None = None,
     labels: dict[str, str] | None = None,
 ) -> _DependencySpec:
-    """Создаёт TCP-проверку."""
+    """Create a TCP health check."""
     endpoints = [parse_params(host, port)]
     checker = TCPChecker(timeout=timeout.total_seconds() if timeout else 5.0)
     return _DependencySpec(
@@ -312,7 +311,7 @@ def postgres_check(
     interval: timedelta | None = None,
     labels: dict[str, str] | None = None,
 ) -> _DependencySpec:
-    """Создаёт PostgreSQL-проверку."""
+    """Create a PostgreSQL health check."""
     endpoints = _endpoints_from_url(url) if url else [parse_params(host, port)]
     checker = PostgresChecker(
         timeout=timeout.total_seconds() if timeout else 5.0,
@@ -345,7 +344,7 @@ def mysql_check(
     interval: timedelta | None = None,
     labels: dict[str, str] | None = None,
 ) -> _DependencySpec:
-    """Создаёт MySQL-проверку."""
+    """Create a MySQL health check."""
     endpoints = _endpoints_from_url(url) if url else [parse_params(host, port)]
     checker = MySQLChecker(
         timeout=timeout.total_seconds() if timeout else 5.0,
@@ -379,7 +378,7 @@ def redis_check(
     interval: timedelta | None = None,
     labels: dict[str, str] | None = None,
 ) -> _DependencySpec:
-    """Создаёт Redis-проверку."""
+    """Create a Redis health check."""
     endpoints = _endpoints_from_url(url) if url else [parse_params(host, port)]
     checker = RedisChecker(
         timeout=timeout.total_seconds() if timeout else 5.0,
@@ -411,7 +410,7 @@ def amqp_check(
     interval: timedelta | None = None,
     labels: dict[str, str] | None = None,
 ) -> _DependencySpec:
-    """Создаёт AMQP-проверку."""
+    """Create an AMQP health check."""
     endpoints = _endpoints_from_url(url) if url else [parse_params(host, port)]
     checker = AMQPChecker(
         timeout=timeout.total_seconds() if timeout else 5.0,
@@ -440,7 +439,7 @@ def kafka_check(
     interval: timedelta | None = None,
     labels: dict[str, str] | None = None,
 ) -> _DependencySpec:
-    """Создаёт Kafka-проверку."""
+    """Create a Kafka health check."""
     endpoints = _endpoints_from_url(url) if url else [parse_params(host, port)]
     checker = KafkaChecker(timeout=timeout.total_seconds() if timeout else 5.0)
     return _DependencySpec(

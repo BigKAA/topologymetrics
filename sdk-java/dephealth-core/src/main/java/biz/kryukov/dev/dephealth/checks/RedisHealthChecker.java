@@ -10,7 +10,7 @@ import redis.clients.jedis.JedisPool;
 import java.time.Duration;
 
 /**
- * Redis health checker — PING/PONG через Jedis (pool или standalone).
+ * Redis health checker — PING/PONG via Jedis (pool or standalone).
  */
 public final class RedisHealthChecker implements HealthChecker {
 

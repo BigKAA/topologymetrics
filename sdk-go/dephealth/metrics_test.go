@@ -17,7 +17,7 @@ func newTestExporter(t *testing.T, instanceName string, opts ...MetricsOption) (
 	allOpts := append([]MetricsOption{WithMetricsRegisterer(reg)}, opts...)
 	m, err := NewMetricsExporter(instanceName, allOpts...)
 	if err != nil {
-		t.Fatalf("не удалось создать MetricsExporter: %v", err)
+		t.Fatalf("failed to create MetricsExporter: %v", err)
 	}
 	return m, reg
 }
@@ -36,7 +36,7 @@ func TestMetricsExporter_SetHealth(t *testing.T) {
 		app_dependency_health{critical="yes",dependency="postgres-main",host="pg.svc",name="test-app",port="5432",type="postgres"} 1
 	`
 	if err := testutil.CollectAndCompare(m.health, strings.NewReader(expected)); err != nil {
-		t.Errorf("метрика health не совпадает: %v", err)
+		t.Errorf("health metric mismatch: %v", err)
 	}
 }
 
@@ -54,7 +54,7 @@ func TestMetricsExporter_SetHealth_Unhealthy(t *testing.T) {
 		app_dependency_health{critical="no",dependency="redis-cache",host="redis.svc",name="test-app",port="6379",type="redis"} 0
 	`
 	if err := testutil.CollectAndCompare(m.health, strings.NewReader(expected)); err != nil {
-		t.Errorf("метрика health не совпадает: %v", err)
+		t.Errorf("health metric mismatch: %v", err)
 	}
 }
 
@@ -66,10 +66,10 @@ func TestMetricsExporter_ObserveLatency(t *testing.T) {
 
 	m.ObserveLatency(dep, ep, 3*time.Millisecond)
 
-	// Проверяем через Gather, что histogram получил 1 наблюдение.
+	// Verify through Gather that the histogram received 1 observation.
 	mfs, err := reg.Gather()
 	if err != nil {
-		t.Fatalf("ошибка сбора метрик: %v", err)
+		t.Fatalf("failed to gather metrics: %v", err)
 	}
 
 	found := false
@@ -83,7 +83,7 @@ func TestMetricsExporter_ObserveLatency(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Error("ожидали 1 наблюдение в histogram")
+		t.Error("expected 1 observation in histogram")
 	}
 }
 
@@ -104,21 +104,21 @@ func TestMetricsExporter_MultipleEndpoints(t *testing.T) {
 		app_dependency_health{critical="yes",dependency="postgres-main",host="pg-replica.svc",name="test-app",port="5432",role="replica",type="postgres"} 0
 	`
 	if err := testutil.CollectAndCompare(m.health, strings.NewReader(expected)); err != nil {
-		t.Errorf("метрики для нескольких endpoint-ов не совпадают: %v", err)
+		t.Errorf("metrics for multiple endpoints mismatch: %v", err)
 	}
 }
 
 func TestMetricsExporter_CustomLabels_Sorted(t *testing.T) {
 	m, _ := newTestExporter(t, "test-app", WithCustomLabels("vhost", "role"))
 
-	// Проверяем что метки отсортированы: name, dependency, type, host, port, critical, role, vhost.
+	// Verify that labels are sorted: name, dependency, type, host, port, critical, role, vhost.
 	expectedLabels := []string{"name", "dependency", "type", "host", "port", "critical", "role", "vhost"}
 	if len(m.allLabelNames) != len(expectedLabels) {
-		t.Fatalf("ожидали %d меток, получили %d", len(expectedLabels), len(m.allLabelNames))
+		t.Fatalf("expected %d labels, got %d", len(expectedLabels), len(m.allLabelNames))
 	}
 	for i, l := range expectedLabels {
 		if m.allLabelNames[i] != l {
-			t.Errorf("метка[%d] = %q, ожидали %q", i, m.allLabelNames[i], l)
+			t.Errorf("label[%d] = %q, expected %q", i, m.allLabelNames[i], l)
 		}
 	}
 }
@@ -127,10 +127,10 @@ func TestMetricsExporter_InvalidCustomLabel(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	_, err := NewMetricsExporter("test-app", WithMetricsRegisterer(reg), WithCustomLabels("dependency"))
 	if err == nil {
-		t.Fatal("ожидали ошибку для зарезервированной метки, получили nil")
+		t.Fatal("expected error for reserved label, got nil")
 	}
 	if !strings.Contains(err.Error(), "reserved label") {
-		t.Errorf("ожидали ошибку reserved label, получили: %v", err)
+		t.Errorf("expected reserved label error, got: %v", err)
 	}
 }
 
@@ -138,10 +138,10 @@ func TestMetricsExporter_InvalidLabelFormat(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	_, err := NewMetricsExporter("test-app", WithMetricsRegisterer(reg), WithCustomLabels("0invalid"))
 	if err == nil {
-		t.Fatal("ожидали ошибку для невалидной метки, получили nil")
+		t.Fatal("expected error for invalid label, got nil")
 	}
 	if !strings.Contains(err.Error(), "invalid label name") {
-		t.Errorf("ожидали ошибку invalid label name, получили: %v", err)
+		t.Errorf("expected invalid label name error, got: %v", err)
 	}
 }
 
@@ -154,17 +154,17 @@ func TestMetricsExporter_DeleteMetrics(t *testing.T) {
 	m.SetHealth(dep, ep, 1)
 	m.ObserveLatency(dep, ep, 5*time.Millisecond)
 
-	// Удаляем метрики.
+	// Delete metrics.
 	m.DeleteMetrics(dep, ep)
 
-	// После удаления метрик не должно быть серий.
+	// After deletion there should be no series.
 	mfs, err := reg.Gather()
 	if err != nil {
-		t.Fatalf("ошибка сбора метрик: %v", err)
+		t.Fatalf("failed to gather metrics: %v", err)
 	}
 	for _, mf := range mfs {
 		if len(mf.GetMetric()) > 0 {
-			t.Errorf("ожидали 0 серий для %s после удаления, получили %d",
+			t.Errorf("expected 0 series for %s after deletion, got %d",
 				mf.GetName(), len(mf.GetMetric()))
 		}
 	}
@@ -174,13 +174,13 @@ func TestMetricsExporter_DuplicateRegister(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	_, err := NewMetricsExporter("test-app", WithMetricsRegisterer(reg))
 	if err != nil {
-		t.Fatalf("первая регистрация не должна вернуть ошибку: %v", err)
+		t.Fatalf("first registration should not return an error: %v", err)
 	}
 
-	// Повторная регистрация должна вернуть ошибку.
+	// Duplicate registration should return an error.
 	_, err = NewMetricsExporter("test-app", WithMetricsRegisterer(reg))
 	if err == nil {
-		t.Fatal("ожидали ошибку при повторной регистрации, получили nil")
+		t.Fatal("expected error on duplicate registration, got nil")
 	}
 }
 
@@ -190,13 +190,13 @@ func TestMetricsExporter_LatencyBuckets(t *testing.T) {
 	dep := Dependency{Name: "redis-cache", Type: TypeRedis, Critical: boolPtr(false)}
 	ep := Endpoint{Host: "redis.svc", Port: "6379"}
 
-	// Записываем наблюдение 50ms — должно попасть в бакет 0.05.
+	// Record a 50ms observation — should go into the 0.05 bucket.
 	m.ObserveLatency(dep, ep, 50*time.Millisecond)
 
-	// Проверяем что histogram содержит правильные бакеты.
+	// Verify that the histogram contains the correct buckets.
 	count := testutil.CollectAndCount(m.latency)
 	if count == 0 {
-		t.Error("histogram не содержит данных")
+		t.Error("histogram has no data")
 	}
 }
 
@@ -204,7 +204,7 @@ func TestMetricsExporter_LabelEmptyFallback(t *testing.T) {
 	m, _ := newTestExporter(t, "test-app", WithCustomLabels("role"))
 
 	dep := Dependency{Name: "redis-cache", Type: TypeRedis, Critical: boolPtr(false)}
-	// Endpoint без Labels — custom метка должна быть пустой строкой.
+	// Endpoint without Labels — custom label should be an empty string.
 	ep := Endpoint{Host: "redis.svc", Port: "6379"}
 
 	m.SetHealth(dep, ep, 1)
@@ -215,7 +215,7 @@ func TestMetricsExporter_LabelEmptyFallback(t *testing.T) {
 		app_dependency_health{critical="no",dependency="redis-cache",host="redis.svc",name="test-app",port="6379",role="",type="redis"} 1
 	`
 	if err := testutil.CollectAndCompare(m.health, strings.NewReader(expected)); err != nil {
-		t.Errorf("метрика с пустой custom меткой не совпадает: %v", err)
+		t.Errorf("metric with empty custom label mismatch: %v", err)
 	}
 }
 
@@ -233,6 +233,6 @@ func TestMetricsExporter_InstanceName(t *testing.T) {
 		app_dependency_health{critical="yes",dependency="postgres-main",host="pg.svc",name="order-api",port="5432",type="postgres"} 1
 	`
 	if err := testutil.CollectAndCompare(m.health, strings.NewReader(expected)); err != nil {
-		t.Errorf("метрика с instanceName не совпадает: %v", err)
+		t.Errorf("metric with instanceName mismatch: %v", err)
 	}
 }

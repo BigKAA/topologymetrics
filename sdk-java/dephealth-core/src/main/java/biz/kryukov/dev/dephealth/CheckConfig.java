@@ -3,7 +3,7 @@ package biz.kryukov.dev.dephealth;
 import java.time.Duration;
 
 /**
- * Конфигурация проверки здоровья зависимости. Immutable, создаётся через Builder.
+ * Dependency health check configuration. Immutable, created via Builder.
  */
 public final class CheckConfig {
 

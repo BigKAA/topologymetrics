@@ -1,7 +1,7 @@
 namespace DepHealth;
 
 /// <summary>
-/// Результат парсинга URL/connection string: хост, порт, тип зависимости.
+/// Result of URL/connection string parsing: host, port, dependency type.
 /// </summary>
 public sealed record ParsedConnection(string Host, string Port, DependencyType Type)
 {

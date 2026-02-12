@@ -1,7 +1,7 @@
 namespace DepHealth;
 
 /// <summary>
-/// Порты по умолчанию для различных типов зависимостей и схем URL.
+/// Default ports for various dependency types and URL schemes.
 /// </summary>
 public static class DefaultPorts
 {
@@ -32,13 +32,13 @@ public static class DefaultPorts
     };
 
     /// <summary>
-    /// Возвращает порт по умолчанию для схемы URL.
+    /// Returns the default port for a URL scheme.
     /// </summary>
     public static string? ForScheme(string scheme) =>
         SchemeToPort.TryGetValue(scheme, out var port) ? port : null;
 
     /// <summary>
-    /// Возвращает порт по умолчанию для типа зависимости.
+    /// Returns the default port for a dependency type.
     /// </summary>
     public static string? ForType(DependencyType type) =>
         TypeToPort.TryGetValue(type, out var port) ? port : null;

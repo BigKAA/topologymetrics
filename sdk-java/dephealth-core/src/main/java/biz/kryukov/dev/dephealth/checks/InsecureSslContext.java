@@ -8,7 +8,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
 
 /**
- * SSLContext, который принимает все сертификаты (для tlsSkipVerify).
+ * SSLContext that accepts all certificates (for tlsSkipVerify).
  */
 final class InsecureSslContext {
 
@@ -27,12 +27,12 @@ final class InsecureSslContext {
     private static final class TrustAllManager implements X509TrustManager {
         @Override
         public void checkClientTrusted(X509Certificate[] chain, String authType) {
-            // принимаем всё
+            // accept all
         }
 
         @Override
         public void checkServerTrusted(X509Certificate[] chain, String authType) {
-            // принимаем всё
+            // accept all
         }
 
         @Override

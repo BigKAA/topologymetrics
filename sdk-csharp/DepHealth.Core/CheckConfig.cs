@@ -1,7 +1,7 @@
 namespace DepHealth;
 
 /// <summary>
-/// Конфигурация проверки здоровья зависимости. Immutable, создаётся через Builder.
+/// Dependency health check configuration. Immutable, created via Builder.
 /// </summary>
 public sealed class CheckConfig
 {

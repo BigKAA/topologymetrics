@@ -1,7 +1,7 @@
 namespace DepHealth.Exceptions;
 
 /// <summary>
-/// Таймаут при проверке здоровья зависимости.
+/// Timeout during dependency health check.
 /// </summary>
 public class CheckTimeoutException : DepHealthException
 {

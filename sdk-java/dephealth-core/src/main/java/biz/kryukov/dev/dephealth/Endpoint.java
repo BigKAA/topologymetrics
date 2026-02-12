@@ -7,15 +7,15 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Эндпоинт зависимости (хост + порт + метки). Immutable.
+ * Dependency endpoint (host + port + labels). Immutable.
  */
 public final class Endpoint {
 
-    /** Паттерн имени метки: начинается с буквы или _, далее буквы, цифры, _. */
+    /** Label name pattern: starts with a letter or _, followed by letters, digits, _. */
     private static final Pattern LABEL_NAME_PATTERN =
             Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_]*$");
 
-    /** Метки, зарезервированные SDK — нельзя переопределять через WithLabel/label(). */
+    /** Labels reserved by the SDK — cannot be overridden via WithLabel/label(). */
     public static final Set<String> RESERVED_LABELS = Set.of(
             "name", "dependency", "type", "host", "port", "critical"
     );
@@ -47,16 +47,16 @@ public final class Endpoint {
     }
 
     /**
-     * Возвращает произвольные метки (labels) эндпоинта.
+     * Returns custom labels of the endpoint.
      *
-     * @return неизменяемая карта меток
+     * @return unmodifiable map of labels
      */
     public Map<String, String> labels() {
         return metadata;
     }
 
     /**
-     * @deprecated Используйте {@link #labels()}.
+     * @deprecated Use {@link #labels()} instead.
      */
     @Deprecated
     public Map<String, String> metadata() {
@@ -64,10 +64,10 @@ public final class Endpoint {
     }
 
     /**
-     * Проверяет имя метки на соответствие паттерну Prometheus.
+     * Validates the label name against the Prometheus naming pattern.
      *
-     * @param name имя метки
-     * @throws ValidationException если имя не соответствует паттерну или является зарезервированным
+     * @param name label name
+     * @throws ValidationException if the name does not match the pattern or is reserved
      */
     public static void validateLabelName(String name) {
         Objects.requireNonNull(name, "label name");
@@ -83,10 +83,10 @@ public final class Endpoint {
     }
 
     /**
-     * Валидирует все метки из карты: имена и зарезервированность.
+     * Validates all labels in the map: names and reserved status.
      *
-     * @param labels карта меток
-     * @throws ValidationException если какое-либо имя невалидно
+     * @param labels label map
+     * @throws ValidationException if any name is invalid
      */
     public static void validateLabels(Map<String, String> labels) {
         if (labels == null) {

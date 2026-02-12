@@ -1,5 +1,7 @@
 """dephealth — SDK for monitoring microservice dependencies via Prometheus metrics."""
 
+from __future__ import annotations
+
 from dephealth.checker import (
     CheckConnectionRefusedError,
     CheckError,

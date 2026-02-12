@@ -27,9 +27,9 @@ import java.util.TreeSet;
 import java.util.regex.Pattern;
 
 /**
- * Точка входа SDK dephealth.
+ * Entry point for the dephealth SDK.
  *
- * <p>Использование:
+ * <p>Usage:
  * <pre>{@code
  * DepHealth depHealth = DepHealth.builder("order-api", meterRegistry)
  *     .checkInterval(Duration.ofSeconds(15))
@@ -58,26 +58,26 @@ public final class DepHealth {
         this.scheduler = scheduler;
     }
 
-    /** Запускает периодические проверки. */
+    /** Starts periodic health checks. */
     public void start() {
         scheduler.start();
     }
 
-    /** Останавливает все проверки. */
+    /** Stops all health checks. */
     public void stop() {
         scheduler.stop();
     }
 
-    /** Возвращает текущее состояние здоровья. Key: "name:host:port", value: healthy. */
+    /** Returns current health status. Key: "name:host:port", value: healthy. */
     public Map<String, Boolean> health() {
         return scheduler.health();
     }
 
     /**
-     * Создаёт builder с обязательным именем приложения.
+     * Creates a builder with a required application name.
      *
-     * @param name          уникальное имя приложения (метка {@code name})
-     * @param meterRegistry реестр Micrometer
+     * @param name          unique application name ({@code name} label)
+     * @param meterRegistry Micrometer meter registry
      * @return builder
      */
     public static Builder builder(String name, MeterRegistry meterRegistry) {
@@ -85,7 +85,7 @@ public final class DepHealth {
     }
 
     /**
-     * Конфигурация зависимости в builder pattern.
+     * Dependency configuration using the builder pattern.
      */
     public static final class DependencyBuilder {
         private String url;
@@ -148,7 +148,7 @@ public final class DepHealth {
         }
 
         /**
-         * Устанавливает критичность зависимости. Обязательный параметр.
+         * Sets the criticality of the dependency. Required parameter.
          */
         public DependencyBuilder critical(boolean critical) {
             this.criticalValue = critical;
@@ -157,12 +157,12 @@ public final class DepHealth {
         }
 
         /**
-         * Добавляет произвольную метку (custom label).
+         * Adds a custom label.
          *
-         * @param key   имя метки (формат {@code [a-zA-Z_][a-zA-Z0-9_]*})
-         * @param value значение метки
+         * @param key   label name (format {@code [a-zA-Z_][a-zA-Z0-9_]*})
+         * @param value label value
          * @return this
-         * @throws ValidationException если имя невалидно или зарезервировано
+         * @throws ValidationException if the name is invalid or reserved
          */
         public DependencyBuilder label(String key, String value) {
             Endpoint.validateLabelName(key);
@@ -275,7 +275,7 @@ public final class DepHealth {
 
         private Builder(String name, MeterRegistry meterRegistry) {
             this.meterRegistry = meterRegistry;
-            // API-параметр имеет приоритет над env var
+            // API parameter takes precedence over env var
             String resolvedName = name;
             if (resolvedName == null || resolvedName.isEmpty()) {
                 resolvedName = System.getenv(ENV_NAME);
@@ -299,7 +299,7 @@ public final class DepHealth {
         }
 
         /**
-         * Добавляет зависимость с конфигурацией через лямбду.
+         * Adds a dependency configured via a lambda.
          */
         public Builder dependency(String name, DependencyType type,
                                   java.util.function.Consumer<DependencyBuilder> configurer) {
@@ -311,7 +311,7 @@ public final class DepHealth {
         }
 
         /**
-         * Добавляет зависимость с готовым чекером (для pool-интеграции).
+         * Adds a dependency with a pre-built checker (for connection pool integration).
          */
         public Builder dependency(String name, DependencyType type, HealthChecker checker,
                                   java.util.function.Consumer<DependencyBuilder> configurer) {
@@ -323,7 +323,7 @@ public final class DepHealth {
         }
 
         public DepHealth build() {
-            // Собираем все уникальные custom label keys из всех зависимостей
+            // Collect all unique custom label keys from all dependencies
             List<String> customLabelKeys = collectCustomLabelKeys();
 
             MetricsExporter metricsExporter = new MetricsExporter(
@@ -338,7 +338,7 @@ public final class DepHealth {
         }
 
         /**
-         * Собирает все уникальные ключи произвольных меток, отсортированные по алфавиту.
+         * Collects all unique custom label keys, sorted alphabetically.
          */
         private List<String> collectCustomLabelKeys() {
             TreeSet<String> keys = new TreeSet<>();
@@ -349,9 +349,9 @@ public final class DepHealth {
         }
 
         /**
-         * Применяет env vars для critical и labels к DependencyBuilder.
-         * Формат: DEPHEALTH_<DEP>_CRITICAL=yes|no, DEPHEALTH_<DEP>_LABEL_<KEY>=value.
-         * API-параметры имеют приоритет над env vars.
+         * Applies env vars for critical and labels to DependencyBuilder.
+         * Format: DEPHEALTH_&lt;DEP&gt;_CRITICAL=yes|no, DEPHEALTH_&lt;DEP&gt;_LABEL_&lt;KEY&gt;=value.
+         * API parameters take precedence over env vars.
          */
         private void applyEnvVars(String depName, DependencyBuilder db) {
             String envPrefix = "DEPHEALTH_" + depName.toUpperCase().replace('-', '_');
@@ -377,7 +377,7 @@ public final class DepHealth {
                     String labelKey = envEntry.getKey().substring(labelPrefix.length())
                             .toLowerCase();
                     if (!db.labels.containsKey(labelKey)) {
-                        // Валидируем и добавляем только если не задан через API
+                        // Validate and add only if not already set via API
                         Endpoint.validateLabelName(labelKey);
                         db.labels.put(labelKey, envEntry.getValue());
                     }
@@ -388,14 +388,14 @@ public final class DepHealth {
         private void buildAndRegister(DependencyEntry entry, CheckScheduler scheduler) {
             DependencyBuilder db = entry.config;
 
-            // Извлекаем credentials и параметры из URL, если они не заданы явно
+            // Extract credentials and parameters from URL if not explicitly set
             extractUrlCredentials(db, entry.type);
 
-            // Определяем interval и timeout
+            // Resolve interval and timeout
             Duration interval = resolveInterval(db);
             Duration timeout = resolveTimeout(db, interval);
 
-            // Определяем endpoints с labels
+            // Resolve endpoints with labels
             List<Endpoint> endpoints = resolveEndpoints(db, entry.type);
 
             CheckConfig config = CheckConfig.builder()
@@ -412,7 +412,7 @@ public final class DepHealth {
             }
             Dependency dependency = depBuilder.build();
 
-            // Создаём или используем готовый чекер
+            // Create or use the pre-built checker
             HealthChecker checker = entry.checker != null
                     ? entry.checker
                     : createChecker(entry.type, db);
@@ -421,8 +421,8 @@ public final class DepHealth {
         }
 
         /**
-         * Извлекает credentials (username, password) и дополнительные параметры
-         * (database, vhost) из URL, если они не были заданы явно.
+         * Extracts credentials (username, password) and additional parameters
+         * (database, vhost) from the URL if they were not explicitly set.
          */
         @SuppressWarnings("checkstyle:CyclomaticComplexity")
         private void extractUrlCredentials(DependencyBuilder db, DependencyType type) {
@@ -430,7 +430,7 @@ public final class DepHealth {
             if (rawUrl == null || rawUrl.isEmpty()) {
                 return;
             }
-            // JDBC URL — пропускаем, JDBC-драйвер сам парсит credentials
+            // JDBC URL — skip, the JDBC driver parses credentials itself
             if (rawUrl.toLowerCase().startsWith("jdbc:")) {
                 return;
             }
@@ -453,7 +453,7 @@ public final class DepHealth {
                             }
                         }
                         case REDIS -> {
-                            // Redis URL: redis://:password@host или redis://user:password@host
+                            // Redis URL: redis://:password@host or redis://user:password@host
                             if (isBlank(db.redisPassword) && pass != null) {
                                 db.redisPassword = pass;
                             }
@@ -466,17 +466,17 @@ public final class DepHealth {
                                 db.amqpPassword = pass;
                             }
                         }
-                        default -> { /* TCP, HTTP, gRPC, Kafka — credentials не используются */ }
+                        default -> { /* TCP, HTTP, gRPC, Kafka — credentials not used */ }
                     }
                 }
 
-                // Извлекаем database/vhost из path
+                // Extract database/vhost from path
                 String path = uri.getPath();
                 if (path != null && !path.isEmpty()) {
-                    // Для AMQP: path "/" означает vhost "/" (default)
-                    // Для остальных: path "/" не содержит полезной информации
+                    // For AMQP: path "/" means vhost "/" (default)
+                    // For others: path "/" contains no useful information
                     if (path.length() > 1) {
-                        String value = path.substring(1); // убираем ведущий /
+                        String value = path.substring(1); // strip leading /
                         switch (type) {
                             case POSTGRES, MYSQL -> {
                                 if (isBlank(db.dbDatabase)) {
@@ -494,21 +494,21 @@ public final class DepHealth {
                                     try {
                                         db.redisDb = Integer.parseInt(value);
                                     } catch (NumberFormatException ignored) {
-                                        // Не число — игнорируем
+                                        // Not a number — ignore
                                     }
                                 }
                             }
-                            default -> { /* Другие типы не используют path */ }
+                            default -> { /* Other types do not use path */ }
                         }
                     } else if (type == DependencyType.AMQP && "/".equals(path)) {
-                        // AMQP: путь "/" означает vhost "/"
+                        // AMQP: path "/" means vhost "/"
                         if (isBlank(db.amqpVirtualHost)) {
                             db.amqpVirtualHost = "/";
                         }
                     }
                 }
             } catch (IllegalArgumentException ignored) {
-                // Невалидный URI — игнорируем, resolveEndpoints обработает ошибку
+                // Invalid URI — ignore, resolveEndpoints will handle the error
             }
         }
 
@@ -529,7 +529,7 @@ public final class DepHealth {
         private Duration resolveTimeout(DependencyBuilder db, Duration interval) {
             Duration t = db.timeout != null ? db.timeout
                     : (globalTimeout != null ? globalTimeout : CheckConfig.DEFAULT_TIMEOUT);
-            // Гарантируем timeout < interval
+            // Ensure timeout < interval
             if (t.compareTo(interval) >= 0) {
                 t = Duration.ofMillis(interval.toMillis() - 1);
             }
@@ -537,7 +537,7 @@ public final class DepHealth {
         }
 
         private List<Endpoint> resolveEndpoints(DependencyBuilder db, DependencyType type) {
-            // Labels из DependencyBuilder применяются ко всем endpoints
+            // Labels from DependencyBuilder are applied to all endpoints
             Map<String, String> depLabels = db.labels.isEmpty()
                     ? Map.of() : Map.copyOf(db.labels);
 
@@ -551,7 +551,7 @@ public final class DepHealth {
                         .toList();
             }
             if (db.url != null) {
-                // Если URL начинается с jdbc: — парсим как JDBC
+                // If URL starts with jdbc: — parse as JDBC
                 if (db.url.toLowerCase().startsWith("jdbc:")) {
                     return ConfigParser.parseJdbc(db.url).stream()
                             .map(pc -> new Endpoint(pc.host(), pc.port(), depLabels))
@@ -646,7 +646,7 @@ public final class DepHealth {
                 }
                 case AMQP -> {
                     AmqpHealthChecker.Builder b = AmqpHealthChecker.builder();
-                    // Передаём amqpUrl только если он задан явно (не из общего url)
+                    // Pass amqpUrl only if it was explicitly set (not from the generic url)
                     if (db.amqpUrl != null) {
                         b.amqpUrl(db.amqpUrl);
                     }

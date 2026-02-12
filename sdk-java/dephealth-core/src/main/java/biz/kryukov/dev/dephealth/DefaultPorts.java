@@ -3,7 +3,7 @@ package biz.kryukov.dev.dephealth;
 import java.util.Map;
 
 /**
- * Порты по умолчанию для различных типов зависимостей и схем URL.
+ * Default ports for various dependency types and URL schemes.
  */
 public final class DefaultPorts {
 
@@ -33,12 +33,12 @@ public final class DefaultPorts {
             DependencyType.KAFKA, "9092"
     );
 
-    /** Возвращает порт по умолчанию для схемы URL (lowercase). */
+    /** Returns the default port for a URL scheme (lowercase). */
     public static String forScheme(String scheme) {
         return SCHEME_TO_PORT.get(scheme.toLowerCase());
     }
 
-    /** Возвращает порт по умолчанию для типа зависимости. */
+    /** Returns the default port for a dependency type. */
     public static String forType(DependencyType type) {
         return TYPE_TO_PORT.get(type);
     }

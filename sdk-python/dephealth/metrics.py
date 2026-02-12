@@ -1,4 +1,4 @@
-"""Prometheus exporter: app_dependency_health и app_dependency_latency_seconds."""
+"""Prometheus exporter: app_dependency_health and app_dependency_latency_seconds."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ _REQUIRED_LABEL_NAMES = ("name", "dependency", "type", "host", "port", "critical
 
 
 class MetricsExporter:
-    """Экспортирует метрики здоровья зависимостей в Prometheus."""
+    """Export dependency health metrics to Prometheus."""
 
     def __init__(
         self,
@@ -41,17 +41,17 @@ class MetricsExporter:
         )
 
     def set_health(self, dep: Dependency, endpoint: Endpoint, value: float) -> None:
-        """Устанавливает значение gauge (1.0 = healthy, 0.0 = unhealthy)."""
+        """Set the gauge value (1.0 = healthy, 0.0 = unhealthy)."""
         labels = self._labels(dep, endpoint)
         self._health.labels(**labels).set(value)
 
     def observe_latency(self, dep: Dependency, endpoint: Endpoint, duration: float) -> None:
-        """Записывает latency проверки."""
+        """Record the check latency."""
         labels = self._labels(dep, endpoint)
         self._latency.labels(**labels).observe(duration)
 
     def delete_metrics(self, dep: Dependency, endpoint: Endpoint) -> None:
-        """Удаляет метрики для зависимости/endpoint."""
+        """Delete metrics for a dependency/endpoint."""
         labels = self._labels(dep, endpoint)
         self._health.remove(*labels.values())
         self._latency.remove(*labels.values())

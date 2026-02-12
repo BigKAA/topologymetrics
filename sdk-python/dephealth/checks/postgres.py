@@ -9,7 +9,7 @@ from dephealth.dependency import Endpoint
 
 
 class PostgresChecker:
-    """Проверка доступности PostgreSQL через SELECT 1."""
+    """Health check for PostgreSQL via SELECT 1."""
 
     def __init__(
         self,
@@ -24,7 +24,7 @@ class PostgresChecker:
         self._dsn = dsn
 
     async def check(self, endpoint: Endpoint) -> None:
-        """Выполняет SELECT 1 на PostgreSQL."""
+        """Execute SELECT 1 on PostgreSQL."""
         try:
             import asyncpg
         except ImportError:
@@ -32,12 +32,12 @@ class PostgresChecker:
             raise ImportError(msg) from None
 
         if self._pool is not None:
-            # Pool-режим: используем существующий пул.
+            # Pool mode: use the existing connection pool.
             async with self._pool.acquire() as conn:
                 await conn.fetchval(self._query)
             return
 
-        # Автономный режим: новое соединение.
+        # Standalone mode: new connection.
         dsn = self._dsn or f"postgresql://{endpoint.host}:{endpoint.port}"
         try:
             conn = await asyncpg.connect(dsn, timeout=self._timeout)
@@ -45,12 +45,13 @@ class PostgresChecker:
                 await conn.fetchval(self._query)
             finally:
                 await conn.close()
-        except TimeoutError:
+        except TimeoutError as exc:
             msg = f"Postgres connection to {endpoint.host}:{endpoint.port} timed out"
-            raise CheckTimeoutError(msg) from None
+            raise CheckTimeoutError(msg) from exc
         except OSError as e:
             msg = f"Postgres connection to {endpoint.host}:{endpoint.port} refused: {e}"
             raise CheckConnectionRefusedError(msg) from e
 
     def checker_type(self) -> str:
+        """Return the checker type."""
         return "postgres"

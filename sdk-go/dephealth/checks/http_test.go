@@ -24,7 +24,7 @@ func TestHTTPChecker_Check_Success(t *testing.T) {
 
 	checker := NewHTTPChecker(WithHealthPath("/"))
 	if err := checker.Check(context.Background(), ep); err != nil {
-		t.Errorf("ожидали успех, получили ошибку: %v", err)
+		t.Errorf("expected success, got error: %v", err)
 	}
 }
 
@@ -40,10 +40,10 @@ func TestHTTPChecker_Check_Non2xx(t *testing.T) {
 	checker := NewHTTPChecker(WithHealthPath("/"))
 	err := checker.Check(context.Background(), ep)
 	if err == nil {
-		t.Error("ожидали ошибку для статуса 503, получили nil")
+		t.Error("expected error for status 503, got nil")
 	}
 	if !strings.Contains(err.Error(), "503") {
-		t.Errorf("ожидали упоминание статуса 503 в ошибке, получили: %v", err)
+		t.Errorf("expected status 503 mention in error, got: %v", err)
 	}
 }
 
@@ -59,7 +59,7 @@ func TestHTTPChecker_Check_Redirect(t *testing.T) {
 	checker := NewHTTPChecker(WithHealthPath("/"))
 	err := checker.Check(context.Background(), ep)
 	if err == nil {
-		t.Error("ожидали ошибку для редиректа 301, получили nil")
+		t.Error("expected error for redirect 301, got nil")
 	}
 }
 
@@ -79,7 +79,7 @@ func TestHTTPChecker_Check_UserAgent(t *testing.T) {
 
 	expected := "dephealth/" + Version
 	if gotUA != expected {
-		t.Errorf("User-Agent = %q, ожидали %q", gotUA, expected)
+		t.Errorf("User-Agent = %q, expected %q", gotUA, expected)
 	}
 }
 
@@ -98,7 +98,7 @@ func TestHTTPChecker_Check_CustomPath(t *testing.T) {
 	_ = checker.Check(context.Background(), ep)
 
 	if gotPath != "/custom/healthz" {
-		t.Errorf("path = %q, ожидали %q", gotPath, "/custom/healthz")
+		t.Errorf("path = %q, expected %q", gotPath, "/custom/healthz")
 	}
 }
 
@@ -111,24 +111,24 @@ func TestHTTPChecker_Check_TLS(t *testing.T) {
 	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
-	// Без skip verify — ожидаем ошибку (самоподписанный сертификат).
+	// Without skip verify — expect error (self-signed certificate).
 	checker := NewHTTPChecker(
 		WithHealthPath("/"),
 		WithTLSEnabled(true),
 	)
 	err := checker.Check(context.Background(), ep)
 	if err == nil {
-		t.Error("ожидали ошибку TLS для самоподписанного сертификата")
+		t.Error("expected TLS error for self-signed certificate")
 	}
 
-	// С skip verify — ожидаем успех.
+	// With skip verify — expect success.
 	checker = NewHTTPChecker(
 		WithHealthPath("/"),
 		WithTLSEnabled(true),
 		WithHTTPTLSSkipVerify(true),
 	)
 	if err := checker.Check(context.Background(), ep); err != nil {
-		t.Errorf("ожидали успех с skip verify, получили: %v", err)
+		t.Errorf("expected success with skip verify, got: %v", err)
 	}
 }
 
@@ -138,21 +138,21 @@ func TestHTTPChecker_Check_TLSWithCert(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	// Добавляем сертификат тестового сервера в пул доверенных.
+	// Add the test server certificate to the trusted pool.
 	certPool := x509.NewCertPool()
 	certPool.AddCert(srv.Certificate())
 
 	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
-	// Создаём чекер с TLS и доверенным сертификатом через кастомный транспорт.
-	// Это проверяет, что TLS работает корректно с валидным сертификатом.
+	// Create a checker with TLS and a trusted certificate via custom transport.
+	// This verifies that TLS works correctly with a valid certificate.
 	checker := NewHTTPChecker(
 		WithHealthPath("/"),
 		WithTLSEnabled(true),
 	)
 
-	// Подменяем стандартную проверку — используем пул сертификатов тестового сервера.
+	// Override the default verification — use the test server's certificate pool.
 	ctx := context.Background()
 	client := &http.Client{
 		Transport: &http.Transport{
@@ -170,16 +170,16 @@ func TestHTTPChecker_Check_TLSWithCert(t *testing.T) {
 	req.Header.Set("User-Agent", "dephealth/"+Version)
 	resp, err := client.Do(req)
 	if err != nil {
-		t.Fatalf("запрос с доверенным сертификатом не удался: %v", err)
+		t.Fatalf("request with trusted certificate failed: %v", err)
 	}
 	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		t.Errorf("статус = %d, ожидали 200", resp.StatusCode)
+		t.Errorf("status = %d, expected 200", resp.StatusCode)
 	}
 
-	// Проверяем, что стандартный чекер без skip verify действительно вернул бы ошибку.
+	// Verify that the standard checker without skip verify would indeed return an error.
 	if err := checker.Check(ctx, ep); err == nil {
-		t.Error("ожидали ошибку TLS без skip verify для самоподписанного сертификата")
+		t.Error("expected TLS error without skip verify for self-signed certificate")
 	}
 }
 
@@ -189,7 +189,7 @@ func TestHTTPChecker_Check_ConnectionRefused(t *testing.T) {
 	checker := NewHTTPChecker(WithHealthPath("/"))
 	err := checker.Check(context.Background(), ep)
 	if err == nil {
-		t.Error("ожидали ошибку для закрытого порта, получили nil")
+		t.Error("expected error for closed port, got nil")
 	}
 }
 
@@ -202,14 +202,14 @@ func TestHTTPChecker_Check_ContextCanceled(t *testing.T) {
 	checker := NewHTTPChecker(WithHealthPath("/"))
 	err := checker.Check(ctx, ep)
 	if err == nil {
-		t.Error("ожидали ошибку для отменённого контекста, получили nil")
+		t.Error("expected error for canceled context, got nil")
 	}
 }
 
 func TestHTTPChecker_Type(t *testing.T) {
 	checker := NewHTTPChecker()
 	if got := checker.Type(); got != "http" {
-		t.Errorf("Type() = %q, ожидали %q", got, "http")
+		t.Errorf("Type() = %q, expected %q", got, "http")
 	}
 }
 
@@ -224,10 +224,10 @@ func TestHTTPChecker_DefaultHealthPath(t *testing.T) {
 	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
-	checker := NewHTTPChecker() // без WithHealthPath — default /health
+	checker := NewHTTPChecker() // without WithHealthPath — default /health
 	_ = checker.Check(context.Background(), ep)
 
 	if gotPath != "/health" {
-		t.Errorf("path = %q, ожидали %q (default)", gotPath, "/health")
+		t.Errorf("path = %q, expected %q (default)", gotPath, "/health")
 	}
 }

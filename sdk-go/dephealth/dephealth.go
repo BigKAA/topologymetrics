@@ -9,18 +9,18 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// DepHealth — главная точка входа SDK.
-// Объединяет MetricsExporter и Scheduler, предоставляя удобный API.
+// DepHealth is the main SDK entry point.
+// It combines MetricsExporter and Scheduler, providing a convenient API.
 type DepHealth struct {
 	scheduler *Scheduler
 	metrics   *MetricsExporter
 }
 
-// New создаёт экземпляр DepHealth из функциональных опций.
-// name — уникальное имя приложения (метка name в метриках).
-// Если name пустой, пытается прочитать из DEPHEALTH_NAME.
-// Для использования встроенных фабрик (HTTP, Postgres, Redis и т.д.)
-// необходимо импортировать пакет checks:
+// New creates a DepHealth instance from functional options.
+// name is the unique application name (the "name" label in metrics).
+// If name is empty, it attempts to read from DEPHEALTH_NAME env var.
+// To use built-in checker factories (HTTP, Postgres, Redis, etc.),
+// the checks package must be imported:
 //
 //	import _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks"
 func New(name string, opts ...Option) (*DepHealth, error) {
@@ -45,10 +45,10 @@ func New(name string, opts ...Option) (*DepHealth, error) {
 		}
 	}
 
-	// Собираем все custom label keys из всех endpoints.
+	// Collect all custom label keys from all endpoints.
 	customLabelKeys := collectCustomLabelKeys(cfg.entries)
 
-	// Создаём MetricsExporter.
+	// Create MetricsExporter.
 	var metricsOpts []MetricsOption
 	if cfg.registerer != nil {
 		metricsOpts = append(metricsOpts, WithMetricsRegisterer(cfg.registerer))
@@ -61,14 +61,14 @@ func New(name string, opts ...Option) (*DepHealth, error) {
 		return nil, fmt.Errorf("dephealth: metrics: %w", err)
 	}
 
-	// Создаём Scheduler.
+	// Create Scheduler.
 	var schedOpts []SchedulerOption
 	if cfg.logger != nil {
 		schedOpts = append(schedOpts, WithSchedulerLogger(cfg.logger))
 	}
 	sched := NewScheduler(metrics, schedOpts...)
 
-	// Регистрируем все зависимости.
+	// Register all dependencies.
 	for _, entry := range cfg.entries {
 		sched.deps = append(sched.deps, scheduledDep(entry))
 	}
@@ -79,7 +79,7 @@ func New(name string, opts ...Option) (*DepHealth, error) {
 	}, nil
 }
 
-// collectCustomLabelKeys собирает уникальные custom label keys из всех endpoints.
+// collectCustomLabelKeys collects unique custom label keys from all endpoints.
 func collectCustomLabelKeys(entries []dependencyEntry) []string {
 	keys := make(map[string]bool)
 	for _, entry := range entries {
@@ -100,18 +100,18 @@ func collectCustomLabelKeys(entries []dependencyEntry) []string {
 	return result
 }
 
-// Start запускает периодические проверки всех зависимостей.
+// Start launches periodic health checks for all dependencies.
 func (dh *DepHealth) Start(ctx context.Context) error {
 	return dh.scheduler.Start(ctx)
 }
 
-// Stop останавливает все проверки и ожидает завершения горутин.
+// Stop stops all health checks and waits for goroutines to finish.
 func (dh *DepHealth) Stop() {
 	dh.scheduler.Stop()
 }
 
-// Health возвращает текущее состояние всех endpoint-ов.
-// Ключ — "dependency:host:port", значение — true/false.
+// Health returns the current health state of all endpoints.
+// Key is "dependency:host:port", value is true/false.
 func (dh *DepHealth) Health() map[string]bool {
 	return dh.scheduler.Health()
 }

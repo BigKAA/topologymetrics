@@ -1,4 +1,4 @@
-"""Lifespan-менеджер: запуск и остановка DependencyHealth вместе с FastAPI."""
+"""Lifespan manager: start and stop DependencyHealth together with FastAPI."""
 
 from __future__ import annotations
 
@@ -16,11 +16,11 @@ def dephealth_lifespan(
     *specs: _DependencySpec,
     **kwargs: Any,  # noqa: ANN401
 ) -> object:
-    """Фабрика lifespan для FastAPI.
+    """Lifespan factory for FastAPI.
 
-    Возвращает callable, совместимый с ``FastAPI(lifespan=...)``.
+    Returns a callable compatible with ``FastAPI(lifespan=...)``.
 
-    Пример::
+    Example::
 
         app = FastAPI(lifespan=dephealth_lifespan(
             "my-service",

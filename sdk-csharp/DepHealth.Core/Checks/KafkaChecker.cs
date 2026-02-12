@@ -3,7 +3,7 @@ using Confluent.Kafka;
 namespace DepHealth.Checks;
 
 /// <summary>
-/// Kafka health checker — запрашивает metadata у брокера.
+/// Kafka health checker — requests metadata from the broker.
 /// </summary>
 public sealed class KafkaChecker : IHealthChecker
 {

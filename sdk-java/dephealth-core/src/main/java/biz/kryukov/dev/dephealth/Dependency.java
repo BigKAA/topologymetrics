@@ -6,7 +6,7 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 /**
- * Описание зависимости: имя, тип, набор эндпоинтов, конфигурация проверки. Immutable.
+ * Dependency descriptor: name, type, endpoints, and check configuration. Immutable.
  */
 public final class Dependency {
 
@@ -48,7 +48,7 @@ public final class Dependency {
     }
 
     /**
-     * Преобразует boolean в строку "yes"/"no" для метки critical.
+     * Converts a boolean to "yes"/"no" string for the critical label.
      */
     public static String boolToYesNo(boolean value) {
         return value ? "yes" : "no";
@@ -71,7 +71,7 @@ public final class Dependency {
         }
 
         /**
-         * Устанавливает критичность зависимости. Обязательный параметр.
+         * Sets the criticality of the dependency. Required parameter.
          */
         public Builder critical(boolean critical) {
             this.criticalValue = critical;
@@ -115,7 +115,7 @@ public final class Dependency {
                 throw new ValidationException(
                         "dependency '" + name + "' must have critical flag set explicitly");
             }
-            // Валидация labels каждого endpoint
+            // Validate labels of each endpoint
             for (Endpoint ep : endpoints) {
                 Endpoint.validateLabels(ep.labels());
             }

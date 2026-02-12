@@ -12,7 +12,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 )
 
-// mockChecker — мок-чекер для тестов планировщика.
+// mockChecker is a mock checker for scheduler tests.
 type mockChecker struct {
 	checkFunc func(ctx context.Context, ep Endpoint) error
 	callCount atomic.Int64
@@ -28,7 +28,7 @@ func (m *mockChecker) Check(ctx context.Context, ep Endpoint) error {
 
 func (m *mockChecker) Type() string { return "mock" }
 
-// panicChecker — чекер, вызывающий панику.
+// panicChecker is a checker that panics.
 type panicChecker struct{}
 
 func (p *panicChecker) Check(_ context.Context, _ Endpoint) error {
@@ -37,7 +37,7 @@ func (p *panicChecker) Check(_ context.Context, _ Endpoint) error {
 
 func (p *panicChecker) Type() string { return "panic" }
 
-func testDep(name string, interval, timeout, initialDelay time.Duration) Dependency { //nolint:unparam // name параметризован для читаемости тестов
+func testDep(name string, interval, timeout, initialDelay time.Duration) Dependency { //nolint:unparam // name is parameterized for test readability
 	crit := false
 	return Dependency{
 		Name:     name,
@@ -80,12 +80,12 @@ func newTestScheduler(t *testing.T) (*Scheduler, *prometheus.Registry) {
 	reg := prometheus.NewRegistry()
 	metrics, err := NewMetricsExporter("test-app", WithMetricsRegisterer(reg))
 	if err != nil {
-		t.Fatalf("не удалось создать MetricsExporter: %v", err)
+		t.Fatalf("failed to create MetricsExporter: %v", err)
 	}
 	return NewScheduler(metrics), reg
 }
 
-// addTestDep добавляет зависимость без валидации (для тестов с быстрыми интервалами).
+// addTestDep adds a dependency without validation (for tests with fast intervals).
 func addTestDep(s *Scheduler, dep Dependency, checker HealthChecker) {
 	s.deps = append(s.deps, scheduledDep{dep: dep, checker: checker})
 }
@@ -98,15 +98,15 @@ func TestScheduler_StartStop(t *testing.T) {
 	addTestDep(sched, dep, checker)
 
 	if err := sched.Start(context.Background()); err != nil {
-		t.Fatalf("ошибка запуска: %v", err)
+		t.Fatalf("start error: %v", err)
 	}
 
-	// Ждём чтобы прошла хотя бы одна проверка.
+	// Wait for at least one check to complete.
 	time.Sleep(200 * time.Millisecond)
 	sched.Stop()
 
 	if checker.callCount.Load() == 0 {
-		t.Error("ожидали хотя бы один вызов чекера")
+		t.Error("expected at least one checker call")
 	}
 }
 
@@ -117,12 +117,12 @@ func TestScheduler_DoubleStart(t *testing.T) {
 	addTestDep(sched, dep, &mockChecker{})
 
 	if err := sched.Start(context.Background()); err != nil {
-		t.Fatalf("первый Start не должен вернуть ошибку: %v", err)
+		t.Fatalf("first Start should not return an error: %v", err)
 	}
 	defer sched.Stop()
 
 	if err := sched.Start(context.Background()); !errors.Is(err, ErrAlreadyStarted) {
-		t.Errorf("ожидали ErrAlreadyStarted, получили: %v", err)
+		t.Errorf("expected ErrAlreadyStarted, got: %v", err)
 	}
 }
 
@@ -133,7 +133,7 @@ func TestScheduler_DoubleStop(t *testing.T) {
 	addTestDep(sched, dep, &mockChecker{})
 	_ = sched.Start(context.Background())
 
-	// Повторный Stop — no-op, не должно быть паники.
+	// Repeated Stop is no-op, should not panic.
 	sched.Stop()
 	sched.Stop()
 }
@@ -146,7 +146,7 @@ func TestScheduler_AddAfterStart(t *testing.T) {
 	_ = sched.Start(context.Background())
 	defer sched.Stop()
 
-	// Добавление после старта через Add — должно вернуть ErrAlreadyStarted.
+	// Adding after start via Add should return ErrAlreadyStarted.
 	crit := false
 	dep2 := Dependency{
 		Name:     "test-dep-2",
@@ -158,7 +158,7 @@ func TestScheduler_AddAfterStart(t *testing.T) {
 		Config: DefaultCheckConfig(),
 	}
 	if err := sched.Add(dep2, &mockChecker{}); !errors.Is(err, ErrAlreadyStarted) {
-		t.Errorf("ожидали ErrAlreadyStarted при добавлении после Start, получили: %v", err)
+		t.Errorf("expected ErrAlreadyStarted when adding after Start, got: %v", err)
 	}
 }
 
@@ -170,25 +170,25 @@ func TestScheduler_InitialDelay(t *testing.T) {
 	addTestDep(sched, dep, checker)
 	_ = sched.Start(context.Background())
 
-	// Через 100ms (до initialDelay 150ms) проверка ещё не должна пройти.
+	// After 100ms (before initialDelay of 150ms) the check should not have run yet.
 	time.Sleep(100 * time.Millisecond)
 	if checker.callCount.Load() > 0 {
-		t.Error("проверка прошла до истечения initialDelay")
+		t.Error("check ran before initialDelay expired")
 	}
 
-	// Через ещё 150ms (суммарно 250ms) первая проверка должна пройти.
+	// After another 150ms (total 250ms) the first check should have run.
 	time.Sleep(150 * time.Millisecond)
 	sched.Stop()
 
 	if checker.callCount.Load() == 0 {
-		t.Error("проверка не прошла после initialDelay")
+		t.Error("check did not run after initialDelay")
 	}
 }
 
 func TestScheduler_HealthyMetric(t *testing.T) {
 	sched, _ := newTestScheduler(t)
 
-	checker := &mockChecker{} // Всегда возвращает nil (healthy).
+	checker := &mockChecker{} // Always returns nil (healthy).
 	dep := testDep("test-dep", 100*time.Millisecond, 50*time.Millisecond, 0)
 	addTestDep(sched, dep, checker)
 	_ = sched.Start(context.Background())
@@ -202,7 +202,7 @@ func TestScheduler_HealthyMetric(t *testing.T) {
 		app_dependency_health{critical="no",dependency="test-dep",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 1
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
-		t.Errorf("метрика health не совпадает: %v", err)
+		t.Errorf("health metric mismatch: %v", err)
 	}
 }
 
@@ -227,7 +227,7 @@ func TestScheduler_UnhealthyMetric(t *testing.T) {
 		app_dependency_health{critical="no",dependency="test-dep",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 0
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
-		t.Errorf("метрика health не совпадает: %v", err)
+		t.Errorf("health metric mismatch: %v", err)
 	}
 }
 
@@ -241,9 +241,9 @@ func TestScheduler_FailureThreshold(t *testing.T) {
 		checkFunc: func(_ context.Context, _ Endpoint) error {
 			n := callCount.Add(1)
 			if n == 1 {
-				return nil // Первая проверка — ОК.
+				return nil // First check — OK.
 			}
-			return errors.New("fail") // Далее — ошибки.
+			return errors.New("fail") // Subsequent checks — errors.
 		},
 	}
 
@@ -251,20 +251,20 @@ func TestScheduler_FailureThreshold(t *testing.T) {
 	addTestDep(sched, dep, checker)
 	_ = sched.Start(context.Background())
 
-	// Ждём 1-ю проверку (OK) + 2 ошибки (не достигли порога 3).
+	// Wait for 1st check (OK) + 2 failures (threshold of 3 not reached).
 	time.Sleep(250 * time.Millisecond)
 
-	// Метрика должна быть 1 — порог ещё не достигнут.
+	// Metric should be 1 — threshold not yet reached.
 	expected := `
 		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 		# TYPE app_dependency_health gauge
 		app_dependency_health{critical="no",dependency="test-dep",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 1
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
-		t.Errorf("метрика должна быть 1 до достижения порога: %v", err)
+		t.Errorf("metric should be 1 before reaching threshold: %v", err)
 	}
 
-	// Ждём ещё — порог должен быть достигнут.
+	// Wait more — threshold should be reached.
 	time.Sleep(200 * time.Millisecond)
 	sched.Stop()
 
@@ -274,7 +274,7 @@ func TestScheduler_FailureThreshold(t *testing.T) {
 		app_dependency_health{critical="no",dependency="test-dep",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 0
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
-		t.Errorf("метрика должна быть 0 после достижения порога: %v", err)
+		t.Errorf("metric should be 0 after reaching threshold: %v", err)
 	}
 }
 
@@ -299,7 +299,7 @@ func TestScheduler_Recovery(t *testing.T) {
 	addTestDep(sched, dep, checker)
 	_ = sched.Start(context.Background())
 
-	// Ждём чтобы стало unhealthy.
+	// Wait for it to become unhealthy.
 	time.Sleep(150 * time.Millisecond)
 
 	expected := `
@@ -308,10 +308,10 @@ func TestScheduler_Recovery(t *testing.T) {
 		app_dependency_health{critical="no",dependency="test-dep",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 0
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
-		t.Errorf("метрика должна быть 0: %v", err)
+		t.Errorf("metric should be 0: %v", err)
 	}
 
-	// Включаем «здоровье».
+	// Enable "healthy" state.
 	shouldFail.Store(false)
 	time.Sleep(200 * time.Millisecond)
 	sched.Stop()
@@ -322,7 +322,7 @@ func TestScheduler_Recovery(t *testing.T) {
 		app_dependency_health{critical="no",dependency="test-dep",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 1
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
-		t.Errorf("метрика должна быть 1 после восстановления: %v", err)
+		t.Errorf("metric should be 1 after recovery: %v", err)
 	}
 }
 
@@ -337,10 +337,10 @@ func TestScheduler_LatencyRecorded(t *testing.T) {
 	time.Sleep(150 * time.Millisecond)
 	sched.Stop()
 
-	// Проверяем что histogram содержит данные.
+	// Verify that the histogram contains data.
 	mfs, err := reg.Gather()
 	if err != nil {
-		t.Fatalf("ошибка сбора метрик: %v", err)
+		t.Fatalf("failed to gather metrics: %v", err)
 	}
 
 	found := false
@@ -354,7 +354,7 @@ func TestScheduler_LatencyRecorded(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Error("histogram не содержит наблюдений после проверок")
+		t.Error("histogram has no observations after checks")
 	}
 }
 
@@ -366,18 +366,18 @@ func TestScheduler_PanicRecovery(t *testing.T) {
 	addTestDep(sched, dep, checker)
 	_ = sched.Start(context.Background())
 
-	// Паника не должна прервать планировщик.
+	// Panic should not crash the scheduler.
 	time.Sleep(250 * time.Millisecond)
 	sched.Stop()
 
-	// Метрика должна быть 0 (паника = ошибка проверки).
+	// Metric should be 0 (panic = check failure).
 	expected := `
 		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 		# TYPE app_dependency_health gauge
 		app_dependency_health{critical="no",dependency="test-dep",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 0
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
-		t.Errorf("метрика должна быть 0 после паники: %v", err)
+		t.Errorf("metric should be 0 after panic: %v", err)
 	}
 }
 
@@ -411,7 +411,7 @@ func TestScheduler_MultipleEndpoints(t *testing.T) {
 	time.Sleep(150 * time.Millisecond)
 	sched.Stop()
 
-	// Оба endpoint-а должны быть healthy.
+	// Both endpoints should be healthy.
 	expected := `
 		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 		# TYPE app_dependency_health gauge
@@ -419,7 +419,7 @@ func TestScheduler_MultipleEndpoints(t *testing.T) {
 		app_dependency_health{critical="no",dependency="multi-ep",host="host-2",name="test-app",port="2222",type="tcp"} 1
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
-		t.Errorf("метрики для нескольких endpoint-ов не совпадают: %v", err)
+		t.Errorf("metrics for multiple endpoints mismatch: %v", err)
 	}
 }
 
@@ -434,9 +434,9 @@ func TestScheduler_ContextCancellation(t *testing.T) {
 	_ = sched.Start(ctx)
 
 	time.Sleep(150 * time.Millisecond)
-	cancel() // Отмена внешнего контекста.
+	cancel() // Cancel the outer context.
 
-	// Stop должен завершиться без зависания.
+	// Stop should complete without hanging.
 	done := make(chan struct{})
 	go func() {
 		sched.Stop()
@@ -447,7 +447,7 @@ func TestScheduler_ContextCancellation(t *testing.T) {
 	case <-done:
 		// OK.
 	case <-time.After(2 * time.Second):
-		t.Fatal("Stop не завершился после отмены контекста")
+		t.Fatal("Stop did not complete after context cancellation")
 	}
 }
 
@@ -455,7 +455,7 @@ func TestScheduler_InvalidDependency(t *testing.T) {
 	sched, _ := newTestScheduler(t)
 
 	crit := false
-	// Зависимость без endpoint-ов — невалидна.
+	// Dependency without endpoints — invalid.
 	dep := Dependency{
 		Name:      "bad-dep",
 		Type:      TypeTCP,
@@ -466,7 +466,7 @@ func TestScheduler_InvalidDependency(t *testing.T) {
 
 	err := sched.Add(dep, &mockChecker{})
 	if err == nil {
-		t.Error("ожидали ошибку для невалидной зависимости, получили nil")
+		t.Error("expected error for invalid dependency, got nil")
 	}
 }
 
@@ -485,33 +485,33 @@ func TestScheduler_ValidAdd(t *testing.T) {
 	}
 
 	if err := sched.Add(dep, &mockChecker{}); err != nil {
-		t.Errorf("ожидали nil для валидной зависимости, получили: %v", err)
+		t.Errorf("expected nil for valid dependency, got: %v", err)
 	}
 }
 
 func TestScheduler_Health(t *testing.T) {
 	sched, _ := newTestScheduler(t)
 
-	checker := &mockChecker{} // Всегда healthy.
+	checker := &mockChecker{} // Always healthy.
 	dep := testDep("test-dep", 100*time.Millisecond, 50*time.Millisecond, 0)
 	addTestDep(sched, dep, checker)
 	_ = sched.Start(context.Background())
 
-	// Ждём первую проверку.
+	// Wait for the first check.
 	time.Sleep(150 * time.Millisecond)
 
 	health := sched.Health()
 	if len(health) != 1 {
-		t.Fatalf("ожидали 1 запись в Health(), получили %d", len(health))
+		t.Fatalf("expected 1 entry in Health(), got %d", len(health))
 	}
 
 	key := "test-dep:127.0.0.1:1234"
 	val, ok := health[key]
 	if !ok {
-		t.Fatalf("ключ %q не найден в Health()", key)
+		t.Fatalf("key %q not found in Health()", key)
 	}
 	if !val {
-		t.Errorf("ожидали healthy=true для %q, получили false", key)
+		t.Errorf("expected healthy=true for %q, got false", key)
 	}
 
 	sched.Stop()
@@ -520,9 +520,9 @@ func TestScheduler_Health(t *testing.T) {
 func TestScheduler_Health_BeforeStart(t *testing.T) {
 	sched, _ := newTestScheduler(t)
 
-	// До Start — Health() должен вернуть nil.
+	// Before Start — Health() should return nil.
 	health := sched.Health()
 	if health != nil {
-		t.Errorf("ожидали nil до Start(), получили %v", health)
+		t.Errorf("expected nil before Start(), got %v", health)
 	}
 }

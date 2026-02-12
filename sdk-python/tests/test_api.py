@@ -1,4 +1,4 @@
-"""Тесты для api.py — DependencyHealth и фабрики."""
+"""Tests for api.py — DependencyHealth and factory functions."""
 
 import asyncio
 import os
@@ -239,7 +239,7 @@ class TestEnvVars:
             assert dh is not None
 
     def test_critical_env_with_hyphen_dep_name(self) -> None:
-        """Имя зависимости с дефисом: my-db → DEPHEALTH_MY_DB_CRITICAL."""
+        """Dependency name with hyphen: my-db -> DEPHEALTH_MY_DB_CRITICAL."""
         with (
             patch.dict(os.environ, {"DEPHEALTH_MY_DB_CRITICAL": "yes"}),
             patch("dephealth.checks.postgres.PostgresChecker.check", new_callable=AsyncMock),
@@ -260,7 +260,7 @@ class TestEnvVars:
 
 class TestURLCredentials:
     def test_mysql_dsn_passed(self) -> None:
-        """mysql_check(url=...) должен передать dsn в MySQLChecker."""
+        """mysql_check(url=...) should pass dsn to MySQLChecker."""
         spec = mysql_check(
             "mysql-db",
             url="mysql://user:pass@mysql.svc:3306/mydb",
@@ -269,7 +269,7 @@ class TestURLCredentials:
         assert spec.checker._dsn == "mysql://user:pass@mysql.svc:3306/mydb"
 
     def test_redis_url_passed(self) -> None:
-        """redis_check(url=...) должен передать url в RedisChecker."""
+        """redis_check(url=...) should pass url to RedisChecker."""
         spec = redis_check(
             "redis-cache",
             url="redis://:secret@redis.svc:6379/2",
@@ -278,7 +278,7 @@ class TestURLCredentials:
         assert spec.checker._url == "redis://:secret@redis.svc:6379/2"
 
     def test_redis_explicit_password_priority(self) -> None:
-        """Явный password имеет приоритет над URL."""
+        """Explicit password takes priority over URL."""
         spec = redis_check(
             "redis-cache",
             url="redis://:url-pass@redis.svc:6379/0",

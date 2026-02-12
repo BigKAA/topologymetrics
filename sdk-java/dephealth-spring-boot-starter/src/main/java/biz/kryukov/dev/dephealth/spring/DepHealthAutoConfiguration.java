@@ -12,7 +12,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 
 /**
- * Автоконфигурация dephealth: создаёт bean DepHealth из свойств application.yml.
+ * Auto-configuration for dephealth: creates a DepHealth bean from application.yml properties.
  */
 @AutoConfiguration
 @ConditionalOnClass(DepHealth.class)
@@ -59,7 +59,7 @@ public class DepHealthAutoConfiguration {
 
     private void configureDependency(DepHealth.DependencyBuilder d,
                                      DepHealthProperties.DependencyProperties props) {
-        // Подключение
+        // Connection
         if (props.getUrl() != null) {
             d.url(props.getUrl());
         }
@@ -70,12 +70,12 @@ public class DepHealthAutoConfiguration {
             d.port(props.getPort());
         }
 
-        // Общее
+        // General
         if (props.getCritical() != null) {
             d.critical(props.getCritical());
         }
 
-        // Произвольные метки
+        // Custom labels
         if (props.getLabels() != null) {
             props.getLabels().forEach(d::label);
         }

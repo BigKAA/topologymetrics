@@ -14,7 +14,7 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 /**
- * gRPC health checker — использует gRPC Health Checking Protocol.
+ * gRPC health checker — uses the gRPC Health Checking Protocol.
  */
 public final class GrpcHealthChecker implements HealthChecker {
 

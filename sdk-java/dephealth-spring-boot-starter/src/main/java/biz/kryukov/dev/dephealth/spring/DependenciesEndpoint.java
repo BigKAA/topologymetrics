@@ -7,7 +7,7 @@ import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
 import java.util.Map;
 
 /**
- * Actuator endpoint /actuator/dependencies — JSON со статусами зависимостей.
+ * Actuator endpoint /actuator/dependencies — JSON with dependency health statuses.
  */
 @Endpoint(id = "dependencies")
 public class DependenciesEndpoint {

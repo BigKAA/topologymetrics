@@ -1,7 +1,7 @@
 namespace DepHealth;
 
 /// <summary>
-/// Тип зависимости.
+/// Dependency type.
 /// </summary>
 public enum DependencyType
 {
@@ -16,12 +16,12 @@ public enum DependencyType
 }
 
 /// <summary>
-/// Расширения для <see cref="DependencyType"/>.
+/// Extension methods for <see cref="DependencyType"/>.
 /// </summary>
 public static class DependencyTypeExtensions
 {
     /// <summary>
-    /// Возвращает строковое представление для Prometheus-метки type.
+    /// Returns the string representation for the Prometheus "type" label.
     /// </summary>
     public static string Label(this DependencyType type) => type switch
     {
@@ -37,7 +37,7 @@ public static class DependencyTypeExtensions
     };
 
     /// <summary>
-    /// Находит тип по строковому представлению (case-insensitive).
+    /// Resolves the dependency type from its string representation (case-insensitive).
     /// </summary>
     public static DependencyType FromLabel(string label) => label.ToLowerInvariant() switch
     {

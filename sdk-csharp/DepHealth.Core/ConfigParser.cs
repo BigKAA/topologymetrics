@@ -1,7 +1,7 @@
 namespace DepHealth;
 
 /// <summary>
-/// Парсер URL, JDBC, connection string и явных параметров (host/port).
+/// Parser for URLs, JDBC URLs, connection strings, and explicit parameters (host/port).
 /// </summary>
 public static class ConfigParser
 {
@@ -38,7 +38,7 @@ public static class ConfigParser
         new(StringComparer.OrdinalIgnoreCase) { "port" };
 
     /// <summary>
-    /// Парсит URL (поддерживает multi-host для Kafka, IPv6).
+    /// Parses a URL (supports multi-host for Kafka, IPv6).
     /// </summary>
     public static List<ParsedConnection> ParseUrl(string rawUrl)
     {
@@ -61,14 +61,14 @@ public static class ConfigParser
 
         var rest = rawUrl[(colonSlashSlash + 3)..];
 
-        // Отрезаем userinfo (user:pass@)
+        // Strip userinfo (user:pass@)
         var atSign = rest.IndexOf('@');
         if (atSign >= 0)
         {
             rest = rest[(atSign + 1)..];
         }
 
-        // Отрезаем path/query/fragment
+        // Strip path/query/fragment
         var pathStart = rest.IndexOf('/');
         var hostPortPart = pathStart >= 0 ? rest[..pathStart] : rest;
         var queryStart = hostPortPart.IndexOf('?');
@@ -89,7 +89,7 @@ public static class ConfigParser
     }
 
     /// <summary>
-    /// Парсит JDBC URL: jdbc:subprotocol://host:port/db
+    /// Parses a JDBC URL: jdbc:subprotocol://host:port/db
     /// </summary>
     public static List<ParsedConnection> ParseJdbc(string jdbcUrl)
     {
@@ -121,7 +121,7 @@ public static class ConfigParser
     }
 
     /// <summary>
-    /// Парсит connection string формата key=value;key=value.
+    /// Parses a connection string in key=value;key=value format.
     /// </summary>
     public static Endpoint ParseConnectionString(string connStr)
     {
@@ -148,7 +148,7 @@ public static class ConfigParser
                 }
                 else if (value.Contains(':') && !value.StartsWith('['))
                 {
-                    // host:port (но не IPv6)
+                    // host:port (but not IPv6)
                     var parts = value.Split(':', 2);
                     host = parts[0].Trim();
                     port ??= parts[1].Trim();
@@ -179,7 +179,7 @@ public static class ConfigParser
     }
 
     /// <summary>
-    /// Создаёт Endpoint из явных параметров host и port.
+    /// Creates an Endpoint from explicit host and port parameters.
     /// </summary>
     public static Endpoint ParseParams(string host, string port)
     {

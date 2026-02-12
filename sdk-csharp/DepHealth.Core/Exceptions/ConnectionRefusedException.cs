@@ -1,7 +1,7 @@
 namespace DepHealth.Exceptions;
 
 /// <summary>
-/// Соединение отклонено при проверке здоровья зависимости.
+/// Connection refused during dependency health check.
 /// </summary>
 public class ConnectionRefusedException : DepHealthException
 {

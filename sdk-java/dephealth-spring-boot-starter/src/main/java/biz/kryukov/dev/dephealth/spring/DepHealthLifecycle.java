@@ -4,7 +4,7 @@ import biz.kryukov.dev.dephealth.DepHealth;
 import org.springframework.context.SmartLifecycle;
 
 /**
- * SmartLifecycle: автоматический start/stop DepHealth при запуске/остановке приложения.
+ * SmartLifecycle: automatic start/stop of DepHealth on application startup/shutdown.
  */
 public class DepHealthLifecycle implements SmartLifecycle {
 
@@ -34,6 +34,6 @@ public class DepHealthLifecycle implements SmartLifecycle {
 
     @Override
     public int getPhase() {
-        return Integer.MAX_VALUE; // запускаемся после всех бинов
+        return Integer.MAX_VALUE; // start after all beans are initialized
     }
 }

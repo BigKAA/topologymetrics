@@ -12,7 +12,7 @@ import (
 func TestMySQLChecker_Check_PoolMode(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
-		t.Fatalf("не удалось создать sqlmock: %v", err)
+		t.Fatalf("failed to create sqlmock: %v", err)
 	}
 	defer func() { _ = db.Close() }()
 
@@ -22,18 +22,18 @@ func TestMySQLChecker_Check_PoolMode(t *testing.T) {
 	ep := dephealth.Endpoint{Host: "ignored", Port: "3306"}
 
 	if err := checker.Check(context.Background(), ep); err != nil {
-		t.Errorf("ожидали успех в pool mode, получили ошибку: %v", err)
+		t.Errorf("expected success in pool mode, got error: %v", err)
 	}
 
 	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("не все ожидания sqlmock выполнены: %v", err)
+		t.Errorf("not all sqlmock expectations were met: %v", err)
 	}
 }
 
 func TestMySQLChecker_Check_PoolMode_Error(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
-		t.Fatalf("не удалось создать sqlmock: %v", err)
+		t.Fatalf("failed to create sqlmock: %v", err)
 	}
 	defer func() { _ = db.Close() }()
 
@@ -43,14 +43,14 @@ func TestMySQLChecker_Check_PoolMode_Error(t *testing.T) {
 	ep := dephealth.Endpoint{Host: "ignored", Port: "3306"}
 
 	if err := checker.Check(context.Background(), ep); err == nil {
-		t.Error("ожидали ошибку pool query, получили nil")
+		t.Error("expected pool query error, got nil")
 	}
 }
 
 func TestMySQLChecker_Check_PoolMode_CustomQuery(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
-		t.Fatalf("не удалось создать sqlmock: %v", err)
+		t.Fatalf("failed to create sqlmock: %v", err)
 	}
 	defer func() { _ = db.Close() }()
 
@@ -60,7 +60,7 @@ func TestMySQLChecker_Check_PoolMode_CustomQuery(t *testing.T) {
 	ep := dephealth.Endpoint{Host: "ignored", Port: "3306"}
 
 	if err := checker.Check(context.Background(), ep); err != nil {
-		t.Errorf("ожидали успех с custom query, получили ошибку: %v", err)
+		t.Errorf("expected success with custom query, got error: %v", err)
 	}
 }
 
@@ -70,7 +70,7 @@ func TestMySQLChecker_Check_Standalone_ConnectionRefused(t *testing.T) {
 
 	err := checker.Check(context.Background(), ep)
 	if err == nil {
-		t.Error("ожидали ошибку для закрытого порта, получили nil")
+		t.Error("expected error for closed port, got nil")
 	}
 }
 
@@ -83,13 +83,13 @@ func TestMySQLChecker_Check_Standalone_ContextCanceled(t *testing.T) {
 
 	err := checker.Check(ctx, ep)
 	if err == nil {
-		t.Error("ожидали ошибку для отменённого контекста, получили nil")
+		t.Error("expected error for canceled context, got nil")
 	}
 }
 
 func TestMySQLChecker_Type(t *testing.T) {
 	checker := NewMySQLChecker()
 	if got := checker.Type(); got != "mysql" {
-		t.Errorf("Type() = %q, ожидали %q", got, "mysql")
+		t.Errorf("Type() = %q, expected %q", got, "mysql")
 	}
 }

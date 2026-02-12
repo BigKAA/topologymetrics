@@ -7,17 +7,17 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
-	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks" // регистрация фабрик
+	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks" // register checker factories
 )
 
 func TestFromDB(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
-		t.Fatalf("ошибка создания sqlmock: %v", err)
+		t.Fatalf("failed to create sqlmock: %v", err)
 	}
 	defer func() { _ = db.Close() }()
 
-	// Ожидаем SELECT 1 при health check.
+	// Expect SELECT 1 during health check.
 	mock.ExpectQuery("SELECT 1").WillReturnRows(sqlmock.NewRows([]string{"1"}).AddRow(1))
 
 	reg := prometheus.NewRegistry()
@@ -29,7 +29,7 @@ func TestFromDB(t *testing.T) {
 		),
 	)
 	if err != nil {
-		t.Fatalf("ошибка создания DepHealth: %v", err)
+		t.Fatalf("failed to create DepHealth: %v", err)
 	}
 	_ = dh
 }
@@ -37,7 +37,7 @@ func TestFromDB(t *testing.T) {
 func TestFromDB_MissingAddr(t *testing.T) {
 	db, _, err := sqlmock.New()
 	if err != nil {
-		t.Fatalf("ошибка создания sqlmock: %v", err)
+		t.Fatalf("failed to create sqlmock: %v", err)
 	}
 	defer func() { _ = db.Close() }()
 
@@ -47,14 +47,14 @@ func TestFromDB_MissingAddr(t *testing.T) {
 		FromDB("pg-main", db, dephealth.Critical(true)),
 	)
 	if err == nil {
-		t.Fatal("ожидали ошибку при отсутствии адреса")
+		t.Fatal("expected error when address is missing")
 	}
 }
 
 func TestFromMySQLDB(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
-		t.Fatalf("ошибка создания sqlmock: %v", err)
+		t.Fatalf("failed to create sqlmock: %v", err)
 	}
 	defer func() { _ = db.Close() }()
 
@@ -69,7 +69,7 @@ func TestFromMySQLDB(t *testing.T) {
 		),
 	)
 	if err != nil {
-		t.Fatalf("ошибка создания DepHealth: %v", err)
+		t.Fatalf("failed to create DepHealth: %v", err)
 	}
 	_ = dh
 }

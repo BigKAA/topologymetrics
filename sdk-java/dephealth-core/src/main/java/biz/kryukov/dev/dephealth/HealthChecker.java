@@ -3,21 +3,21 @@ package biz.kryukov.dev.dephealth;
 import java.time.Duration;
 
 /**
- * Интерфейс проверки здоровья зависимости.
+ * Dependency health check interface.
  *
- * <p>Реализации должны быть thread-safe.</p>
+ * <p>Implementations must be thread-safe.</p>
  */
 public interface HealthChecker {
 
     /**
-     * Выполняет проверку здоровья эндпоинта.
+     * Performs a health check on the endpoint.
      *
-     * @param endpoint эндпоинт для проверки
-     * @param timeout  максимальное время ожидания
-     * @throws Exception если зависимость нездорова или проверка не удалась
+     * @param endpoint endpoint to check
+     * @param timeout  maximum wait time
+     * @throws Exception if the dependency is unhealthy or the check failed
      */
     void check(Endpoint endpoint, Duration timeout) throws Exception;
 
-    /** Возвращает тип зависимости. */
+    /** Returns the dependency type. */
     DependencyType type();
 }

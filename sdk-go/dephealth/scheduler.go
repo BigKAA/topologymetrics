@@ -9,27 +9,27 @@ import (
 	"time"
 )
 
-// Sentinel-ошибки планировщика.
+// Sentinel errors for the scheduler.
 var (
 	ErrAlreadyStarted = errors.New("scheduler already started")
 	ErrNotStarted     = errors.New("scheduler not started")
 )
 
-// endpointState хранит состояние проверки конкретного endpoint.
+// endpointState holds the health check state for a specific endpoint.
 type endpointState struct {
 	mu                   sync.Mutex
-	healthy              *bool // nil = UNKNOWN (до первой проверки)
+	healthy              *bool // nil = UNKNOWN (before first check)
 	consecutiveFailures  int
 	consecutiveSuccesses int
 }
 
-// Scheduler управляет периодическим запуском проверок здоровья.
+// Scheduler manages periodic execution of health checks.
 type Scheduler struct {
 	deps    []scheduledDep
 	metrics *MetricsExporter
 	logger  *slog.Logger
 
-	states  map[string]*endpointState // ключ: "name:host:port"
+	states  map[string]*endpointState // key: "name:host:port"
 	cancel  context.CancelFunc
 	wg      sync.WaitGroup
 	started bool
@@ -37,28 +37,28 @@ type Scheduler struct {
 	mu      sync.Mutex
 }
 
-// scheduledDep содержит зависимость с привязанным чекером.
+// scheduledDep contains a dependency with its associated checker.
 type scheduledDep struct {
 	dep     Dependency
 	checker HealthChecker
 }
 
-// SchedulerOption — функциональная опция для Scheduler.
+// SchedulerOption is a functional option for Scheduler.
 type SchedulerOption func(*schedulerConfig)
 
 type schedulerConfig struct {
 	logger *slog.Logger
 }
 
-// WithSchedulerLogger задаёт логгер для планировщика.
+// WithSchedulerLogger sets the logger for the scheduler.
 func WithSchedulerLogger(l *slog.Logger) SchedulerOption {
 	return func(c *schedulerConfig) {
 		c.logger = l
 	}
 }
 
-// NewScheduler создаёт новый планировщик.
-// deps — пары зависимость+чекер, metrics — экспортёр метрик.
+// NewScheduler creates a new scheduler.
+// metrics is the metrics exporter used for recording health check results.
 func NewScheduler(metrics *MetricsExporter, opts ...SchedulerOption) *Scheduler {
 	cfg := schedulerConfig{
 		logger: slog.Default(),
@@ -73,8 +73,8 @@ func NewScheduler(metrics *MetricsExporter, opts ...SchedulerOption) *Scheduler 
 	}
 }
 
-// Add добавляет зависимость с чекером в планировщик.
-// Должна вызываться до Start.
+// Add adds a dependency with its checker to the scheduler.
+// Must be called before Start.
 func (s *Scheduler) Add(dep Dependency, checker HealthChecker) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -91,9 +91,9 @@ func (s *Scheduler) Add(dep Dependency, checker HealthChecker) error {
 	return nil
 }
 
-// Start запускает периодические проверки для всех зарегистрированных зависимостей.
-// Каждый endpoint каждой зависимости проверяется в отдельной горутине.
-// Вызов Start более одного раза возвращает ошибку.
+// Start launches periodic health checks for all registered dependencies.
+// Each endpoint of each dependency is checked in a separate goroutine.
+// Calling Start more than once returns an error.
 func (s *Scheduler) Start(ctx context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -119,8 +119,8 @@ func (s *Scheduler) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop останавливает планировщик и ожидает завершения всех горутин.
-// Повторный вызов — no-op.
+// Stop stops the scheduler and waits for all goroutines to finish.
+// Repeated calls are no-op.
 func (s *Scheduler) Stop() {
 	s.mu.Lock()
 	if s.stopped || !s.started {
@@ -135,9 +135,9 @@ func (s *Scheduler) Stop() {
 	s.wg.Wait()
 }
 
-// Health возвращает текущее состояние всех endpoint-ов.
-// Ключ — "dependency:host:port", значение — true (healthy) / false (unhealthy).
-// Endpoint-ы в состоянии UNKNOWN (до первой проверки) не включаются в результат.
+// Health returns the current health state of all endpoints.
+// Key is "dependency:host:port", value is true (healthy) / false (unhealthy).
+// Endpoints in UNKNOWN state (before first check) are not included in the result.
 func (s *Scheduler) Health() map[string]bool {
 	s.mu.Lock()
 	states := s.states
@@ -158,7 +158,7 @@ func (s *Scheduler) Health() map[string]bool {
 	return result
 }
 
-// runEndpointLoop — основной цикл проверки одного endpoint.
+// runEndpointLoop is the main check loop for a single endpoint.
 func (s *Scheduler) runEndpointLoop(ctx context.Context, dep Dependency, ep Endpoint, checker HealthChecker, state *endpointState) {
 	defer s.wg.Done()
 
@@ -178,10 +178,10 @@ func (s *Scheduler) runEndpointLoop(ctx context.Context, dep Dependency, ep Endp
 		}
 	}
 
-	// Первая проверка.
+	// First check.
 	s.executeCheck(ctx, dep, ep, checker, state, logAttrs, true)
 
-	// Периодические проверки.
+	// Periodic checks.
 	ticker := time.NewTicker(dep.Config.Interval)
 	defer ticker.Stop()
 
@@ -195,7 +195,7 @@ func (s *Scheduler) runEndpointLoop(ctx context.Context, dep Dependency, ep Endp
 	}
 }
 
-// executeCheck выполняет одну проверку и обновляет состояние и метрики.
+// executeCheck performs a single health check and updates state and metrics.
 func (s *Scheduler) executeCheck(
 	ctx context.Context,
 	dep Dependency,
@@ -205,12 +205,12 @@ func (s *Scheduler) executeCheck(
 	logAttrs []slog.Attr,
 	isFirst bool,
 ) {
-	// Не запускаем проверку, если контекст уже отменён.
+	// Skip check if context is already cancelled.
 	if ctx.Err() != nil {
 		return
 	}
 
-	// Создаём контекст с таймаутом для проверки.
+	// Create a context with timeout for the check.
 	checkCtx, checkCancel := context.WithTimeout(ctx, dep.Config.Timeout)
 	defer checkCancel()
 
@@ -218,14 +218,14 @@ func (s *Scheduler) executeCheck(
 	checkErr := s.safeCheck(checkCtx, checker, ep)
 	duration := time.Since(start)
 
-	// Записываем латентность всегда (и при успехе, и при ошибке).
+	// Record latency always (both on success and failure).
 	s.metrics.ObserveLatency(dep, ep, duration)
 
 	state.mu.Lock()
 	defer state.mu.Unlock()
 
 	if isFirst {
-		// Первая проверка: сразу устанавливаем состояние без учёта порогов.
+		// First check: set state immediately without threshold logic.
 		healthy := checkErr == nil
 		state.healthy = &healthy
 		if healthy {
@@ -246,7 +246,7 @@ func (s *Scheduler) executeCheck(
 	}
 
 	if checkErr != nil {
-		// Неудачная проверка.
+		// Failed check.
 		state.consecutiveSuccesses = 0
 		state.consecutiveFailures++
 
@@ -255,36 +255,36 @@ func (s *Scheduler) executeCheck(
 
 		if state.healthy != nil && *state.healthy &&
 			state.consecutiveFailures >= dep.Config.FailureThreshold {
-			// Переход HEALTHY → UNHEALTHY.
+			// Transition HEALTHY -> UNHEALTHY.
 			healthy := false
 			state.healthy = &healthy
 			s.metrics.SetHealth(dep, ep, 0)
 			s.logger.LogAttrs(ctx, slog.LevelError, "dephealth: dependency unhealthy",
 				append(logAttrs, slog.Int("consecutive_failures", state.consecutiveFailures))...)
 		} else if state.healthy != nil && !*state.healthy {
-			// Уже unhealthy — обновляем метрику (она и так 0).
+			// Already unhealthy — update metric (it is already 0).
 			s.metrics.SetHealth(dep, ep, 0)
 		}
 	} else {
-		// Успешная проверка.
+		// Successful check.
 		state.consecutiveFailures = 0
 		state.consecutiveSuccesses++
 
 		if state.healthy != nil && !*state.healthy &&
 			state.consecutiveSuccesses >= dep.Config.SuccessThreshold {
-			// Переход UNHEALTHY → HEALTHY.
+			// Transition UNHEALTHY -> HEALTHY.
 			healthy := true
 			state.healthy = &healthy
 			s.metrics.SetHealth(dep, ep, 1)
 			s.logger.LogAttrs(ctx, slog.LevelInfo, "dephealth: dependency recovered", logAttrs...)
 		} else if state.healthy != nil && *state.healthy {
-			// Уже healthy — обновляем метрику (она и так 1).
+			// Already healthy — update metric (it is already 1).
 			s.metrics.SetHealth(dep, ep, 1)
 		}
 	}
 }
 
-// safeCheck вызывает checker.Check с перехватом паники.
+// safeCheck calls checker.Check with panic recovery.
 func (s *Scheduler) safeCheck(ctx context.Context, checker HealthChecker, ep Endpoint) (err error) {
 	defer func() {
 		if r := recover(); r != nil {

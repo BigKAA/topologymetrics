@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Парсер URL, JDBC, connection string и явных параметров (host/port).
+ * Parser for URLs, JDBC URLs, connection strings, and explicit host/port parameters.
  */
 public final class ConfigParser {
 
@@ -44,17 +44,17 @@ public final class ConfigParser {
     private static final Set<String> PORT_KEYS = Set.of("port");
 
     /**
-     * Парсит URL (поддерживает multi-host для Kafka, IPv6).
+     * Parses a URL (supports multi-host for Kafka, IPv6).
      *
-     * @param rawUrl URL для парсинга
-     * @return список parsed connections (один или несколько для multi-host)
+     * @param rawUrl URL to parse
+     * @return list of parsed connections (one or more for multi-host)
      */
     public static List<ParsedConnection> parseUrl(String rawUrl) {
         if (rawUrl == null || rawUrl.isBlank()) {
             throw new ConfigurationException("URL must not be empty");
         }
 
-        // Определяем схему
+        // Determine the scheme
         int colonSlashSlash = rawUrl.indexOf("://");
         if (colonSlashSlash < 0) {
             throw new ConfigurationException("URL must have a scheme (e.g. http://): " + rawUrl);
@@ -67,16 +67,16 @@ public final class ConfigParser {
 
         String rest = rawUrl.substring(colonSlashSlash + 3);
 
-        // Отрезаем userinfo (user:pass@)
+        // Strip userinfo (user:pass@)
         int atSign = rest.indexOf('@');
         if (atSign >= 0) {
             rest = rest.substring(atSign + 1);
         }
 
-        // Отрезаем path/query/fragment
+        // Strip path/query/fragment
         int pathStart = rest.indexOf('/');
         String hostPortPart = pathStart >= 0 ? rest.substring(0, pathStart) : rest;
-        // Также отрезаем query без path
+        // Also strip query without path
         int queryStart = hostPortPart.indexOf('?');
         if (queryStart >= 0) {
             hostPortPart = hostPortPart.substring(0, queryStart);
@@ -93,7 +93,7 @@ public final class ConfigParser {
     }
 
     /**
-     * Парсит JDBC URL: jdbc:subprotocol://host:port/db
+     * Parses a JDBC URL: jdbc:subprotocol://host:port/db
      */
     public static List<ParsedConnection> parseJdbc(String jdbcUrl) {
         if (jdbcUrl == null || jdbcUrl.isBlank()) {
@@ -103,9 +103,9 @@ public final class ConfigParser {
             throw new ConfigurationException("JDBC URL must start with 'jdbc:': " + jdbcUrl);
         }
 
-        String withoutJdbc = jdbcUrl.substring(5); // убираем "jdbc:"
+        String withoutJdbc = jdbcUrl.substring(5); // strip "jdbc:"
 
-        // Определяем субпротокол
+        // Determine the subprotocol
         int colonSlashSlash = withoutJdbc.indexOf("://");
         if (colonSlashSlash < 0) {
             throw new ConfigurationException("JDBC URL must contain ://: " + jdbcUrl);
@@ -116,15 +116,15 @@ public final class ConfigParser {
             throw new ConfigurationException("Unsupported JDBC subprotocol: " + subprotocol);
         }
 
-        // Парсим как обычный URL
+        // Parse as a regular URL
         String normalizedUrl = subprotocol + withoutJdbc.substring(colonSlashSlash);
         return parseUrl(normalizedUrl);
     }
 
     /**
-     * Парсит connection string формата key=value;key=value.
+     * Parses a connection string in key=value;key=value format.
      *
-     * @return Endpoint с host и port
+     * @return Endpoint with host and port
      */
     public static Endpoint parseConnectionString(String connStr) {
         if (connStr == null || connStr.isBlank()) {
@@ -141,7 +141,7 @@ public final class ConfigParser {
             String value = entry.getValue();
 
             if (HOST_KEYS.contains(key)) {
-                // host может содержать порт через запятую (SQL Server) или двоеточие
+                // host may contain port via comma (SQL Server) or colon
                 if (value.contains(",")) {
                     // SQL Server: Server=host,port
                     String[] parts = value.split(",", 2);
@@ -150,7 +150,7 @@ public final class ConfigParser {
                         port = parts[1].trim();
                     }
                 } else if (value.contains(":") && !value.startsWith("[")) {
-                    // host:port (но не IPv6)
+                    // host:port (but not IPv6)
                     String[] parts = value.split(":", 2);
                     host = parts[0].trim();
                     if (port == null) {
@@ -176,7 +176,7 @@ public final class ConfigParser {
     }
 
     /**
-     * Создаёт Endpoint из явных параметров host и port.
+     * Creates an Endpoint from explicit host and port parameters.
      */
     public static Endpoint parseParams(String host, String port) {
         if (host == null || host.isBlank()) {
@@ -186,7 +186,7 @@ public final class ConfigParser {
             throw new ConfigurationException("port must not be empty");
         }
 
-        // Убираем скобки IPv6
+        // Strip IPv6 brackets
         String cleanHost = host;
         if (cleanHost.startsWith("[") && cleanHost.endsWith("]")) {
             cleanHost = cleanHost.substring(1, cleanHost.length() - 1);

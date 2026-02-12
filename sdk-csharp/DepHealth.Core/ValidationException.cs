@@ -1,7 +1,7 @@
 namespace DepHealth;
 
 /// <summary>
-/// Ошибка валидации конфигурации.
+/// Configuration validation error.
 /// </summary>
 public class ValidationException : Exception
 {

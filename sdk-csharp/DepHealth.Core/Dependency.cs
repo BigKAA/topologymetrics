@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 namespace DepHealth;
 
 /// <summary>
-/// Описание зависимости: имя, тип, набор эндпоинтов, конфигурация проверки. Immutable.
+/// Dependency descriptor: name, type, set of endpoints, check configuration. Immutable.
 /// </summary>
 public sealed partial class Dependency
 {

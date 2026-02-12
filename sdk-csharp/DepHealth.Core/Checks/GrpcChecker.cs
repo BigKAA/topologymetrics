@@ -4,7 +4,7 @@ using Grpc.Net.Client;
 namespace DepHealth.Checks;
 
 /// <summary>
-/// gRPC health checker — использует gRPC Health Check Protocol.
+/// gRPC health checker — uses the gRPC Health Check Protocol.
 /// </summary>
 public sealed class GrpcChecker : IHealthChecker
 {

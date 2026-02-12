@@ -1,4 +1,4 @@
-"""Эндпоинт /health/dependencies — JSON со статусом зависимостей."""
+"""Endpoint /health/dependencies — JSON with dependency status."""
 
 from __future__ import annotations
 
@@ -12,9 +12,9 @@ dependencies_router = APIRouter()
 
 @dependencies_router.get("/health/dependencies")
 async def health_dependencies(request: Request) -> JSONResponse:
-    """Возвращает JSON со статусом всех зависимостей.
+    """Return JSON with the status of all dependencies.
 
-    Формат ответа::
+    Response format::
 
         {
             "status": "healthy",

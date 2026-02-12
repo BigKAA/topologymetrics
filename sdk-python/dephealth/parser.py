@@ -1,4 +1,4 @@
-"""Парсер URL, connection string и JDBC для извлечения host/port."""
+"""URL, connection string, and JDBC parser for host/port extraction."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 
 from dephealth.dependency import DependencyType, Endpoint
 
-# Порты по умолчанию для каждой схемы.
+# Default ports for each scheme.
 DEFAULT_PORTS: dict[str, str] = {
     "postgres": "5432",
     "postgresql": "5432",
@@ -22,7 +22,7 @@ DEFAULT_PORTS: dict[str, str] = {
     "kafka": "9092",
 }
 
-# Маппинг схема → тип зависимости.
+# Scheme to dependency type mapping.
 _SCHEME_TO_TYPE: dict[str, DependencyType] = {
     "postgres": DependencyType.POSTGRES,
     "postgresql": DependencyType.POSTGRES,
@@ -37,16 +37,16 @@ _SCHEME_TO_TYPE: dict[str, DependencyType] = {
     "kafka": DependencyType.KAFKA,
 }
 
-# JDBC subprotocol → тип зависимости.
+# JDBC subprotocol to dependency type mapping.
 _JDBC_TO_TYPE: dict[str, DependencyType] = {
     "postgresql": DependencyType.POSTGRES,
     "mysql": DependencyType.MYSQL,
 }
 
 
-@dataclass
+@dataclass(frozen=True)
 class ParsedConnection:
-    """Результат парсинга URL/connection string."""
+    """Result of parsing a URL or connection string."""
 
     host: str
     port: str
@@ -54,11 +54,11 @@ class ParsedConnection:
 
 
 def parse_url(raw_url: str) -> list[ParsedConnection]:
-    """Парсит URL и возвращает список соединений.
+    """Parse a URL and return a list of parsed connections.
 
-    Поддерживает схемы: postgres://, postgresql://, redis://, rediss://,
+    Supported schemes: postgres://, postgresql://, redis://, rediss://,
     amqp://, amqps://, http://, https://, grpc://, kafka://.
-    Для kafka:// поддерживает multi-host: kafka://host1:port1,host2:port2.
+    For kafka:// supports multi-host: kafka://host1:port1,host2:port2.
     """
     if not raw_url:
         msg = "empty URL"
@@ -79,9 +79,9 @@ def parse_url(raw_url: str) -> list[ParsedConnection]:
     default_port = DEFAULT_PORTS.get(scheme, "")
 
     # Kafka multi-host: kafka://host1:9092,host2:9092
-    # Проверяем ДО обращения к parsed.port (запятые ломают urlparse).
+    # Check BEFORE accessing parsed.port (commas break urlparse).
     raw_netloc = parsed.netloc
-    # Убираем userinfo если есть.
+    # Strip userinfo if present.
     if "@" in raw_netloc:
         raw_netloc = raw_netloc.split("@", 1)[1]
 
@@ -104,7 +104,7 @@ def parse_url(raw_url: str) -> list[ParsedConnection]:
 def _parse_multi_host(
     host_part: str, default_port: str, conn_type: DependencyType
 ) -> list[ParsedConnection]:
-    """Парсит multi-host строку (host1:port1,host2:port2)."""
+    """Parse a multi-host string (host1:port1,host2:port2)."""
     results: list[ParsedConnection] = []
     for segment in host_part.split(","):
         segment = segment.strip()
@@ -119,7 +119,7 @@ def _parse_multi_host(
 
 
 def _extract_host_port(segment: str, default_port: str) -> tuple[str, str]:
-    """Извлекает host и port из сегмента host:port или [ipv6]:port."""
+    """Extract host and port from a host:port or [ipv6]:port segment."""
     # IPv6: [::1]:5432
     if segment.startswith("["):
         bracket_end = segment.find("]")
@@ -142,9 +142,9 @@ def _extract_host_port(segment: str, default_port: str) -> tuple[str, str]:
 
 
 def parse_connection_string(conn_str: str) -> tuple[str, str]:
-    """Парсит key=value connection string (Postgres/MySQL).
+    """Parse a key=value connection string (Postgres/MySQL).
 
-    Ищет host и port в строке вида:
+    Looks for host and port in a string like:
     host=localhost port=5432 dbname=mydb user=admin
     """
     if not conn_str:
@@ -168,7 +168,7 @@ def parse_connection_string(conn_str: str) -> tuple[str, str]:
 
 
 def _parse_key_value_pairs(conn_str: str) -> dict[str, str]:
-    """Парсит key=value пары из строки."""
+    """Parse key=value pairs from a string."""
     pairs: dict[str, str] = {}
     for part in conn_str.split():
         if "=" in part:
@@ -178,7 +178,7 @@ def _parse_key_value_pairs(conn_str: str) -> dict[str, str]:
 
 
 def _find_value(pairs: dict[str, str], *keys: str) -> str:
-    """Ищет значение по нескольким возможным ключам."""
+    """Find a value by one of several possible keys."""
     for key in keys:
         if key in pairs:
             return pairs[key]
@@ -186,9 +186,9 @@ def _find_value(pairs: dict[str, str], *keys: str) -> str:
 
 
 def parse_jdbc(jdbc_url: str) -> list[ParsedConnection]:
-    """Парсит JDBC URL.
+    """Parse a JDBC URL.
 
-    Поддерживает:
+    Supported formats:
     - jdbc:postgresql://host:port/db
     - jdbc:mysql://host:port/db
     """
@@ -200,10 +200,10 @@ def parse_jdbc(jdbc_url: str) -> list[ParsedConnection]:
         msg = f"invalid JDBC URL {jdbc_url!r}: must start with 'jdbc:'"
         raise ValueError(msg)
 
-    # Убираем jdbc: префикс
+    # Strip the jdbc: prefix
     rest = jdbc_url[5:]
 
-    # Определяем subprotocol
+    # Determine the subprotocol
     colon_idx = rest.find(":")
     if colon_idx == -1:
         msg = f"invalid JDBC URL {jdbc_url!r}: missing subprotocol"
@@ -215,7 +215,7 @@ def parse_jdbc(jdbc_url: str) -> list[ParsedConnection]:
         msg = f"unsupported JDBC subprotocol {subprotocol!r}"
         raise ValueError(msg)
 
-    # Парсим оставшуюся часть как обычный URL
+    # Parse the remaining part as a regular URL
     inner_url = rest[colon_idx + 1 :]
     parsed = urlparse(inner_url)
 
@@ -232,7 +232,7 @@ def parse_jdbc(jdbc_url: str) -> list[ParsedConnection]:
 
 
 def parse_params(host: str, port: str) -> Endpoint:
-    """Создаёт Endpoint из явно заданных host и port."""
+    """Create an Endpoint from explicit host and port values."""
     if not host:
         msg = "host must not be empty"
         raise ValueError(msg)
@@ -244,12 +244,12 @@ def parse_params(host: str, port: str) -> Endpoint:
 
 
 def _validate_port(port: str) -> None:
-    """Проверяет корректность порта."""
+    """Validate a port value."""
     try:
         port_int = int(port)
-    except ValueError:
+    except ValueError as exc:
         msg = f"invalid port {port!r}: must be numeric"
-        raise ValueError(msg) from None
+        raise ValueError(msg) from exc
     if not 1 <= port_int <= 65535:
         msg = f"port {port_int} out of range (1-65535)"
         raise ValueError(msg)

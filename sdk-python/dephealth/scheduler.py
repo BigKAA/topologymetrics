@@ -1,4 +1,4 @@
-"""Check scheduler: периодический запуск проверок зависимостей."""
+"""Check scheduler: periodic dependency health checks."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ logger = logging.getLogger("dephealth.scheduler")
 
 @dataclass
 class _EndpointState:
-    """Состояние проверки одного endpoint."""
+    """Health check state of a single endpoint."""
 
     healthy: bool = False
     consecutive_failures: int = 0
@@ -26,7 +26,7 @@ class _EndpointState:
 
 @dataclass
 class _SchedulerEntry:
-    """Запись планировщика: зависимость + чекер + состояния endpoint-ов."""
+    """Scheduler entry: dependency + checker + endpoint states."""
 
     dep: Dependency
     checker: HealthChecker
@@ -34,11 +34,11 @@ class _SchedulerEntry:
 
 
 class CheckScheduler:
-    """Планировщик проверок зависимостей.
+    """Dependency health check scheduler.
 
-    Поддерживает два режима:
-    - asyncio (основной): через asyncio.create_task
-    - threading (fallback): через threading.Timer
+    Supports two modes:
+    - asyncio (primary): via asyncio.create_task
+    - threading (fallback): via threading.Timer
     """
 
     def __init__(
@@ -54,7 +54,7 @@ class CheckScheduler:
         self._running = False
 
     def add(self, dep: Dependency, checker: HealthChecker) -> None:
-        """Добавляет зависимость для мониторинга."""
+        """Add a dependency for monitoring."""
         entry = _SchedulerEntry(dep=dep, checker=checker)
         for ep in dep.endpoints:
             key = f"{ep.host}:{ep.port}"
@@ -62,7 +62,7 @@ class CheckScheduler:
         self._entries.append(entry)
 
     async def start(self) -> None:
-        """Запуск в asyncio-режиме."""
+        """Start in asyncio mode."""
         self._running = True
         for entry in self._entries:
             for ep in entry.dep.endpoints:
@@ -71,7 +71,7 @@ class CheckScheduler:
         self._log.info("Scheduler started (%d entries)", len(self._entries))
 
     async def stop(self) -> None:
-        """Остановка asyncio-режима."""
+        """Stop asyncio mode."""
         self._running = False
         for task in self._tasks:
             task.cancel()
@@ -80,7 +80,7 @@ class CheckScheduler:
         self._log.info("Scheduler stopped")
 
     def start_sync(self) -> None:
-        """Запуск в threading-режиме (fallback)."""
+        """Start in threading mode (fallback)."""
         self._running = True
         for entry in self._entries:
             for ep in entry.dep.endpoints:
@@ -95,7 +95,7 @@ class CheckScheduler:
         self._log.info("Scheduler started in sync mode (%d entries)", len(self._entries))
 
     def stop_sync(self) -> None:
-        """Остановка threading-режима."""
+        """Stop threading mode."""
         self._running = False
         for event in self._threads:
             event.set()
@@ -103,16 +103,16 @@ class CheckScheduler:
         self._log.info("Scheduler stopped (sync mode)")
 
     def health(self) -> dict[str, bool]:
-        """Текущее состояние всех зависимостей."""
+        """Return current health status of all dependencies."""
         result: dict[str, bool] = {}
         for entry in self._entries:
-            # Зависимость здорова, если хотя бы один endpoint здоров.
+            # A dependency is healthy if at least one endpoint is healthy.
             healthy = any(s.healthy for s in entry.states.values())
             result[entry.dep.name] = healthy
         return result
 
     async def _run_loop(self, entry: _SchedulerEntry, ep: Endpoint) -> None:
-        """Цикл проверки одного endpoint (asyncio)."""
+        """Check loop for a single endpoint (asyncio)."""
         if entry.dep.config.initial_delay > 0:
             await asyncio.sleep(entry.dep.config.initial_delay)
 
@@ -123,7 +123,7 @@ class CheckScheduler:
     def _run_thread(
         self, entry: _SchedulerEntry, ep: Endpoint, stop_event: threading.Event
     ) -> None:
-        """Цикл проверки одного endpoint (threading)."""
+        """Check loop for a single endpoint (threading)."""
         if entry.dep.config.initial_delay > 0:
             stop_event.wait(entry.dep.config.initial_delay)
             if stop_event.is_set():
@@ -138,7 +138,7 @@ class CheckScheduler:
             loop.close()
 
     async def _check_once(self, entry: _SchedulerEntry, ep: Endpoint) -> None:
-        """Одна проверка endpoint с обновлением метрик и порогов."""
+        """Run a single endpoint check and update metrics and thresholds."""
         key = f"{ep.host}:{ep.port}"
         state = entry.states[key]
 

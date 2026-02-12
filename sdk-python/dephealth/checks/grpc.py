@@ -7,7 +7,7 @@ from dephealth.dependency import Endpoint
 
 
 class GRPCChecker:
-    """Проверка доступности через gRPC Health/Check."""
+    """Health check via gRPC Health/Check."""
 
     def __init__(
         self,
@@ -22,7 +22,7 @@ class GRPCChecker:
         self._tls_skip_verify = tls_skip_verify
 
     async def check(self, endpoint: Endpoint) -> None:
-        """Вызывает grpc.health.v1.Health/Check."""
+        """Call grpc.health.v1.Health/Check."""
         try:
             import grpc
             from grpc_health.v1 import health_pb2, health_pb2_grpc
@@ -34,7 +34,7 @@ class GRPCChecker:
 
         if self._tls:
             if self._tls_skip_verify:
-                # Небезопасный канал для тестирования.
+                # Insecure channel for testing.
                 channel_creds = grpc.ssl_channel_credentials(
                     root_certificates=None,
                 )
@@ -71,4 +71,5 @@ class GRPCChecker:
             await channel.close()
 
     def checker_type(self) -> str:
+        """Return the checker type."""
         return "grpc"

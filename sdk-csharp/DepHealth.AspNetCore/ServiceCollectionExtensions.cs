@@ -8,16 +8,16 @@ using Prometheus;
 namespace DepHealth.AspNetCore;
 
 /// <summary>
-/// Extension methods для интеграции dephealth с ASP.NET Core DI.
+/// Extension methods for integrating dephealth with ASP.NET Core DI.
 /// </summary>
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Регистрирует dephealth в DI-контейнере.
+    /// Registers dephealth in the DI container.
     /// </summary>
-    /// <param name="services">Коллекция сервисов.</param>
-    /// <param name="name">Уникальное имя приложения.</param>
-    /// <param name="configure">Конфигурация зависимостей.</param>
+    /// <param name="services">The service collection.</param>
+    /// <param name="name">Unique application name.</param>
+    /// <param name="configure">Dependencies configuration.</param>
     public static IServiceCollection AddDepHealth(
         this IServiceCollection services,
         string name,
@@ -36,7 +36,7 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Маппит эндпоинт /health/dependencies с JSON-ответом о состоянии зависимостей.
+    /// Maps the /health/dependencies endpoint with a JSON response about dependency status.
     /// </summary>
     public static IEndpointRouteBuilder MapDepHealthEndpoints(this IEndpointRouteBuilder endpoints)
     {

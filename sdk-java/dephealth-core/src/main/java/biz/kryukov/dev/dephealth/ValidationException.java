@@ -1,7 +1,7 @@
 package biz.kryukov.dev.dephealth;
 
 /**
- * Ошибка валидации параметров.
+ * Parameter validation error.
  */
 public class ValidationException extends DepHealthException {
 

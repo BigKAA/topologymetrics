@@ -1,4 +1,4 @@
-"""Тесты для dependency.py — CheckConfig, Endpoint, Dependency, labels."""
+"""Tests for dependency.py — CheckConfig, Endpoint, Dependency, labels."""
 
 import pytest
 
@@ -44,8 +44,7 @@ class TestCheckConfig:
         ],
     )
     def test_validate_out_of_range(self, field: str, value: object) -> None:
-        cfg = default_check_config()
-        setattr(cfg, field, value)
+        cfg = CheckConfig(**{field: value})
         with pytest.raises(ValueError):
             cfg.validate()
 

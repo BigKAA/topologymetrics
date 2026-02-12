@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace DepHealth;
 
 /// <summary>
-/// Планировщик периодических проверок здоровья зависимостей.
+/// Scheduler for periodic dependency health checks.
 /// </summary>
 public sealed class CheckScheduler : IDisposable
 {
@@ -25,7 +25,7 @@ public sealed class CheckScheduler : IDisposable
     }
 
     /// <summary>
-    /// Регистрирует зависимость для периодической проверки.
+    /// Registers a dependency for periodic health checking.
     /// </summary>
     public void AddDependency(Dependency dependency, IHealthChecker checker)
     {
@@ -44,7 +44,7 @@ public sealed class CheckScheduler : IDisposable
     }
 
     /// <summary>
-    /// Запускает периодические проверки.
+    /// Starts periodic health checks.
     /// </summary>
     public void Start()
     {
@@ -76,7 +76,7 @@ public sealed class CheckScheduler : IDisposable
     }
 
     /// <summary>
-    /// Останавливает все проверки.
+    /// Stops all health checks.
     /// </summary>
     public void Stop()
     {
@@ -98,7 +98,7 @@ public sealed class CheckScheduler : IDisposable
     }
 
     /// <summary>
-    /// Возвращает текущее состояние здоровья всех эндпоинтов.
+    /// Returns the current health status of all endpoints.
     /// </summary>
     public Dictionary<string, bool> Health()
     {

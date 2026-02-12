@@ -1,4 +1,4 @@
-"""Тесты FastAPI-интеграции: middleware, lifespan, endpoints."""
+"""Tests for FastAPI integration: middleware, lifespan, endpoints."""
 
 from __future__ import annotations
 
@@ -16,17 +16,17 @@ from dephealth_fastapi import (
     dephealth_lifespan,
 )
 
-# --- Фикстуры ---
+# --- Fixtures ---
 
 
 @pytest.fixture()
 def registry() -> CollectorRegistry:
-    """Изолированный registry для тестов."""
+    """Isolated registry for tests."""
     return CollectorRegistry()
 
 
 def _make_app_with_middleware(registry: CollectorRegistry) -> FastAPI:
-    """Создаёт FastAPI-приложение с middleware для метрик."""
+    """Create a FastAPI application with metrics middleware."""
     app = FastAPI()
     app.add_middleware(DepHealthMiddleware, registry=registry)
 
@@ -37,14 +37,14 @@ def _make_app_with_middleware(registry: CollectorRegistry) -> FastAPI:
     return app
 
 
-# --- Тесты middleware ---
+# --- Middleware tests ---
 
 
 class TestDepHealthMiddleware:
-    """Тесты DepHealthMiddleware."""
+    """Tests for DepHealthMiddleware."""
 
     async def test_metrics_endpoint_returns_prometheus(self, registry: CollectorRegistry) -> None:
-        """GET /metrics возвращает Prometheus-формат."""
+        """GET /metrics returns Prometheus format."""
         app = _make_app_with_middleware(registry)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get("/metrics")
@@ -52,7 +52,7 @@ class TestDepHealthMiddleware:
         assert "text/plain" in resp.headers["content-type"]
 
     async def test_other_routes_pass_through(self, registry: CollectorRegistry) -> None:
-        """Запросы к другим путям проходят насквозь."""
+        """Requests to other paths pass through."""
         app = _make_app_with_middleware(registry)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get("/")
@@ -60,7 +60,7 @@ class TestDepHealthMiddleware:
         assert resp.json() == {"status": "ok"}
 
     async def test_custom_metrics_path(self, registry: CollectorRegistry) -> None:
-        """Middleware работает с кастомным путём."""
+        """Middleware works with a custom path."""
         app = FastAPI()
         app.add_middleware(DepHealthMiddleware, registry=registry, metrics_path="/custom")
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -69,14 +69,14 @@ class TestDepHealthMiddleware:
         assert "text/plain" in resp.headers["content-type"]
 
 
-# --- Тесты endpoints ---
+# --- Endpoint tests ---
 
 
 class TestDependenciesEndpoint:
-    """Тесты /health/dependencies."""
+    """Tests for /health/dependencies."""
 
     async def test_no_dephealth_returns_503(self) -> None:
-        """Если DependencyHealth не инициализирован — 503."""
+        """If DependencyHealth is not initialized, return 503."""
         app = FastAPI()
         app.include_router(dependencies_router)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -86,7 +86,7 @@ class TestDependenciesEndpoint:
         assert data["status"] == "unknown"
 
     async def test_all_healthy_returns_200(self) -> None:
-        """Все зависимости здоровы — 200."""
+        """All dependencies healthy — 200."""
         app = FastAPI()
         app.include_router(dependencies_router)
 
@@ -102,7 +102,7 @@ class TestDependenciesEndpoint:
         assert data["dependencies"]["db"] is True
 
     async def test_degraded_returns_503(self) -> None:
-        """Есть нездоровые зависимости — 503 + status=degraded."""
+        """Some dependencies unhealthy — 503 + status=degraded."""
         app = FastAPI()
         app.include_router(dependencies_router)
 
@@ -118,14 +118,14 @@ class TestDependenciesEndpoint:
         assert data["dependencies"]["cache"] is False
 
 
-# --- Тесты lifespan ---
+# --- Lifespan tests ---
 
 
 class TestDephealthLifespan:
-    """Тесты dephealth_lifespan."""
+    """Tests for dephealth_lifespan."""
 
     async def test_lifespan_starts_and_stops(self, registry: CollectorRegistry) -> None:
-        """Lifespan запускает и останавливает DependencyHealth."""
+        """Lifespan starts and stops DependencyHealth."""
         with (
             patch.object(DependencyHealth, "start", new_callable=AsyncMock) as mock_start,
             patch.object(DependencyHealth, "stop", new_callable=AsyncMock) as mock_stop,
@@ -140,7 +140,7 @@ class TestDephealthLifespan:
             mock_stop.assert_called_once()
 
     async def test_lifespan_sets_app_state(self, registry: CollectorRegistry) -> None:
-        """Lifespan устанавливает app.state.dephealth."""
+        """Lifespan sets app.state.dephealth."""
         with (
             patch.object(DependencyHealth, "start", new_callable=AsyncMock),
             patch.object(DependencyHealth, "stop", new_callable=AsyncMock),

@@ -7,7 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Конфигурация dephealth через application.yml / application.properties.
+ * Configuration for dephealth via application.yml / application.properties.
  *
  * <pre>
  * dephealth:

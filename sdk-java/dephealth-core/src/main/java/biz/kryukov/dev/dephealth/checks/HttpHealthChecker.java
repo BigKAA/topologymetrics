@@ -11,7 +11,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 
 /**
- * HTTP health checker — выполняет GET-запрос к healthPath и ожидает 2xx.
+ * HTTP health checker — performs a GET request to healthPath and expects 2xx.
  */
 public final class HttpHealthChecker implements HealthChecker {
 

@@ -1,4 +1,4 @@
-"""Тесты для parser.py — ParseURL, ParseConnectionString, ParseJDBC, ParseParams."""
+"""Tests for parser.py — ParseURL, ParseConnectionString, ParseJDBC, ParseParams."""
 
 import pytest
 
@@ -60,7 +60,7 @@ class TestParseURL:
             parse_url("ftp://localhost")
 
     def test_default_ports(self) -> None:
-        """Проверка дефолтных портов для всех схем."""
+        """Verify default ports for all schemes."""
         cases = [
             ("postgres://host/db", "5432"),
             ("mysql://host/db", "3306"),

@@ -3,7 +3,7 @@ using RabbitMQ.Client;
 namespace DepHealth.Checks;
 
 /// <summary>
-/// AMQP (RabbitMQ) health checker — проверяет соединение connect → close.
+/// AMQP (RabbitMQ) health checker — verifies connectivity via connect and close.
 /// </summary>
 public sealed class AmqpChecker : IHealthChecker
 {

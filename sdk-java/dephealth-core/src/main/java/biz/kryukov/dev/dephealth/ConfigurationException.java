@@ -1,7 +1,7 @@
 package biz.kryukov.dev.dephealth;
 
 /**
- * Ошибка конфигурации SDK.
+ * SDK configuration error.
  */
 public class ConfigurationException extends DepHealthException {
 

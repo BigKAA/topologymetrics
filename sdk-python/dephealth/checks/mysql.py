@@ -10,7 +10,7 @@ from dephealth.dependency import Endpoint
 
 
 class MySQLChecker:
-    """Проверка доступности MySQL через SELECT 1."""
+    """Health check for MySQL via SELECT 1."""
 
     def __init__(
         self,
@@ -25,7 +25,7 @@ class MySQLChecker:
         self._dsn = dsn
 
     async def check(self, endpoint: Endpoint) -> None:
-        """Выполняет SELECT 1 на MySQL."""
+        """Execute SELECT 1 on MySQL."""
         try:
             import aiomysql
         except ImportError:
@@ -58,12 +58,13 @@ class MySQLChecker:
                     await cur.execute(self._query)
             finally:
                 conn.close()
-        except TimeoutError:
+        except TimeoutError as exc:
             msg = f"MySQL connection to {endpoint.host}:{endpoint.port} timed out"
-            raise CheckTimeoutError(msg) from None
+            raise CheckTimeoutError(msg) from exc
         except OSError as e:
             msg = f"MySQL connection to {endpoint.host}:{endpoint.port} refused: {e}"
             raise CheckConnectionRefusedError(msg) from e
 
     def checker_type(self) -> str:
+        """Return the checker type."""
         return "mysql"

@@ -4,7 +4,7 @@ using System.Net.Security;
 namespace DepHealth.Checks;
 
 /// <summary>
-/// HTTP health checker — выполняет GET-запрос к healthPath и ожидает 2xx.
+/// HTTP health checker — performs a GET request to healthPath and expects a 2xx response.
 /// </summary>
 public sealed class HttpChecker : IHealthChecker
 {

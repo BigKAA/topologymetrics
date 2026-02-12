@@ -142,7 +142,7 @@ class DependencyTest {
 
     @Test
     void endpointLabelsValidated() {
-        // reserved label в endpoint → ошибка валидации
+        // reserved label in endpoint -> validation error
         Endpoint ep = new Endpoint("localhost", "80", Map.of("host", "bad"));
         assertThrows(ValidationException.class, () ->
                 Dependency.builder("test", DependencyType.HTTP)

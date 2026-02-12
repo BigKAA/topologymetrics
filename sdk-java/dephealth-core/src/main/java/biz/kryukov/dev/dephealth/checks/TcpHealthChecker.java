@@ -9,7 +9,7 @@ import java.net.Socket;
 import java.time.Duration;
 
 /**
- * TCP health checker — устанавливает TCP-соединение к эндпоинту.
+ * TCP health checker — establishes a TCP connection to the endpoint.
  */
 public final class TcpHealthChecker implements HealthChecker {
 

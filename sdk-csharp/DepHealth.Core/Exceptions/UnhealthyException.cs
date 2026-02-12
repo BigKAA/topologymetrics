@@ -1,7 +1,7 @@
 namespace DepHealth.Exceptions;
 
 /// <summary>
-/// Зависимость нездорова (проверка не прошла).
+/// Dependency is unhealthy (check failed).
 /// </summary>
 public class UnhealthyException : DepHealthException
 {

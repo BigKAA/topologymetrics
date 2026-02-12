@@ -14,7 +14,7 @@ public class DepHealthHostedServiceTests
         var service = new DepHealthHostedService(monitor);
 
         await service.StartAsync(CancellationToken.None);
-        // Если Start() выброшено исключение — тест упадёт
+        // If Start() throws an exception — the test will fail
 
         await service.StopAsync(CancellationToken.None);
     }

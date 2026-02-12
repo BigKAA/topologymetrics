@@ -83,7 +83,7 @@ func newRedisFromConfig(dc *dephealth.DependencyConfig) dephealth.HealthChecker 
 	if dc.RedisDB != nil {
 		opts = append(opts, WithRedisDB(*dc.RedisDB))
 	}
-	// Извлечь password и db из URL, если явные опции не заданы.
+	// Extract password and db from URL if explicit options are not set.
 	if dc.URL != "" {
 		u, err := url.Parse(dc.URL)
 		if err == nil && u != nil && u.User != nil && dc.RedisPassword == "" {

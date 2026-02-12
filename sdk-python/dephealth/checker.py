@@ -1,4 +1,4 @@
-"""Интерфейс HealthChecker и ошибки проверок."""
+"""HealthChecker interface and check error types."""
 
 from __future__ import annotations
 
@@ -8,28 +8,28 @@ from dephealth.dependency import Endpoint
 
 
 class CheckError(Exception):
-    """Базовая ошибка проверки зависимости."""
+    """Base dependency check error."""
 
 
 class CheckTimeoutError(CheckError):
-    """Таймаут при проверке."""
+    """Check timed out."""
 
 
 class CheckConnectionRefusedError(CheckError):
-    """Соединение отклонено."""
+    """Connection refused."""
 
 
 class UnhealthyError(CheckError):
-    """Зависимость доступна, но нездорова."""
+    """Dependency is reachable but unhealthy."""
 
 
 class HealthChecker(Protocol):
-    """Протокол проверки здоровья зависимости."""
+    """Protocol for dependency health checking."""
 
     async def check(self, endpoint: Endpoint) -> None:
-        """Проверяет зависимость. Бросает CheckError при неудаче."""
+        """Check the dependency. Raises CheckError on failure."""
         ...
 
     def checker_type(self) -> str:
-        """Возвращает тип проверки (http, grpc, tcp, ...)."""
+        """Return the checker type (http, grpc, tcp, ...)."""
         ...

@@ -1,7 +1,7 @@
 namespace DepHealth;
 
 /// <summary>
-/// Thread-safe состояние эндпоинта: healthy/unhealthy, счётчики последовательных успехов/неудач.
+/// Thread-safe endpoint state: healthy/unhealthy, counters for consecutive successes/failures.
 /// </summary>
 internal sealed class EndpointState
 {
@@ -24,7 +24,7 @@ internal sealed class EndpointState
 
             if (_healthy is null)
             {
-                // Первая проверка — немедленный переход
+                // First check — immediate transition
                 _healthy = true;
                 return;
             }
@@ -45,7 +45,7 @@ internal sealed class EndpointState
 
             if (_healthy is null)
             {
-                // Первая проверка — немедленный переход
+                // First check — immediate transition
                 _healthy = false;
                 return;
             }

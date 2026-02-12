@@ -3,7 +3,7 @@ using System.Net.Sockets;
 namespace DepHealth.Checks;
 
 /// <summary>
-/// TCP health checker — устанавливает TCP-соединение к эндпоинту.
+/// TCP health checker — establishes a TCP connection to the endpoint.
 /// </summary>
 public sealed class TcpChecker : IHealthChecker
 {

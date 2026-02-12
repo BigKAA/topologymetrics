@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 namespace DepHealth;
 
 /// <summary>
-/// Эндпоинт зависимости (хост + порт + метки). Immutable.
+/// Dependency endpoint (host + port + labels). Immutable.
 /// </summary>
 public sealed partial class Endpoint : IEquatable<Endpoint>
 {
@@ -39,7 +39,7 @@ public sealed partial class Endpoint : IEquatable<Endpoint>
     public int PortAsInt() => int.Parse(Port);
 
     /// <summary>
-    /// Проверяет, что имя метки допустимо: [a-zA-Z_][a-zA-Z0-9_]* и не зарезервировано.
+    /// Validates that the label name is valid: [a-zA-Z_][a-zA-Z0-9_]* and not reserved.
     /// </summary>
     public static void ValidateLabelName(string name)
     {
@@ -62,7 +62,7 @@ public sealed partial class Endpoint : IEquatable<Endpoint>
     }
 
     /// <summary>
-    /// Валидирует все ключи в словаре меток.
+    /// Validates all keys in the labels dictionary.
     /// </summary>
     public static void ValidateLabels(IReadOnlyDictionary<string, string> labels)
     {

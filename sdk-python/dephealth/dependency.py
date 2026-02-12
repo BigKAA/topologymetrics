@@ -1,4 +1,4 @@
-"""Базовые абстракции: Dependency, Endpoint, CheckConfig, DependencyType."""
+"""Core abstractions: Dependency, Endpoint, CheckConfig, DependencyType."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from enum import StrEnum
 
 
 class DependencyType(StrEnum):
-    """Тип зависимости."""
+    """Dependency type."""
 
     HTTP = "http"
     GRPC = "grpc"
@@ -20,14 +20,14 @@ class DependencyType(StrEnum):
     KAFKA = "kafka"
 
 
-# Значения по умолчанию из спецификации.
+# Default values from the specification.
 DEFAULT_CHECK_INTERVAL: float = 15.0
 DEFAULT_TIMEOUT: float = 5.0
 DEFAULT_INITIAL_DELAY: float = 5.0
 DEFAULT_FAILURE_THRESHOLD: int = 1
 DEFAULT_SUCCESS_THRESHOLD: int = 1
 
-# Границы валидации.
+# Validation boundaries.
 MIN_CHECK_INTERVAL: float = 1.0
 MAX_CHECK_INTERVAL: float = 300.0
 MIN_TIMEOUT: float = 1.0
@@ -47,7 +47,7 @@ RESERVED_LABELS: frozenset[str] = frozenset(
 
 
 def validate_label_name(label: str) -> None:
-    """Проверяет имя произвольной метки."""
+    """Validate a custom label name."""
     if not LABEL_NAME_PATTERN.match(label):
         msg = f"invalid label name {label!r}: must match [a-zA-Z_][a-zA-Z0-9_]*"
         raise ValueError(msg)
@@ -57,14 +57,14 @@ def validate_label_name(label: str) -> None:
 
 
 def validate_labels(labels: dict[str, str]) -> None:
-    """Проверяет все произвольные метки."""
+    """Validate all custom labels."""
     for key in labels:
         validate_label_name(key)
 
 
-@dataclass
+@dataclass(frozen=True)
 class CheckConfig:
-    """Конфигурация проверки зависимости."""
+    """Dependency check configuration."""
 
     interval: float = DEFAULT_CHECK_INTERVAL
     timeout: float = DEFAULT_TIMEOUT
@@ -73,7 +73,7 @@ class CheckConfig:
     success_threshold: int = DEFAULT_SUCCESS_THRESHOLD
 
     def validate(self) -> None:
-        """Проверяет корректность конфигурации."""
+        """Validate the configuration values."""
         if not MIN_CHECK_INTERVAL <= self.interval <= MAX_CHECK_INTERVAL:
             msg = f"interval must be between {MIN_CHECK_INTERVAL} and {MAX_CHECK_INTERVAL}"
             raise ValueError(msg)
@@ -92,13 +92,13 @@ class CheckConfig:
 
 
 def default_check_config() -> CheckConfig:
-    """Возвращает конфигурацию со значениями по умолчанию."""
+    """Return a configuration with default values."""
     return CheckConfig()
 
 
-@dataclass
+@dataclass(frozen=True)
 class Endpoint:
-    """Адрес зависимости."""
+    """Dependency endpoint address."""
 
     host: str
     port: str
@@ -106,13 +106,13 @@ class Endpoint:
 
 
 def bool_to_yes_no(value: bool) -> str:
-    """Конвертирует bool в 'yes'/'no'."""
+    """Convert a bool to 'yes'/'no'."""
     return "yes" if value else "no"
 
 
-@dataclass
+@dataclass(frozen=True)
 class Dependency:
-    """Описание зависимости."""
+    """Dependency descriptor."""
 
     name: str
     type: DependencyType
@@ -121,7 +121,7 @@ class Dependency:
     config: CheckConfig = field(default_factory=default_check_config)
 
     def validate(self) -> None:
-        """Проверяет корректность зависимости."""
+        """Validate the dependency descriptor."""
         validate_name(self.name)
         if not self.endpoints:
             msg = "at least one endpoint required"
@@ -132,7 +132,7 @@ class Dependency:
 
 
 def validate_name(name: str) -> None:
-    """Проверяет имя зависимости."""
+    """Validate a dependency name."""
     if not _NAME_PATTERN.match(name):
         msg = f"invalid dependency name {name!r}: must match [a-zA-Z][a-zA-Z0-9_-]{{{{0,62}}}}"
         raise ValueError(msg)

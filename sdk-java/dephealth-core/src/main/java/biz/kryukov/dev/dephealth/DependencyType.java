@@ -1,7 +1,7 @@
 package biz.kryukov.dev.dephealth;
 
 /**
- * Тип зависимости.
+ * Dependency type.
  */
 public enum DependencyType {
     HTTP("http"),
@@ -19,12 +19,12 @@ public enum DependencyType {
         this.label = label;
     }
 
-    /** Возвращает строковое представление для Prometheus-метки type. */
+    /** Returns the string representation for the Prometheus type label. */
     public String label() {
         return label;
     }
 
-    /** Находит тип по строковому представлению (case-insensitive). */
+    /** Finds a type by its string representation (case-insensitive). */
     public static DependencyType fromLabel(String label) {
         for (DependencyType t : values()) {
             if (t.label.equalsIgnoreCase(label)) {

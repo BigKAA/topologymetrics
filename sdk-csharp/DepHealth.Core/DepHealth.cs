@@ -7,9 +7,9 @@ using Prometheus;
 namespace DepHealth;
 
 /// <summary>
-/// Точка входа SDK dephealth.
+/// Entry point for the dephealth SDK.
 /// <para>
-/// Использование:
+/// Usage:
 /// <code>
 /// var dh = DepHealthMonitor.CreateBuilder("my-service")
 ///     .AddPostgres("db", "postgres://user:pass@host:5432/mydb", critical: true)
@@ -36,22 +36,22 @@ public sealed partial class DepHealthMonitor : IDisposable
         _scheduler = scheduler;
     }
 
-    /// <summary>Запускает периодические проверки.</summary>
+    /// <summary>Starts periodic health checks.</summary>
     public void Start() => _scheduler.Start();
 
-    /// <summary>Останавливает все проверки.</summary>
+    /// <summary>Stops all health checks.</summary>
     public void Stop() => _scheduler.Stop();
 
-    /// <summary>Возвращает текущее состояние здоровья. Key: "name:host:port", value: healthy.</summary>
+    /// <summary>Returns current health status. Key: "name:host:port", value: healthy.</summary>
     public Dictionary<string, bool> Health() => _scheduler.Health();
 
     public void Dispose() => _scheduler.Dispose();
 
-    /// <summary>Создаёт новый builder с обязательным именем приложения.</summary>
+    /// <summary>Creates a new builder with a required application name.</summary>
     public static Builder CreateBuilder(string name) => new(name);
 
     /// <summary>
-    /// Fluent builder для конфигурации dephealth.
+    /// Fluent builder for configuring dephealth.
     /// </summary>
     public sealed class Builder
     {
@@ -206,7 +206,7 @@ public sealed partial class DepHealthMonitor : IDisposable
         }
 
         /// <summary>
-        /// Добавляет зависимость с кастомным чекером.
+        /// Adds a dependency with a custom health checker.
         /// </summary>
         public Builder AddCustom(string name, DependencyType type, string host, string port,
             IHealthChecker checker, bool? critical = null,
@@ -296,7 +296,7 @@ public sealed partial class DepHealthMonitor : IDisposable
                         if (!entry.Labels.ContainsKey(labelKey))
                         {
                             entry.Labels[labelKey] = labelValue;
-                            // Обновить labels в endpoints
+                            // Update labels in endpoints
                             var updatedEndpoints = entry.Endpoints
                                 .Select(ep =>
                                 {
@@ -394,11 +394,11 @@ public sealed partial class DepHealthMonitor : IDisposable
                 connStr += $";Password={password}";
             }
 
-            // Извлечь database из URL path
+            // Extract database from URL path
             var pathStart = url.IndexOf('/', url.IndexOf("://", StringComparison.Ordinal) + 3);
             if (pathStart >= 0)
             {
-                // Найти @ если есть, смотреть path после него
+                // Find @ if present, look at path after it
                 var afterAt = url.IndexOf('@');
                 if (afterAt >= 0)
                 {
@@ -431,7 +431,7 @@ public sealed partial class DepHealthMonitor : IDisposable
                 connStr += $";Password={password}";
             }
 
-            // Извлечь database из URL path
+            // Extract database from URL path
             var afterAt = url.IndexOf('@');
             if (afterAt >= 0)
             {

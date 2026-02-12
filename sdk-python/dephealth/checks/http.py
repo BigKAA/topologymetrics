@@ -11,7 +11,7 @@ from dephealth.dependency import Endpoint
 
 
 class HTTPChecker:
-    """Проверка доступности через HTTP GET к health-эндпоинту."""
+    """Health check via HTTP GET to the health endpoint."""
 
     def __init__(
         self,
@@ -26,7 +26,7 @@ class HTTPChecker:
         self._tls_skip_verify = tls_skip_verify
 
     async def check(self, endpoint: Endpoint) -> None:
-        """Выполняет HTTP GET и проверяет 2xx ответ."""
+        """Perform an HTTP GET and verify a 2xx response."""
         scheme = "https" if self._tls else "http"
         url = f"{scheme}://{endpoint.host}:{endpoint.port}{self._health_path}"
 
@@ -51,12 +51,13 @@ class HTTPChecker:
                 if resp.status < 200 or resp.status >= 300:
                     msg = f"HTTP {resp.status} from {url}"
                     raise UnhealthyError(msg)
-        except TimeoutError:
+        except TimeoutError as exc:
             msg = f"HTTP request to {url} timed out"
-            raise CheckTimeoutError(msg) from None
+            raise CheckTimeoutError(msg) from exc
         except aiohttp.ClientConnectorError as e:
             msg = f"HTTP connection to {url} refused: {e}"
             raise CheckConnectionRefusedError(msg) from e
 
     def checker_type(self) -> str:
+        """Return the checker type."""
         return "http"

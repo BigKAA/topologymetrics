@@ -7,7 +7,7 @@ from dephealth.dependency import Endpoint
 
 
 class AMQPChecker:
-    """Проверка доступности AMQP-брокера через подключение."""
+    """Health check for an AMQP broker via connection."""
 
     def __init__(
         self,
@@ -18,7 +18,7 @@ class AMQPChecker:
         self._url = url
 
     async def check(self, endpoint: Endpoint) -> None:
-        """Устанавливает AMQP-соединение и закрывает."""
+        """Establish an AMQP connection and close it."""
         try:
             import aio_pika
         except ImportError:
@@ -29,12 +29,13 @@ class AMQPChecker:
         try:
             connection = await aio_pika.connect_robust(url, timeout=self._timeout)
             await connection.close()
-        except TimeoutError:
+        except TimeoutError as exc:
             msg = f"AMQP connection to {endpoint.host}:{endpoint.port} timed out"
-            raise CheckTimeoutError(msg) from None
+            raise CheckTimeoutError(msg) from exc
         except OSError as e:
             msg = f"AMQP connection to {endpoint.host}:{endpoint.port} refused: {e}"
             raise CheckConnectionRefusedError(msg) from e
 
     def checker_type(self) -> str:
+        """Return the checker type."""
         return "amqp"

@@ -9,7 +9,7 @@ from dephealth.dependency import Endpoint
 
 
 class RedisChecker:
-    """Проверка доступности Redis через PING."""
+    """Health check for Redis via PING."""
 
     def __init__(
         self,
@@ -26,7 +26,7 @@ class RedisChecker:
         self._url = url
 
     async def check(self, endpoint: Endpoint) -> None:
-        """Выполняет PING на Redis."""
+        """Execute PING on Redis."""
         try:
             from redis.asyncio import Redis
         except ImportError:
@@ -42,7 +42,7 @@ class RedisChecker:
             "socket_timeout": self._timeout,
             "socket_connect_timeout": self._timeout,
         }
-        # Явный password имеет приоритет над URL.
+        # Explicit password takes priority over URL.
         if self._password:
             kwargs["password"] = self._password
         elif not self._url:
@@ -50,9 +50,9 @@ class RedisChecker:
         client = Redis.from_url(conn_url, **kwargs)
         try:
             await client.ping()
-        except TimeoutError:
+        except TimeoutError as exc:
             msg = f"Redis connection to {endpoint.host}:{endpoint.port} timed out"
-            raise CheckTimeoutError(msg) from None
+            raise CheckTimeoutError(msg) from exc
         except OSError as e:
             msg = f"Redis connection to {endpoint.host}:{endpoint.port} refused: {e}"
             raise CheckConnectionRefusedError(msg) from e
@@ -60,4 +60,5 @@ class RedisChecker:
             await client.aclose()
 
     def checker_type(self) -> str:
+        """Return the checker type."""
         return "redis"

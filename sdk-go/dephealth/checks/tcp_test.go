@@ -9,14 +9,14 @@ import (
 )
 
 func TestTCPChecker_Check_Success(t *testing.T) {
-	// Запускаем TCP-сервер на случайном порту.
+	// Start a TCP server on a random port.
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		t.Fatalf("не удалось запустить TCP listener: %v", err)
+		t.Fatalf("failed to start TCP listener: %v", err)
 	}
 	defer func() { _ = ln.Close() }()
 
-	// Принимаем соединение в горутине.
+	// Accept connections in a goroutine.
 	go func() {
 		conn, err := ln.Accept()
 		if err != nil {
@@ -30,18 +30,18 @@ func TestTCPChecker_Check_Success(t *testing.T) {
 
 	checker := NewTCPChecker()
 	if err := checker.Check(context.Background(), ep); err != nil {
-		t.Errorf("ожидали успех, получили ошибку: %v", err)
+		t.Errorf("expected success, got error: %v", err)
 	}
 }
 
 func TestTCPChecker_Check_ConnectionRefused(t *testing.T) {
-	// Используем порт, на котором ничего не слушает.
+	// Use a port where nothing is listening.
 	ep := dephealth.Endpoint{Host: "127.0.0.1", Port: "1"}
 
 	checker := NewTCPChecker()
 	err := checker.Check(context.Background(), ep)
 	if err == nil {
-		t.Error("ожидали ошибку для закрытого порта, получили nil")
+		t.Error("expected error for closed port, got nil")
 	}
 }
 
@@ -54,13 +54,13 @@ func TestTCPChecker_Check_ContextCanceled(t *testing.T) {
 	checker := NewTCPChecker()
 	err := checker.Check(ctx, ep)
 	if err == nil {
-		t.Error("ожидали ошибку для отменённого контекста, получили nil")
+		t.Error("expected error for canceled context, got nil")
 	}
 }
 
 func TestTCPChecker_Type(t *testing.T) {
 	checker := NewTCPChecker()
 	if got := checker.Type(); got != "tcp" {
-		t.Errorf("Type() = %q, ожидали %q", got, "tcp")
+		t.Errorf("Type() = %q, expected %q", got, "tcp")
 	}
 }

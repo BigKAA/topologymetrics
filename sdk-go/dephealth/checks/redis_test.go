@@ -22,7 +22,7 @@ func TestRedisChecker_Check_PoolMode(t *testing.T) {
 	ep := dephealth.Endpoint{Host: "ignored", Port: "6379"}
 
 	if err := checker.Check(context.Background(), ep); err != nil {
-		t.Errorf("ожидали успех в pool mode, получили ошибку: %v", err)
+		t.Errorf("expected success in pool mode, got error: %v", err)
 	}
 }
 
@@ -33,7 +33,7 @@ func TestRedisChecker_Check_Standalone(t *testing.T) {
 	ep := dephealth.Endpoint{Host: mr.Host(), Port: mr.Port()}
 
 	if err := checker.Check(context.Background(), ep); err != nil {
-		t.Errorf("ожидали успех в standalone mode, получили ошибку: %v", err)
+		t.Errorf("expected success in standalone mode, got error: %v", err)
 	}
 }
 
@@ -45,7 +45,7 @@ func TestRedisChecker_Check_Standalone_WithPassword(t *testing.T) {
 	ep := dephealth.Endpoint{Host: mr.Host(), Port: mr.Port()}
 
 	if err := checker.Check(context.Background(), ep); err != nil {
-		t.Errorf("ожидали успех с паролем, получили ошибку: %v", err)
+		t.Errorf("expected success with password, got error: %v", err)
 	}
 }
 
@@ -57,7 +57,7 @@ func TestRedisChecker_Check_Standalone_WrongPassword(t *testing.T) {
 	ep := dephealth.Endpoint{Host: mr.Host(), Port: mr.Port()}
 
 	if err := checker.Check(context.Background(), ep); err == nil {
-		t.Error("ожидали ошибку для неверного пароля, получили nil")
+		t.Error("expected error for wrong password, got nil")
 	}
 }
 
@@ -68,7 +68,7 @@ func TestRedisChecker_Check_Standalone_WithDB(t *testing.T) {
 	ep := dephealth.Endpoint{Host: mr.Host(), Port: mr.Port()}
 
 	if err := checker.Check(context.Background(), ep); err != nil {
-		t.Errorf("ожидали успех с DB=2, получили ошибку: %v", err)
+		t.Errorf("expected success with DB=2, got error: %v", err)
 	}
 }
 
@@ -78,7 +78,7 @@ func TestRedisChecker_Check_ConnectionRefused(t *testing.T) {
 
 	err := checker.Check(context.Background(), ep)
 	if err == nil {
-		t.Error("ожидали ошибку для закрытого порта, получили nil")
+		t.Error("expected error for closed port, got nil")
 	}
 }
 
@@ -91,13 +91,13 @@ func TestRedisChecker_Check_ContextCanceled(t *testing.T) {
 
 	err := checker.Check(ctx, ep)
 	if err == nil {
-		t.Error("ожидали ошибку для отменённого контекста, получили nil")
+		t.Error("expected error for canceled context, got nil")
 	}
 }
 
 func TestRedisChecker_Type(t *testing.T) {
 	checker := NewRedisChecker()
 	if got := checker.Type(); got != "redis" {
-		t.Errorf("Type() = %q, ожидали %q", got, "redis")
+		t.Errorf("Type() = %q, expected %q", got, "redis")
 	}
 }

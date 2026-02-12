@@ -1,7 +1,7 @@
 package biz.kryukov.dev.dephealth;
 
 /**
- * Базовое исключение SDK dephealth.
+ * Base exception for the dephealth SDK.
  */
 public class DepHealthException extends RuntimeException {
 

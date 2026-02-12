@@ -1,5 +1,5 @@
-// Package sqldb предоставляет интеграцию dephealth с *sql.DB (PostgreSQL, MySQL).
-// Позволяет использовать существующий connection pool сервиса для health-чеков.
+// Package sqldb provides dephealth integration with *sql.DB (PostgreSQL, MySQL).
+// It allows using an existing service connection pool for health checks.
 package sqldb
 
 import (
@@ -9,15 +9,15 @@ import (
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks"
 )
 
-// FromDB создаёт Option для мониторинга PostgreSQL через существующий *sql.DB.
-// Пользователь обязан передать FromURL или FromParams для определения меток метрик.
+// FromDB creates an Option for monitoring PostgreSQL via an existing *sql.DB.
+// The user must provide FromURL or FromParams to determine metric labels.
 func FromDB(name string, db *sql.DB, opts ...dephealth.DependencyOption) dephealth.Option {
 	checker := checks.NewPostgresChecker(checks.WithPostgresDB(db))
 	return dephealth.AddDependency(name, dephealth.TypePostgres, checker, opts...)
 }
 
-// FromMySQLDB создаёт Option для мониторинга MySQL через существующий *sql.DB.
-// Пользователь обязан передать FromURL или FromParams для определения меток метрик.
+// FromMySQLDB creates an Option for monitoring MySQL via an existing *sql.DB.
+// The user must provide FromURL or FromParams to determine metric labels.
 func FromMySQLDB(name string, db *sql.DB, opts ...dephealth.DependencyOption) dephealth.Option {
 	checker := checks.NewMySQLChecker(checks.WithMySQLDB(db))
 	return dephealth.AddDependency(name, dephealth.TypeMySQL, checker, opts...)

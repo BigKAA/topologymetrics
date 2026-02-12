@@ -1,4 +1,4 @@
-"""Тесты для metrics.py — MetricsExporter."""
+"""Tests for metrics.py — MetricsExporter."""
 
 from prometheus_client import CollectorRegistry
 
@@ -141,7 +141,7 @@ class TestMetricsExporter:
         assert health_samples[0].labels["env"] == ""
 
     def test_label_order(self) -> None:
-        """Порядок меток: name, dependency, type, host, port, critical, custom (алфавит)."""
+        """Label order: name, dependency, type, host, port, critical, custom (alphabetical)."""
         registry = CollectorRegistry()
         m = MetricsExporter(
             instance_name="test-app",

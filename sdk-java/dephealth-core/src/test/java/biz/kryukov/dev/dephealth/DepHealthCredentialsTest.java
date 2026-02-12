@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * Тесты извлечения credentials из URL при построении DepHealth.
+ * Tests for extracting credentials from URL when building DepHealth.
  */
 class DepHealthCredentialsTest {
 
@@ -135,7 +135,7 @@ class DepHealthCredentialsTest {
         assertEquals("mydb", getField(checker, "database"));
     }
 
-    // --- Вспомогательные методы ---
+    // --- Helper methods ---
 
     @SuppressWarnings("unchecked")
     private <T> T getChecker(DepHealth dh, Class<T> checkerType) throws Exception {
@@ -149,7 +149,7 @@ class DepHealthCredentialsTest {
         depsField.setAccessible(true);
         List<?> deps = (List<?>) depsField.get(scheduler);
 
-        // Ищем ScheduledDep с чекером нужного типа
+        // Find ScheduledDep with the checker of the required type
         for (Object dep : deps) {
             Field checkerField = dep.getClass().getDeclaredField("checker");
             checkerField.setAccessible(true);

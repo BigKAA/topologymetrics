@@ -28,7 +28,7 @@ class AmqpHealthCheckerTest {
 
     @Test
     void builderSetsFields() {
-        // Просто проверяем, что builder не бросает исключений
+        // Just verify that the builder does not throw exceptions
         AmqpHealthChecker checker = AmqpHealthChecker.builder()
                 .username("user")
                 .password("pass")

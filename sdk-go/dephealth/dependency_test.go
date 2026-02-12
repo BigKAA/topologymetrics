@@ -16,15 +16,15 @@ func TestValidateName(t *testing.T) {
 		{"kafka-0", false},
 		{"my-service-123", false},
 
-		// Невалидные
-		{"", true},                       // пустое
-		{"A", true},                      // заглавные
-		{"0abc", true},                   // начинается с цифры
-		{"-abc", true},                   // начинается с дефиса
-		{"abc_def", true},                // подчёркивание
-		{"abc def", true},                // пробел
-		{"abc.def", true},                // точка
-		{string(make([]byte, 64)), true}, // слишком длинное
+		// Invalid
+		{"", true},                       // empty
+		{"A", true},                      // uppercase
+		{"0abc", true},                   // starts with digit
+		{"-abc", true},                   // starts with hyphen
+		{"abc_def", true},                // underscore
+		{"abc def", true},                // space
+		{"abc.def", true},                // dot
+		{string(make([]byte, 64)), true}, // too long
 	}
 
 	for _, tt := range tests {
@@ -49,7 +49,7 @@ func TestValidateLabelName(t *testing.T) {
 		{"_private", false},
 		{"my_label_123", false},
 
-		// Зарезервированные
+		// Reserved
 		{"name", true},
 		{"dependency", true},
 		{"type", true},
@@ -57,12 +57,12 @@ func TestValidateLabelName(t *testing.T) {
 		{"port", true},
 		{"critical", true},
 
-		// Невалидные
-		{"0invalid", true}, // начинается с цифры
-		{"invalid-", true}, // содержит дефис
-		{"my label", true}, // содержит пробел
-		{"my.label", true}, // содержит точку
-		{"", true},         // пустое
+		// Invalid
+		{"0invalid", true}, // starts with digit
+		{"invalid-", true}, // contains hyphen
+		{"my label", true}, // contains space
+		{"my.label", true}, // contains dot
+		{"", true},         // empty
 	}
 
 	for _, tt := range tests {
@@ -76,24 +76,24 @@ func TestValidateLabelName(t *testing.T) {
 }
 
 func TestValidateLabels(t *testing.T) {
-	// Валидные.
+	// Valid.
 	if err := ValidateLabels(map[string]string{"role": "primary", "shard": "01"}); err != nil {
 		t.Errorf("ValidateLabels(valid) = %v", err)
 	}
 
-	// Пустые — валидно.
+	// Empty — valid.
 	if err := ValidateLabels(nil); err != nil {
 		t.Errorf("ValidateLabels(nil) = %v", err)
 	}
 
-	// Зарезервированная метка.
+	// Reserved label.
 	if err := ValidateLabels(map[string]string{"dependency": "bad"}); err == nil {
-		t.Error("ожидали ошибку для зарезервированной метки")
+		t.Error("expected error for reserved label")
 	}
 
-	// Невалидное имя.
+	// Invalid name.
 	if err := ValidateLabels(map[string]string{"0bad": "val"}); err == nil {
-		t.Error("ожидали ошибку для невалидного имени метки")
+		t.Error("expected error for invalid label name")
 	}
 }
 

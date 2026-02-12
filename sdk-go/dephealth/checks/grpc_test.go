@@ -26,7 +26,7 @@ func startTestGRPCServer(t *testing.T, status healthpb.HealthCheckResponse_Servi
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		t.Fatalf("не удалось запустить TCP listener: %v", err)
+		t.Fatalf("failed to start TCP listener: %v", err)
 	}
 
 	srv := grpc.NewServer()
@@ -50,7 +50,7 @@ func TestGRPCChecker_Check_Serving(t *testing.T) {
 
 	checker := NewGRPCChecker()
 	if err := checker.Check(context.Background(), ep); err != nil {
-		t.Errorf("ожидали успех, получили ошибку: %v", err)
+		t.Errorf("expected success, got error: %v", err)
 	}
 }
 
@@ -64,7 +64,7 @@ func TestGRPCChecker_Check_NotServing(t *testing.T) {
 	checker := NewGRPCChecker()
 	err := checker.Check(context.Background(), ep)
 	if err == nil {
-		t.Error("ожидали ошибку для NOT_SERVING, получили nil")
+		t.Error("expected error for NOT_SERVING, got nil")
 	}
 }
 
@@ -77,7 +77,7 @@ func TestGRPCChecker_Check_WithServiceName(t *testing.T) {
 
 	checker := NewGRPCChecker(WithServiceName("myservice"))
 	if err := checker.Check(context.Background(), ep); err != nil {
-		t.Errorf("ожидали успех с serviceName, получили ошибку: %v", err)
+		t.Errorf("expected success with serviceName, got error: %v", err)
 	}
 }
 
@@ -87,7 +87,7 @@ func TestGRPCChecker_Check_ConnectionRefused(t *testing.T) {
 	checker := NewGRPCChecker()
 	err := checker.Check(context.Background(), ep)
 	if err == nil {
-		t.Error("ожидали ошибку для закрытого порта, получили nil")
+		t.Error("expected error for closed port, got nil")
 	}
 }
 
@@ -100,13 +100,13 @@ func TestGRPCChecker_Check_ContextCanceled(t *testing.T) {
 	checker := NewGRPCChecker()
 	err := checker.Check(ctx, ep)
 	if err == nil {
-		t.Error("ожидали ошибку для отменённого контекста, получили nil")
+		t.Error("expected error for canceled context, got nil")
 	}
 }
 
 func TestGRPCChecker_Type(t *testing.T) {
 	checker := NewGRPCChecker()
 	if got := checker.Type(); got != "grpc" {
-		t.Errorf("Type() = %q, ожидали %q", got, "grpc")
+		t.Errorf("Type() = %q, expected %q", got, "grpc")
 	}
 }

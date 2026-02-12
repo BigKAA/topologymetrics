@@ -1,7 +1,7 @@
 package biz.kryukov.dev.dephealth.scheduler;
 
 /**
- * Thread-safe состояние эндпоинта: healthy/unhealthy, счётчики последовательных успехов/неудач.
+ * Thread-safe endpoint state: healthy/unhealthy, consecutive success/failure counters.
  */
 public final class EndpointState {
 
@@ -18,7 +18,7 @@ public final class EndpointState {
         consecutiveSuccesses++;
 
         if (healthy == null) {
-            // Первая проверка — немедленный переход
+            // First check — immediate transition
             healthy = true;
             return;
         }
@@ -33,7 +33,7 @@ public final class EndpointState {
         consecutiveFailures++;
 
         if (healthy == null) {
-            // Первая проверка — немедленный переход
+            // First check — immediate transition
             healthy = false;
             return;
         }

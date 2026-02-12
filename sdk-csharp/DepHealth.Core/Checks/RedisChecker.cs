@@ -3,8 +3,8 @@ using StackExchange.Redis;
 namespace DepHealth.Checks;
 
 /// <summary>
-/// Redis health checker — выполняет PING, ожидает PONG.
-/// Поддерживает автономный режим и интеграцию с IConnectionMultiplexer.
+/// Redis health checker — sends PING, expects PONG.
+/// Supports standalone mode and integration with IConnectionMultiplexer.
 /// </summary>
 public sealed class RedisChecker : IHealthChecker
 {
@@ -14,7 +14,7 @@ public sealed class RedisChecker : IHealthChecker
     public DependencyType Type => DependencyType.Redis;
 
     /// <summary>
-    /// Автономный режим: создаёт новое соединение.
+    /// Standalone mode: creates a new connection.
     /// </summary>
     public RedisChecker(string? connectionString = null)
     {
@@ -22,7 +22,7 @@ public sealed class RedisChecker : IHealthChecker
     }
 
     /// <summary>
-    /// Pool-режим: использует существующий IConnectionMultiplexer.
+    /// Pool mode: uses an existing IConnectionMultiplexer.
     /// </summary>
     public RedisChecker(IConnectionMultiplexer multiplexer)
     {

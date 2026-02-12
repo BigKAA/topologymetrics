@@ -132,7 +132,7 @@ func TestParseURL(t *testing.T) {
 			want: []ParsedConnection{{Host: "auth.svc", Port: "443", ConnType: TypeGRPC}},
 		},
 
-		// Ошибки
+		// Errors
 		{name: "empty URL", url: "", wantErr: true},
 		{name: "no scheme", url: "pg.svc:5432/db", wantErr: true},
 		{name: "unsupported scheme", url: "ftp://host:21", wantErr: true},
@@ -220,7 +220,7 @@ func TestParseConnectionString(t *testing.T) {
 			wantPort: "5432",
 		},
 
-		// Ошибки
+		// Errors
 		{name: "empty", connStr: "", wantErr: true},
 		{name: "no host key", connStr: "Database=orders;Port=5432", wantErr: true},
 		{name: "invalid port", connStr: "Host=pg.svc;Port=abc", wantErr: true},
@@ -266,7 +266,7 @@ func TestParseJDBC(t *testing.T) {
 			want: ParsedConnection{Host: "mysql.svc", Port: "3306", ConnType: TypeMySQL},
 		},
 
-		// Ошибки
+		// Errors
 		{name: "empty", url: "", wantErr: true},
 		{name: "no jdbc prefix", url: "postgresql://pg.svc:5432/db", wantErr: true},
 		{name: "unsupported subprotocol", url: "jdbc:oracle://host:1521/db", wantErr: true},

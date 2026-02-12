@@ -28,7 +28,7 @@ class TcpHealthCheckerTest {
 
     @Test
     void connectionRefused() {
-        // Используем порт, на котором ничего не слушает
+        // Use a port that nothing is listening on
         Endpoint ep = new Endpoint("localhost", "1");
         TcpHealthChecker checker = new TcpHealthChecker();
         assertThrows(Exception.class, () -> checker.check(ep, Duration.ofSeconds(1)));
