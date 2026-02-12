@@ -140,21 +140,21 @@ throw new DepHealthException("timeout");
 
 ```java
 /**
- * Выполняет проверку здоровья эндпоинта.
+ * Performs a health check against the given endpoint.
  *
- * <p>Реализации должны быть thread-safe.</p>
+ * <p>Implementations must be thread-safe.</p>
  *
- * @param endpoint эндпоинт для проверки
- * @param timeout  максимальное время ожидания
- * @throws CheckTimeoutException если проверка не завершилась за timeout
- * @throws ConnectionRefusedException если соединение отклонено
+ * @param endpoint the endpoint to check
+ * @param timeout  maximum wait time
+ * @throws CheckTimeoutException if the check did not complete within timeout
+ * @throws ConnectionRefusedException if the connection was refused
  */
 void check(Endpoint endpoint, Duration timeout);
 ```
 
 Правила:
 
-- Первое предложение: краткое описание на русском (показывается в тултипах IDE)
+- Первое предложение: краткое описание на английском (показывается в тултипах IDE)
 - Используйте `@param`, `@return`, `@throws` для всех параметров, возвращаемых значений и исключений
 - Используйте `{@code}` для inline-кода, `{@link}` для перекрёстных ссылок
 - Гарантии потокобезопасности — в блоке `<p>`
@@ -214,12 +214,12 @@ public record Endpoint(String host, int port, Map<String, String> metadata) {
 private static final Logger log = LoggerFactory.getLogger(CheckScheduler.class);
 
 // Хорошо — параметризованное (ленивое вычисление)
-log.info("Запуск планировщика проверок, {} зависимостей", dependencies.size());
-log.warn("Проверка {} не удалась: {}", dependency.name(), error.getMessage());
-log.debug("Проверка {} завершена за {}ms", dependency.name(), elapsed);
+log.info("Starting check scheduler, {} dependencies", dependencies.size());
+log.warn("Check {} failed: {}", dependency.name(), error.getMessage());
+log.debug("Check {} completed in {}ms", dependency.name(), elapsed);
 
 // Плохо — конкатенация строк
-log.info("Запуск планировщика для " + dependencies.size() + " зависимостей");
+log.info("Starting scheduler for " + dependencies.size() + " dependencies");
 ```
 
 - Используйте `log.isDebugEnabled()` только для дорогих для вычисления сообщений

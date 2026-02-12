@@ -114,16 +114,16 @@ sdk-python/
 
 ```python
 class CheckError(Exception):
-    """Базовая ошибка проверки зависимости."""
+    """Base exception for dependency check failures."""
 
 class CheckTimeoutError(CheckError):
-    """Таймаут при проверке."""
+    """Check timed out."""
 
 class CheckConnectionRefusedError(CheckError):
-    """Соединение отклонено."""
+    """Connection refused."""
 
 class UnhealthyError(CheckError):
-    """Зависимость доступна, но нездорова."""
+    """Dependency is reachable but unhealthy."""
 ```
 
 ### Rules
@@ -164,29 +164,29 @@ Use **Google style** docstrings:
 
 ```python
 class HealthChecker(Protocol):
-    """Протокол проверки здоровья зависимости.
+    """Protocol for dependency health checks.
 
-    Реализации должны быть async-safe. Каждый вызов check() может
-    происходить параллельно для разных эндпоинтов.
+    Implementations must be async-safe. Each check() call may
+    run concurrently for different endpoints.
     """
 
     async def check(self, endpoint: Endpoint) -> None:
-        """Проверяет зависимость.
+        """Check the dependency.
 
         Args:
-            endpoint: Эндпоинт для проверки.
+            endpoint: The endpoint to check.
 
         Raises:
-            CheckTimeoutError: Если проверка превысила таймаут.
-            CheckConnectionRefusedError: Если соединение отклонено.
-            UnhealthyError: Если зависимость доступна, но нездорова.
+            CheckTimeoutError: If the check exceeded the timeout.
+            CheckConnectionRefusedError: If the connection was refused.
+            UnhealthyError: If the dependency is reachable but unhealthy.
         """
         ...
 ```
 
 Rules:
 
-- First line: summary in Russian
+- First line: summary in English
 - `Args`, `Returns`, `Raises` sections as needed
 - Document all public classes, functions, and methods
 - Use type hints instead of documenting types in docstrings
@@ -207,17 +207,11 @@ from dataclasses import dataclass, field
 
 @dataclass(frozen=True)
 class Endpoint:
-    """Один эндпоинт зависимости."""
+    """A single dependency endpoint."""
 
     host: str
-    port: int
-    metadata: dict[str, str] = field(default_factory=dict)
-
-    def __post_init__(self) -> None:
-        if not self.host:
-            raise ValueError("host must not be empty")
-        if self.port <= 0 or self.port > 65535:
-            raise ValueError(f"port must be 1-65535, got: {self.port}")
+    port: str
+    labels: dict[str, str] = field(default_factory=dict)
 ```
 
 ### Common patterns
@@ -226,7 +220,7 @@ class Endpoint:
 # Optional values
 from typing import Optional
 
-def parse_url(raw: str, default_port: Optional[int] = None) -> Endpoint: ...
+def parse_url(raw: str, default_port: Optional[str] = None) -> Endpoint: ...
 
 # Protocols instead of ABCs (for structural typing)
 from typing import Protocol
@@ -275,13 +269,13 @@ async def check(self, endpoint: Endpoint) -> None:
 ```python
 class CheckScheduler:
     async def start(self) -> None:
-        """Запуск планировщика."""
+        """Start the scheduler."""
         for dep in self._dependencies:
             task = asyncio.create_task(self._check_loop(dep))
             self._tasks.append(task)
 
     async def stop(self) -> None:
-        """Остановка планировщика с ожиданием завершения."""
+        """Stop the scheduler and wait for completion."""
         for task in self._tasks:
             task.cancel()
         await asyncio.gather(*self._tasks, return_exceptions=True)

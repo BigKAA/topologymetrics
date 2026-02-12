@@ -140,21 +140,21 @@ throw new DepHealthException("timeout");
 
 ```java
 /**
- * Выполняет проверку здоровья эндпоинта.
+ * Performs a health check against the given endpoint.
  *
- * <p>Реализации должны быть thread-safe.</p>
+ * <p>Implementations must be thread-safe.</p>
  *
- * @param endpoint эндпоинт для проверки
- * @param timeout  максимальное время ожидания
- * @throws CheckTimeoutException если проверка не завершилась за timeout
- * @throws ConnectionRefusedException если соединение отклонено
+ * @param endpoint the endpoint to check
+ * @param timeout  maximum wait time
+ * @throws CheckTimeoutException if the check did not complete within timeout
+ * @throws ConnectionRefusedException if the connection was refused
  */
 void check(Endpoint endpoint, Duration timeout);
 ```
 
 Rules:
 
-- First sentence: summary in Russian (shown in IDE tooltips)
+- First sentence: summary in English (shown in IDE tooltips)
 - Use `@param`, `@return`, `@throws` for all parameters, return values, and exceptions
 - Use `{@code}` for inline code, `{@link}` for cross-references
 - Thread safety guarantees in `<p>` block
@@ -214,12 +214,12 @@ Use SLF4J with parameterized messages:
 private static final Logger log = LoggerFactory.getLogger(CheckScheduler.class);
 
 // Good — parameterized (lazy evaluation)
-log.info("Запуск планировщика проверок, {} зависимостей", dependencies.size());
-log.warn("Проверка {} не удалась: {}", dependency.name(), error.getMessage());
-log.debug("Проверка {} завершена за {}ms", dependency.name(), elapsed);
+log.info("Starting check scheduler, {} dependencies", dependencies.size());
+log.warn("Check {} failed: {}", dependency.name(), error.getMessage());
+log.debug("Check {} completed in {}ms", dependency.name(), elapsed);
 
 // Bad — string concatenation
-log.info("Запуск планировщика для " + dependencies.size() + " зависимостей");
+log.info("Starting scheduler for " + dependencies.size() + " dependencies");
 ```
 
 - Use `log.isDebugEnabled()` only for expensive-to-compute messages

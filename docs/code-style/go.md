@@ -30,7 +30,7 @@ package depHealth   // bad — no mixedCaps
 // Exported
 type HealthChecker interface { }
 type Dependency struct { }
-func New(serviceName string, opts ...Option) (*DependencyHealth, error) { }
+func New(serviceName string, opts ...Option) (*DepHealth, error) { }
 
 // Unexported
 type checkResult struct { }
@@ -155,14 +155,15 @@ type HealthChecker interface {
     Type() string
 }
 
-// New creates a new DependencyHealth instance with the given service name and options.
+// New creates a new DepHealth instance with the given service name and options.
 // Returns an error if the configuration is invalid (e.g., empty service name).
-func New(serviceName string, opts ...Option) (*DependencyHealth, error) { }
+func New(serviceName string, opts ...Option) (*DepHealth, error) { }
 ```
 
 Rules:
 
 - First sentence: starts with the symbol name (GoDoc convention)
+- Comments in English
 - Complete sentences with periods
 - Document all exported symbols
 - Document non-obvious behavior and concurrency guarantees
@@ -191,7 +192,7 @@ Rules:
 Use the functional options pattern for configuration:
 
 ```go
-// Option configures DependencyHealth.
+// Option configures DepHealth.
 type Option func(*options)
 
 type options struct {

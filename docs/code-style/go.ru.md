@@ -30,7 +30,7 @@ package depHealth   // плохо — без mixedCaps
 // Экспортируемые
 type HealthChecker interface { }
 type Dependency struct { }
-func New(serviceName string, opts ...Option) (*DependencyHealth, error) { }
+func New(serviceName string, opts ...Option) (*DepHealth, error) { }
 
 // Неэкспортируемые
 type checkResult struct { }
@@ -155,14 +155,15 @@ type HealthChecker interface {
     Type() string
 }
 
-// New creates a new DependencyHealth instance with the given service name and options.
+// New creates a new DepHealth instance with the given service name and options.
 // Returns an error if the configuration is invalid (e.g., empty service name).
-func New(serviceName string, opts ...Option) (*DependencyHealth, error) { }
+func New(serviceName string, opts ...Option) (*DepHealth, error) { }
 ```
 
 Правила:
 
 - Первое предложение: начинается с имени символа (соглашение GoDoc)
+- Комментарии на английском
 - Полные предложения с точкой
 - Документируйте все экспортируемые символы
 - Документируйте неочевидное поведение и гарантии параллелизма
@@ -191,7 +192,7 @@ func (c *HTTPChecker) Check(endpoint Endpoint, ctx context.Context) error { }
 Используйте паттерн functional options для конфигурации:
 
 ```go
-// Option configures DependencyHealth.
+// Option configures DepHealth.
 type Option func(*options)
 
 type options struct {

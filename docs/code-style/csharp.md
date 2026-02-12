@@ -181,22 +181,22 @@ catch (OperationCanceledException ex)
 
 ```csharp
 /// <summary>
-/// Интерфейс проверки здоровья зависимости.
-/// Реализации должны быть thread-safe.
+/// Interface for dependency health checks.
+/// Implementations must be thread-safe.
 /// </summary>
 public interface IHealthChecker
 {
     /// <summary>
-    /// Выполняет проверку здоровья эндпоинта.
+    /// Performs a health check against the given endpoint.
     /// </summary>
-    /// <param name="endpoint">Эндпоинт для проверки.</param>
-    /// <param name="ct">Токен отмены (используется как таймаут).</param>
-    /// <exception cref="CheckTimeoutException">Если проверка превысила таймаут.</exception>
-    /// <exception cref="ConnectionRefusedException">Если соединение отклонено.</exception>
+    /// <param name="endpoint">The endpoint to check.</param>
+    /// <param name="ct">Cancellation token (used as timeout).</param>
+    /// <exception cref="CheckTimeoutException">If the check exceeded the timeout.</exception>
+    /// <exception cref="ConnectionRefusedException">If the connection was refused.</exception>
     Task CheckAsync(Endpoint endpoint, CancellationToken ct);
 
     /// <summary>
-    /// Тип зависимости.
+    /// The dependency type.
     /// </summary>
     DependencyType Type { get; }
 }
@@ -204,7 +204,7 @@ public interface IHealthChecker
 
 Rules:
 
-- `<summary>` for all public types and members (in Russian)
+- `<summary>` for all public types and members (in English)
 - `<param>` for all parameters
 - `<exception cref="">` for thrown exceptions
 - `<returns>` for non-void return values

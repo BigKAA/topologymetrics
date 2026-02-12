@@ -24,9 +24,9 @@ Key principles:
 | Aspect | English | Russian |
 | --- | --- | --- |
 | Code (variables, functions, classes) | Yes | No |
-| Comments in code | - | Yes |
+| Comments in code | Yes | No |
 | Documentation files | Yes (primary) | Yes (`.ru.md` suffix) |
-| Commit messages | No | Yes |
+| Commit messages | Yes | No |
 | Logs at runtime | Yes | - |
 
 ## Architectural Layers
