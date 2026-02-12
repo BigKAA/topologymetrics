@@ -1,24 +1,24 @@
-*[Русская версия](csharp.ru.md)*
+*[English version](csharp.md)*
 
-# Guide to Integrating dephealth into an Existing .NET Service
+# Руководство по интеграции dephealth в существующий .NET-сервис
 
-Step-by-step instructions for adding dependency monitoring
-to a running microservice.
+Пошаговая инструкция по добавлению мониторинга зависимостей
+в работающий микросервис.
 
-## Migration from v0.1 to v0.2
+## Миграция с v0.1 на v0.2
 
-### API Changes
+### Изменения API
 
-| v0.1 | v0.2 | Description |
+| v0.1 | v0.2 | Описание |
 | --- | --- | --- |
-| `AddDepHealth(dh => ...)` | `AddDepHealth("my-service", dh => ...)` | Required first argument `name` |
-| `CreateBuilder()` | `CreateBuilder("my-service")` | Required `name` argument |
-| `.Critical(true)` (optional) | `.Critical(true/false)` (required) | For each dependency |
-| none | `.Label("key", "value")` | Arbitrary labels |
+| `AddDepHealth(dh => ...)` | `AddDepHealth("my-service", dh => ...)` | Обязательный первый аргумент `name` |
+| `CreateBuilder()` | `CreateBuilder("my-service")` | Обязательный аргумент `name` |
+| `.Critical(true)` (необязателен) | `.Critical(true/false)` (обязателен) | Для каждой зависимости |
+| нет | `.Label("key", "value")` | Произвольные метки |
 
-### Required Changes
+### Обязательные изменения
 
-1. Add `name` to `AddDepHealth`:
+1. Добавьте `name` в `AddDepHealth`:
 
 ```csharp
 // v0.1
@@ -36,20 +36,20 @@ builder.Services.AddDepHealth("my-service", dh => dh
 );
 ```
 
-1. Specify `.Critical()` for each dependency:
+1. Укажите `.Critical()` для каждой зависимости:
 
 ```csharp
-// v0.1 — Critical is optional
+// v0.1 — Critical необязателен
 .AddDependency("redis-cache", DependencyType.Redis, d => d
     .Url("redis://redis.svc:6379"))
 
-// v0.2 — Critical is required
+// v0.2 — Critical обязателен
 .AddDependency("redis-cache", DependencyType.Redis, d => d
     .Url("redis://redis.svc:6379")
     .Critical(false))
 ```
 
-### New Labels in Metrics
+### Новые метки в метриках
 
 ```text
 # v0.1
@@ -59,29 +59,29 @@ app_dependency_health{dependency="postgres-main",type="postgres",host="pg.svc",p
 app_dependency_health{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes"} 1
 ```
 
-Update your PromQL queries and Grafana dashboards to include `name` and `critical` labels.
+Обновите PromQL-запросы и дашборды Grafana, добавив метки `name` и `critical`.
 
-## Prerequisites
+## Предварительные требования
 
 - .NET 8+
-- ASP.NET Core (Minimal API or MVC)
-- Access to dependencies (databases, cache, other services) from the service
+- ASP.NET Core (Minimal API или MVC)
+- Доступ к зависимостям (БД, кэш, другие сервисы) из сервиса
 
-## Step 1. Installing Dependencies
+## Шаг 1. Установка зависимостей
 
 ```bash
 dotnet add package DepHealth.AspNetCore
 ```
 
-For Entity Framework integration:
+Для Entity Framework интеграции:
 
 ```bash
 dotnet add package DepHealth.EntityFramework
 ```
 
-## Step 2. Service Registration
+## Шаг 2. Регистрация сервисов
 
-Add dephealth to `Program.cs`:
+Добавьте dephealth в `Program.cs`:
 
 ```csharp
 using DepHealth;
@@ -102,11 +102,11 @@ builder.Services.AddDepHealth("my-service", dh => dh
 );
 ```
 
-## Step 3. Choosing the Mode
+## Шаг 3. Выбор режима
 
-### Option A: Standalone Mode (Simple)
+### Вариант A: Standalone-режим (простой)
 
-The SDK creates temporary connections for health checks:
+SDK создаёт временные соединения для проверок:
 
 ```csharp
 builder.Services.AddDepHealth("my-service", dh => dh
@@ -123,13 +123,13 @@ builder.Services.AddDepHealth("my-service", dh => dh
 );
 ```
 
-### Option B: Entity Framework Integration (Recommended)
+### Вариант B: Интеграция с Entity Framework (рекомендуется)
 
-The SDK uses an existing DbContext. Benefits:
+SDK использует существующий DbContext. Преимущества:
 
-- Reflects the actual ability of the service to work with the dependency
-- Does not create additional load on the database
-- Detects pool issues (exhaustion, leaks)
+- Отражает реальную способность сервиса работать с зависимостью
+- Не создаёт дополнительную нагрузку на БД
+- Обнаруживает проблемы с пулом (исчерпание, утечки)
 
 ```csharp
 using DepHealth.EntityFramework;
@@ -140,7 +140,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddDepHealth("my-service", dh => dh
     .CheckInterval(TimeSpan.FromSeconds(15))
 
-    // PostgreSQL via EF Core DbContext
+    // PostgreSQL через EF Core DbContext
     .AddEntityFrameworkDependency<AppDbContext>("postgres-main",
         critical: true)
 
@@ -149,12 +149,12 @@ builder.Services.AddDepHealth("my-service", dh => dh
         .Url(builder.Configuration["REDIS_URL"]!)
         .Critical(false))
 
-    // HTTP — standalone only
+    // HTTP — только standalone
     .AddDependency("payment-api", DependencyType.Http, d => d
         .Url("http://payment.svc:8080")
         .Critical(true))
 
-    // gRPC — standalone only
+    // gRPC — только standalone
     .AddDependency("auth-service", DependencyType.Grpc, d => d
         .Host("auth.svc")
         .Port("9090")
@@ -162,7 +162,7 @@ builder.Services.AddDepHealth("my-service", dh => dh
 );
 ```
 
-### Option C: Connection String Integration
+### Вариант C: Интеграция с connection string
 
 ```csharp
 .AddDependency("postgres-main", DependencyType.Postgres, d => d
@@ -170,28 +170,28 @@ builder.Services.AddDepHealth("my-service", dh => dh
     .Critical(true))
 ```
 
-## Step 4. Middleware and Endpoints
+## Шаг 4. Middleware и endpoints
 
 ```csharp
 var app = builder.Build();
 
-// Registers /metrics (Prometheus) and /health/dependencies
+// Регистрирует /metrics (Prometheus) и /health/dependencies
 app.UseDepHealth();
 
 app.MapGet("/", () => "OK");
 app.Run();
 ```
 
-`UseDepHealth()` registers:
+`UseDepHealth()` регистрирует:
 
-| Endpoint | Description |
+| Endpoint | Описание |
 | --- | --- |
-| `/metrics` | Prometheus metrics (text format) |
-| `/health/dependencies` | JSON status of all dependencies |
+| `/metrics` | Prometheus-метрики (text format) |
+| `/health/dependencies` | JSON-статус всех зависимостей |
 
-## Step 5. Verifying Functionality
+## Шаг 5. Проверка работоспособности
 
-### Prometheus Metrics
+### Prometheus-метрики
 
 ```bash
 curl http://localhost:8080/metrics
@@ -202,7 +202,7 @@ app_dependency_health{name="my-service",dependency="postgres-main",type="postgre
 app_dependency_health{name="my-service",dependency="redis-cache",type="redis",host="redis.svc",port="6379",critical="no"} 1
 ```
 
-### Dependency Status
+### Состояние зависимостей
 
 ```bash
 curl http://localhost:8080/health/dependencies
@@ -217,12 +217,12 @@ curl http://localhost:8080/health/dependencies
 }
 ```
 
-Status code: `200` (all healthy) or `503` (has unhealthy).
+Статус-код: `200` (все healthy) или `503` (есть unhealthy).
 
-## Step 6. Accessing DepHealth from Code
+## Шаг 6. Доступ к DepHealth из кода
 
 ```csharp
-// Via DI
+// Через DI
 app.MapGet("/info", (IDepHealth depHealth) =>
 {
     var health = depHealth.Health();
@@ -230,9 +230,9 @@ app.MapGet("/info", (IDepHealth depHealth) =>
 });
 ```
 
-## Typical Configurations
+## Типичные конфигурации
 
-### Web Service with PostgreSQL and Redis
+### Веб-сервис с PostgreSQL и Redis
 
 ```csharp
 builder.Services.AddDepHealth("my-service", dh => dh
@@ -245,7 +245,7 @@ builder.Services.AddDepHealth("my-service", dh => dh
 );
 ```
 
-### API Gateway with Upstream Services
+### API Gateway с upstream-сервисами
 
 ```csharp
 builder.Services.AddDepHealth("api-gateway", dh => dh
@@ -265,7 +265,7 @@ builder.Services.AddDepHealth("api-gateway", dh => dh
 );
 ```
 
-### Event Processor with Kafka and RabbitMQ
+### Обработчик событий с Kafka и RabbitMQ
 
 ```csharp
 builder.Services.AddDepHealth("event-processor", dh => dh
@@ -286,43 +286,43 @@ builder.Services.AddDepHealth("event-processor", dh => dh
 
 ## Troubleshooting
 
-### Metrics Don't Appear on `/metrics`
+### Метрики не появляются на `/metrics`
 
-**Check:**
+**Проверьте:**
 
-1. `app.UseDepHealth()` is called in the pipeline
-2. The `DepHealth.AspNetCore` package is installed
-3. The application started without errors
+1. `app.UseDepHealth()` вызван в pipeline
+2. Пакет `DepHealth.AspNetCore` установлен
+3. Приложение стартовало без ошибок
 
-### All Dependencies Show `0` (unhealthy)
+### Все зависимости показывают `0` (unhealthy)
 
-**Check:**
+**Проверьте:**
 
-1. Network accessibility of dependencies from the service's container/pod
-2. DNS resolution of service names
-3. Correctness of URL/host/port in the configuration
-4. Timeout (default `5s`) — is it sufficient for this dependency
-5. Logs: configure `Logging:LogLevel:DepHealth=Debug` in `appsettings.json`
+1. Сетевая доступность зависимостей из контейнера/пода сервиса
+2. DNS-резолвинг имён сервисов
+3. Правильность URL/host/port в конфигурации
+4. Таймаут (`5s` по умолчанию) — достаточен ли для данной зависимости
+5. Логи: настройте `Logging:LogLevel:DepHealth=Debug` в `appsettings.json`
 
-### High Latency for PostgreSQL Checks
+### Высокая латентность проверок PostgreSQL
 
-**Cause**: Standalone mode creates a new connection each time.
+**Причина**: standalone-режим создаёт новое соединение каждый раз.
 
-**Solution**: Use Entity Framework integration or connection string
-with pooling.
+**Решение**: используйте Entity Framework интеграцию или connection string
+с пулом.
 
-### gRPC: `DeadlineExceeded` Error
+### gRPC: ошибка `DeadlineExceeded`
 
-**Check:**
+**Проверьте:**
 
-1. The gRPC service is accessible at the specified address
-2. The service implements `grpc.health.v1.Health/Check`
-3. For gRPC use `Host()` + `Port()`, not `Url()`
-4. If TLS is needed: `.GrpcTls(true)`
+1. gRPC-сервис доступен по указанному адресу
+2. Сервис реализует `grpc.health.v1.Health/Check`
+3. Для gRPC используйте `Host()` + `Port()`, а не `Url()`
+4. Если нужен TLS: `.GrpcTls(true)`
 
-### Kafka: "unsupported URL scheme" Error
+### Kafka: ошибка «unsupported URL scheme»
 
-**Kafka URL requires a scheme**: `kafka://host:port`
+**Kafka URL нуждается в схеме**: `kafka://host:port`
 
 ```csharp
 .AddDependency("kafka", DependencyType.Kafka, d => d
@@ -330,9 +330,9 @@ with pooling.
     .Critical(false))
 ```
 
-### AMQP: RabbitMQ Connection Error
+### AMQP: ошибка подключения к RabbitMQ
 
-**Use explicit parameters:**
+**Используйте явные параметры:**
 
 ```csharp
 .AddDependency("rabbitmq", DependencyType.Amqp, d => d
@@ -344,16 +344,16 @@ with pooling.
     .Critical(false))
 ```
 
-### Dependency Naming
+### Именование зависимостей
 
-Names must follow these rules:
+Имена должны соответствовать правилам:
 
-- Length: 1-63 characters
-- Format: `[a-z][a-z0-9-]*` (lowercase letters, digits, hyphens)
-- Starts with a letter
-- Examples: `postgres-main`, `redis-cache`, `auth-service`
+- Длина: 1-63 символа
+- Формат: `[a-z][a-z0-9-]*` (строчные буквы, цифры, дефисы)
+- Начинается с буквы
+- Примеры: `postgres-main`, `redis-cache`, `auth-service`
 
-## Next Steps
+## Следующие шаги
 
-- [Quick Start](../quickstart/csharp.md) — minimal examples
-- [Specification Overview](../specification.md) — details of metric contracts and behavior
+- [Быстрый старт](../quickstart/csharp.ru.md) — минимальные примеры
+- [Обзор спецификации](../specification.ru.md) — детали контрактов метрик и поведения
