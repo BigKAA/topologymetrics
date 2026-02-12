@@ -95,6 +95,17 @@ docs/                       # Документация (quickstart, migration, c
 plans/                      # Планы разработки
 ```
 
+## Code Style
+
+Подробные руководства по стилю кода доступны в [`docs/code-style/`](docs/code-style/overview.ru.md):
+
+- [Общие принципы](docs/code-style/overview.ru.md) — общие для всех SDK соглашения, архитектурные слои, философия обработки ошибок
+- [Java](docs/code-style/java.ru.md) — именование, JavaDoc, builder pattern, Checkstyle + SpotBugs
+- [Go](docs/code-style/go.ru.md) — именование, GoDoc, functional options, golangci-lint v2
+- [Python](docs/code-style/python.ru.md) — именование, docstrings, type hints, async/await, ruff + mypy
+- [C#](docs/code-style/csharp.ru.md) — именование, XML-doc, async/await, ConfigureAwait, dotnet format
+- [Тестирование](docs/code-style/testing.ru.md) — именование тестов, AAA-паттерн, мокирование, покрытие
+
 ## Workflow разработки
 
 Git workflow описан в [GIT-WORKFLOW.md](GIT-WORKFLOW.ru.md):

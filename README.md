@@ -228,6 +228,12 @@ Infrastructure for verifying SDK compliance with the specification (`conformance
 - [Alertmanager Configuration](docs/alerting/alertmanager.md) — routing, receivers, templates
 - [Custom Rules](docs/alerting/custom-rules.md) — writing your own rules on top of dephealth metrics
 
+### Code Style
+
+- [General Principles](docs/code-style/overview.md) — cross-SDK conventions, architecture layers
+- [Java](docs/code-style/java.md) | [Go](docs/code-style/go.md) | [Python](docs/code-style/python.md) | [C#](docs/code-style/csharp.md)
+- [Testing](docs/code-style/testing.md) — test naming, AAA pattern, mocking, coverage
+
 ### Additional
 
 - [SDK Comparison](docs/comparison.md) — all languages side-by-side

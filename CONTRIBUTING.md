@@ -95,6 +95,17 @@ docs/                       # Documentation (quickstart, migration, comparison)
 plans/                      # Development plans
 ```
 
+## Code Style
+
+Detailed code style guides are available in [`docs/code-style/`](docs/code-style/overview.md):
+
+- [General Principles](docs/code-style/overview.md) — cross-SDK conventions, architecture layers, error handling philosophy
+- [Java](docs/code-style/java.md) — naming, JavaDoc, builder pattern, Checkstyle + SpotBugs
+- [Go](docs/code-style/go.md) — naming, GoDoc, functional options, golangci-lint v2
+- [Python](docs/code-style/python.md) — naming, docstrings, type hints, async/await, ruff + mypy
+- [C#](docs/code-style/csharp.md) — naming, XML-doc, async/await, ConfigureAwait, dotnet format
+- [Testing](docs/code-style/testing.md) — test naming, AAA pattern, mocking, coverage
+
 ## Development Workflow
 
 Git workflow is described in [GIT-WORKFLOW.md](GIT-WORKFLOW.md):
