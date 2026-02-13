@@ -72,4 +72,4 @@ dh.add("postgres", url="postgresql://user:pass@localhost:5432/mydb")
 
 ## License
 
-MIT — see [LICENSE](https://github.com/BigKAA/topologymetrics/blob/master/LICENSE).
+Apache License 2.0 — see [LICENSE](https://github.com/BigKAA/topologymetrics/blob/master/LICENSE).

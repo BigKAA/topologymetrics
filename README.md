@@ -246,4 +246,4 @@ Detailed developer guide — [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-[MIT License](LICENSE) - Copyright (c) 2026 Artur Kryukov
+[Apache License 2.0](LICENSE) - Copyright (c) 2026 Artur Kryukov
