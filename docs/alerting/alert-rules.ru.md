@@ -466,6 +466,6 @@ spec:
 
 ## Что дальше
 
+- [Кастомные правила](custom-rules.ru.md) — написание своих правил поверх dephealth-метрик, включая [алерты по категории статуса](custom-rules.ru.md#пример-6-алерты-по-категории-статуса) с `app_dependency_status` и `app_dependency_status_detail`
 - [Уменьшение шума](noise-reduction.ru.md) — как правила взаимодействуют, подавление и реальные сценарии
 - [Конфигурация Alertmanager](alertmanager.ru.md) — маршрутизация, receivers, доставка нотификаций
-- [Кастомные правила](custom-rules.ru.md) — написание своих правил поверх dephealth-метрик

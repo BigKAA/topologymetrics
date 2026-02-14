@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-02-14
+
+Status metrics: two new Prometheus metrics for diagnosing **why** a dependency
+is unavailable — without logs, directly from metrics. All SDKs unified at
+version 0.4.0.
+
+### Added
+
+#### All SDKs
+
+- `app_dependency_status` gauge (enum pattern) — 8 status categories per endpoint:
+  `ok`, `timeout`, `connection_error`, `dns_error`, `auth_error`, `tls_error`,
+  `unhealthy`, `error`. All 8 series always exported; exactly one = 1, rest = 0.
+  No series churn on state changes.
+- `app_dependency_status_detail` gauge (info pattern) — detailed reason per
+  endpoint (e.g. `http_503`, `grpc_not_serving`, `auth_error`, `no_brokers`).
+  Old series deleted on change (acceptable churn).
+- Error classification architecture: `ClassifiedError` interface (Go),
+  `status_category`/`detail` on `CheckError` (Python), typed `CheckException`
+  hierarchy (Java), virtual properties on `DepHealthException` (C#).
+- Typed exceptions for DNS, TLS, and auth errors in all checkers.
+- `ErrorClassifier` — platform-level error detection (DNS, TLS, timeout,
+  connection refused) as fallback for unclassified errors.
+
+#### Specification
+
+- `spec/metric-contract.md` sections 8-9: full contract for status and detail metrics
+- `spec/check-behavior.md` section 6.2: error classification rules
+
+### Changed
+
+- All SDK versions unified at 0.4.0 (previously Go 0.3.1, Java 0.2.2,
+  Python 0.2.2, C# 0.2.1)
+- C# license corrected from MIT to Apache 2.0 in Directory.Build.props
+
 ## [Java SDK 0.2.2] - 2026-02-09
 
 ### Fixed
@@ -167,6 +202,7 @@ verifying cross-language compatibility.
 - SDK comparison table
 - CONTRIBUTING.md with development workflow
 
+[0.4.0]: https://github.com/BigKAA/topologymetrics/releases/tag/v0.4.0
 [Java SDK 0.2.2]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-java/v0.2.2
 [Python SDK 0.2.2]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-python/v0.2.2
 [Go SDK 0.3.0]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-go/v0.3.0

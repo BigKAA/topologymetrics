@@ -88,7 +88,11 @@ func (c *HTTPChecker) Check(ctx context.Context, endpoint dephealth.Endpoint) er
 	_ = resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("http status %d from %s", resp.StatusCode, url)
+		return &dephealth.ClassifiedCheckError{
+			Category: dephealth.StatusUnhealthy,
+			Detail:   fmt.Sprintf("http_%d", resp.StatusCode),
+			Cause:    fmt.Errorf("http status %d from %s", resp.StatusCode, url),
+		}
 	}
 
 	return nil

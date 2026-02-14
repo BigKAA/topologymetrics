@@ -2,7 +2,7 @@
 
 # Контракт поведения проверок
 
-> Версия спецификации: **1.0-draft**
+> Версия спецификации: **2.0-draft**
 >
 > Этот документ описывает поведение проверок здоровья зависимостей:
 > жизненный цикл, логику порогов, типы проверок, режимы работы и обработку ошибок.
@@ -417,7 +417,70 @@ ERROR dephealth: dependency unhealthy dependency=postgres-main host=pg.svc port=
 INFO dephealth: dependency recovered dependency=postgres-main host=pg.svc port=5432
 ```
 
-### 6.2. Паника / неожиданные ошибки
+### 6.2. Классификация ошибок
+
+Каждая ошибка проверки классифицируется в **категорию статуса** и **детальное значение**.
+Эта классификация используется для заполнения метрик `app_dependency_status` и
+`app_dependency_status_detail` (см. metric-contract.ru.md, разделы 8-9).
+
+#### 6.2.1. Цепочка классификации
+
+Планировщик классифицирует ошибки по следующей цепочке приоритетов:
+
+1. **Интерфейс ClassifiedError** — если ошибка реализует интерфейс `ClassifiedError`
+   (Go: `StatusCategory() string` + `StatusDetail() string`;
+   Java/C#: базовый класс исключения; Python: свойства на `CheckError`),
+   используются её категория и detail.
+2. **Sentinel-ошибки** — известные типизированные ошибки (`ErrTimeout`, `ErrConnectionRefused`,
+   `ErrUnhealthy` и т.д.) маппятся на соответствующую категорию/detail.
+3. **Определение по платформенным ошибкам** — проверяются стандартные типы ошибок:
+   - `context.DeadlineExceeded` / `TimeoutException` → `timeout` / `timeout`
+   - `*net.DNSError` / `UnknownHostException` / `socket.gaierror` → `dns_error` / `dns_error`
+   - `*net.OpError` (connection refused) / `ConnectException` → `connection_error` / `connection_refused`
+   - `*tls.CertificateVerificationError` / `SSLException` → `tls_error` / `tls_error`
+4. **Fallback** — нераспознанные ошибки → `error` / `error`.
+
+#### 6.2.2. Успешная проверка
+
+Успешная проверка (без ошибки) всегда даёт:
+
+- категория статуса: `ok`
+- detail: `ok`
+
+#### 6.2.3. Значения detail по типам чекеров
+
+| Тип чекера | Возможные значения detail |
+| --- | --- |
+| HTTP | `ok`, `timeout`, `connection_refused`, `dns_error`, `tls_error`, `http_NNN` (например, `http_404`, `http_503`), `error` |
+| gRPC | `ok`, `timeout`, `connection_refused`, `dns_error`, `tls_error`, `grpc_not_serving`, `grpc_unknown`, `error` |
+| TCP | `ok`, `timeout`, `connection_refused`, `dns_error`, `error` |
+| PostgreSQL | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `error` |
+| MySQL | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `error` |
+| Redis | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `unhealthy`, `error` |
+| AMQP | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `unhealthy`, `error` |
+| Kafka | `ok`, `timeout`, `connection_refused`, `dns_error`, `no_brokers`, `error` |
+
+#### 6.2.4. Маппинг detail → status
+
+| detail | status |
+| --- | --- |
+| `ok` | `ok` |
+| `timeout` | `timeout` |
+| `connection_refused`, `network_unreachable`, `host_unreachable` | `connection_error` |
+| `dns_error` | `dns_error` |
+| `auth_error` | `auth_error` |
+| `tls_error` | `tls_error` |
+| `http_NNN`, `grpc_not_serving`, `grpc_unknown`, `unhealthy`, `no_brokers` | `unhealthy` |
+| `error`, `pool_exhausted`, `query_error` | `error` |
+
+#### 6.2.5. Обратная совместимость
+
+Интерфейс `HealthChecker` **не меняется**. Чекеры, не возвращающие
+классифицированные ошибки, обрабатываются определением по платформенным ошибкам
+и fallback в цепочке классификации (шаги 3-4). Пользовательские чекеры
+автоматически получают классификацию через этот механизм.
+
+### 6.3. Паника / неожиданные ошибки
 
 SDK обязан перехватывать panic (Go), unhandled exception (Java/C#/Python)
 внутри проверки. Паника не должна прерывать работу планировщика.

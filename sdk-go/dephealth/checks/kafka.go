@@ -32,9 +32,16 @@ func (c *KafkaChecker) Check(ctx context.Context, endpoint dephealth.Endpoint) e
 	}
 	defer func() { _ = conn.Close() }()
 
-	_, err = conn.Brokers()
+	brokers, err := conn.Brokers()
 	if err != nil {
 		return fmt.Errorf("kafka brokers %s: %w", addr, err)
+	}
+	if len(brokers) == 0 {
+		return &dephealth.ClassifiedCheckError{
+			Category: dephealth.StatusUnhealthy,
+			Detail:   "no_brokers",
+			Cause:    fmt.Errorf("kafka %s: no brokers in metadata response", addr),
+		}
 	}
 
 	return nil

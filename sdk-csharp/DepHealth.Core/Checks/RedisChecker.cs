@@ -43,11 +43,22 @@ public sealed class RedisChecker : IHealthChecker
 
     private async Task CheckWithMultiplexerAsync()
     {
-        var db = _multiplexer!.GetDatabase();
-        var result = await db.PingAsync().ConfigureAwait(false);
-        if (result == TimeSpan.Zero)
+        try
         {
-            throw new Exceptions.UnhealthyException("Redis PING returned zero latency (possible error)");
+            var db = _multiplexer!.GetDatabase();
+            var result = await db.PingAsync().ConfigureAwait(false);
+            if (result == TimeSpan.Zero)
+            {
+                throw new Exceptions.UnhealthyException("Redis PING returned zero latency (possible error)");
+            }
+        }
+        catch (Exceptions.DepHealthException)
+        {
+            throw;
+        }
+        catch (Exception e)
+        {
+            throw ClassifyRedisError(e);
         }
     }
 
@@ -62,9 +73,30 @@ public sealed class RedisChecker : IHealthChecker
             var db = mux.GetDatabase();
             await db.PingAsync().ConfigureAwait(false);
         }
+        catch (Exceptions.DepHealthException)
+        {
+            throw;
+        }
+        catch (Exception e)
+        {
+            throw ClassifyRedisError(e);
+        }
         finally
         {
             await mux.DisposeAsync().ConfigureAwait(false);
         }
+    }
+
+    private static Exception ClassifyRedisError(Exception e)
+    {
+        var msg = e.Message ?? "";
+        if (msg.Contains("NOAUTH", StringComparison.OrdinalIgnoreCase)
+            || msg.Contains("WRONGPASS", StringComparison.OrdinalIgnoreCase)
+            || msg.Contains("AUTH", StringComparison.OrdinalIgnoreCase))
+        {
+            return new Exceptions.CheckAuthException("Redis auth error: " + msg, e);
+        }
+
+        return e;
     }
 }

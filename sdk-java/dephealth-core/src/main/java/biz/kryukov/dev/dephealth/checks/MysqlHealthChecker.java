@@ -1,5 +1,6 @@
 package biz.kryukov.dev.dephealth.checks;
 
+import biz.kryukov.dev.dephealth.CheckAuthException;
 import biz.kryukov.dev.dephealth.DependencyType;
 import biz.kryukov.dev.dephealth.Endpoint;
 import biz.kryukov.dev.dephealth.HealthChecker;
@@ -47,6 +48,8 @@ public final class MysqlHealthChecker implements HealthChecker {
              Statement stmt = conn.createStatement()) {
             stmt.setQueryTimeout(timeoutSec);
             stmt.execute(query);
+        } catch (java.sql.SQLException e) {
+            throw classifyMysqlError(e);
         }
     }
 
@@ -59,7 +62,18 @@ public final class MysqlHealthChecker implements HealthChecker {
              Statement stmt = conn.createStatement()) {
             stmt.setQueryTimeout(timeoutSec);
             stmt.execute(query);
+        } catch (java.sql.SQLException e) {
+            throw classifyMysqlError(e);
         }
+    }
+
+    private static Exception classifyMysqlError(java.sql.SQLException e) {
+        int errorCode = e.getErrorCode();
+        String msg = e.getMessage();
+        if (errorCode == 1045 || (msg != null && msg.contains("Access denied"))) {
+            return new CheckAuthException("MySQL auth error: " + msg, e);
+        }
+        return e;
     }
 
     @Override

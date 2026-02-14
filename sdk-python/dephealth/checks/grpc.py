@@ -64,9 +64,11 @@ class GRPCChecker:
                 raise CheckConnectionRefusedError(msg) from e
 
             serving = health_pb2.HealthCheckResponse.SERVING
+            unknown = health_pb2.HealthCheckResponse.UNKNOWN
             if response.status != serving:
+                detail = "grpc_unknown" if response.status == unknown else "grpc_not_serving"
                 msg = f"gRPC service {self._service_name!r} at {target} is not SERVING"
-                raise UnhealthyError(msg)
+                raise UnhealthyError(msg, detail=detail)
         finally:
             await channel.close()
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 from urllib.parse import urlparse
 
-from dephealth.checker import CheckConnectionRefusedError, CheckTimeoutError
+from dephealth.checker import CheckAuthError, CheckConnectionRefusedError, CheckTimeoutError
 from dephealth.dependency import Endpoint
 
 
@@ -64,7 +64,17 @@ class MySQLChecker:
         except OSError as e:
             msg = f"MySQL connection to {endpoint.host}:{endpoint.port} refused: {e}"
             raise CheckConnectionRefusedError(msg) from e
+        except Exception as e:
+            _classify_mysql_error(e, endpoint)
+            raise
 
     def checker_type(self) -> str:
         """Return the checker type."""
         return "mysql"
+
+
+def _classify_mysql_error(err: Exception, endpoint: Endpoint) -> None:
+    """Re-raise MySQL auth errors as CheckAuthError."""
+    msg = str(err)
+    if "1045" in msg or "Access denied" in msg:
+        raise CheckAuthError(f"MySQL auth error at {endpoint.host}:{endpoint.port}: {msg}") from err

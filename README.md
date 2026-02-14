@@ -26,6 +26,14 @@ app_dependency_health{name="order-service",dependency="postgres-main",type="post
 
 # Check latency
 app_dependency_latency_seconds_bucket{name="order-service",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="0.01"} 42
+
+# Status category (enum pattern — all 8 values always exported, exactly one = 1)
+app_dependency_status{name="order-service",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",status="ok"} 1
+app_dependency_status{name="order-service",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",status="timeout"} 0
+# ... (6 more status values = 0)
+
+# Detailed reason
+app_dependency_status_detail{name="order-service",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",detail="ok"} 1
 ```
 
 From these metrics a dependency graph is automatically built, alerting is configured
@@ -93,7 +101,7 @@ dephealth:
 <dependency>
     <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-spring-boot-starter</artifactId>
-    <version>0.2.2</version>
+    <version>0.4.0</version>
 </dependency>
 ```
 
@@ -182,8 +190,11 @@ The single source of truth for all SDKs — the `spec/` directory:
 | --- | --- | --- |
 | `app_dependency_health` | Gauge | Availability: `1` / `0` |
 | `app_dependency_latency_seconds` | Histogram | Check latency |
+| `app_dependency_status` | Gauge | Status category (enum pattern): 8 values per endpoint, exactly one = 1 |
+| `app_dependency_status_detail` | Gauge | Detailed reason (info pattern): e.g. `http_503`, `auth_error` |
 
 Required labels: `name`, `dependency`, `type`, `host`, `port`, `critical`.
+Additional label: `status` (on `app_dependency_status`), `detail` (on `app_dependency_status_detail`).
 
 ### Default Parameters
 

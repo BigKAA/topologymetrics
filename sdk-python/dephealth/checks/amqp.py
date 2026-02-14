@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dephealth.checker import CheckConnectionRefusedError, CheckTimeoutError
+from dephealth.checker import CheckAuthError, CheckConnectionRefusedError, CheckTimeoutError
 from dephealth.dependency import Endpoint
 
 
@@ -35,7 +35,17 @@ class AMQPChecker:
         except OSError as e:
             msg = f"AMQP connection to {endpoint.host}:{endpoint.port} refused: {e}"
             raise CheckConnectionRefusedError(msg) from e
+        except Exception as e:
+            _classify_amqp_error(e, endpoint)
+            raise
 
     def checker_type(self) -> str:
         """Return the checker type."""
         return "amqp"
+
+
+def _classify_amqp_error(err: Exception, endpoint: Endpoint) -> None:
+    """Re-raise AMQP auth errors as CheckAuthError."""
+    msg = str(err)
+    if "403" in msg or "ACCESS_REFUSED" in msg:
+        raise CheckAuthError(f"AMQP auth error at {endpoint.host}:{endpoint.port}: {msg}") from err

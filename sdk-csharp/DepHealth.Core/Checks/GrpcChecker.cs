@@ -38,8 +38,11 @@ public sealed class GrpcChecker : IHealthChecker
 
         if (response.Status != HealthCheckResponse.Types.ServingStatus.Serving)
         {
+            var detail = response.Status == HealthCheckResponse.Types.ServingStatus.NotServing
+                ? "grpc_not_serving"
+                : "grpc_unknown";
             throw new Exceptions.UnhealthyException(
-                $"gRPC health check returned: {response.Status}");
+                $"gRPC health check returned: {response.Status}", detail);
         }
     }
 }

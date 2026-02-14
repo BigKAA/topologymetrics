@@ -326,14 +326,17 @@ boolean allHealthy = health.values().stream().allMatch(Boolean::booleanValue);
 
 ## Metrics Export
 
-dephealth exports two Prometheus metrics via Micrometer:
+dephealth exports four Prometheus metrics via Micrometer:
 
 | Metric | Type | Description |
 | --- | --- | --- |
 | `app_dependency_health` | Gauge | `1` = available, `0` = unavailable |
 | `app_dependency_latency_seconds` | Histogram | Check latency (seconds) |
+| `app_dependency_status` | Gauge (enum) | Status category: 8 series per endpoint, exactly one = 1 |
+| `app_dependency_status_detail` | Gauge (info) | Detailed reason: e.g. `http_503`, `auth_error` |
 
 Labels: `name`, `dependency`, `type`, `host`, `port`, `critical`.
+Additional: `status` (on `app_dependency_status`), `detail` (on `app_dependency_status_detail`).
 
 For Spring Boot: metrics are available at `/actuator/prometheus`.
 

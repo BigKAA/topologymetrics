@@ -88,7 +88,15 @@ func (c *GRPCChecker) Check(ctx context.Context, endpoint dephealth.Endpoint) er
 	}
 
 	if resp.GetStatus() != healthpb.HealthCheckResponse_SERVING {
-		return fmt.Errorf("grpc health status %s from %s", resp.GetStatus(), addr)
+		detail := "grpc_unknown"
+		if resp.GetStatus() == healthpb.HealthCheckResponse_NOT_SERVING {
+			detail = "grpc_not_serving"
+		}
+		return &dephealth.ClassifiedCheckError{
+			Category: dephealth.StatusUnhealthy,
+			Detail:   detail,
+			Cause:    fmt.Errorf("grpc health status %s from %s", resp.GetStatus(), addr),
+		}
 	}
 
 	return nil

@@ -221,6 +221,11 @@ func (s *Scheduler) executeCheck(
 	// Record latency always (both on success and failure).
 	s.metrics.ObserveLatency(dep, ep, duration)
 
+	// Classify the check result for status metrics.
+	result := classifyError(checkErr)
+	s.metrics.SetStatus(dep, ep, result.Category)
+	s.metrics.SetStatusDetail(dep, ep, result.Detail)
+
 	state.mu.Lock()
 	defer state.mu.Unlock()
 

@@ -2,9 +2,11 @@ package biz.kryukov.dev.dephealth.metrics;
 
 import biz.kryukov.dev.dephealth.Dependency;
 import biz.kryukov.dev.dephealth.Endpoint;
+import biz.kryukov.dev.dephealth.StatusCategory;
 
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 
@@ -16,17 +18,30 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Exports app_dependency_health and app_dependency_latency_seconds metrics
- * to a Micrometer MeterRegistry.
+ * Exports dependency health metrics to a Micrometer MeterRegistry.
+ *
+ * <p>Metrics exported:
+ * <ul>
+ *   <li>{@code app_dependency_health} — Gauge (0/1)</li>
+ *   <li>{@code app_dependency_latency_seconds} — Histogram</li>
+ *   <li>{@code app_dependency_status} — Gauge (enum pattern, 8 series per endpoint)</li>
+ *   <li>{@code app_dependency_status_detail} — Gauge (info pattern, 1 series per endpoint)</li>
+ * </ul>
  */
 public final class MetricsExporter {
 
     private static final String HEALTH_METRIC = "app_dependency_health";
     private static final String LATENCY_METRIC = "app_dependency_latency_seconds";
+    private static final String STATUS_METRIC = "app_dependency_status";
+    private static final String STATUS_DETAIL_METRIC = "app_dependency_status_detail";
     private static final String HEALTH_DESCRIPTION =
             "Health status of a dependency (1 = healthy, 0 = unhealthy)";
     private static final String LATENCY_DESCRIPTION =
             "Latency of dependency health check in seconds";
+    private static final String STATUS_DESCRIPTION =
+            "Category of the last check result";
+    private static final String STATUS_DETAIL_DESCRIPTION =
+            "Detailed reason of the last check result";
 
     private static final double[] LATENCY_SLOS = {0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0};
 
@@ -37,6 +52,17 @@ public final class MetricsExporter {
             new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, DistributionSummary> latencySummaries =
             new ConcurrentHashMap<>();
+
+    /** Status enum: key → array of 8 AtomicReference (one per status category). */
+    private final ConcurrentHashMap<String, AtomicReference<Double>[]> statusValues =
+            new ConcurrentHashMap<>();
+    /** Detail: key → AtomicReference for the current detail gauge value. */
+    private final ConcurrentHashMap<String, AtomicReference<Double>> detailValues =
+            new ConcurrentHashMap<>();
+    /** Detail: key → the Meter registered for the current detail tag value. */
+    private final ConcurrentHashMap<String, Meter> detailMeters = new ConcurrentHashMap<>();
+    /** Detail: key → previous detail tag value (for delete-on-change). */
+    private final ConcurrentHashMap<String, String> prevDetails = new ConcurrentHashMap<>();
 
     /**
      * Creates a metrics exporter.
@@ -96,9 +122,66 @@ public final class MetricsExporter {
     }
 
     /**
+     * Sets the status enum gauge: exactly one of 8 values = 1, rest = 0.
+     */
+    @SuppressWarnings("unchecked")
+    public void setStatus(Dependency dep, Endpoint ep, String category) {
+        String key = metricKey(dep.name(), ep);
+        AtomicReference<Double>[] refs = statusValues.computeIfAbsent(key, k -> {
+            Tags baseTags = buildTags(dep, ep);
+            List<String> cats = StatusCategory.ALL;
+            AtomicReference<Double>[] arr = new AtomicReference[cats.size()];
+            for (int i = 0; i < cats.size(); i++) {
+                arr[i] = new AtomicReference<>(0.0);
+                Tags tags = baseTags.and("status", cats.get(i));
+                Gauge.builder(STATUS_METRIC, arr[i], AtomicReference::get)
+                        .description(STATUS_DESCRIPTION)
+                        .tags(tags)
+                        .register(registry);
+            }
+            return arr;
+        });
+        List<String> cats = StatusCategory.ALL;
+        for (int i = 0; i < cats.size(); i++) {
+            refs[i].set(cats.get(i).equals(category) ? 1.0 : 0.0);
+        }
+    }
+
+    /**
+     * Sets the status detail gauge (delete-on-change pattern).
+     */
+    public void setStatusDetail(Dependency dep, Endpoint ep, String detail) {
+        String key = metricKey(dep.name(), ep);
+        String prev = prevDetails.get(key);
+
+        if (prev != null && !prev.equals(detail)) {
+            // Remove the old detail meter.
+            Meter oldMeter = detailMeters.remove(key);
+            if (oldMeter != null) {
+                registry.remove(oldMeter);
+            }
+            detailValues.remove(key);
+        }
+
+        prevDetails.put(key, detail);
+
+        AtomicReference<Double> ref = detailValues.computeIfAbsent(key, k -> {
+            AtomicReference<Double> newRef = new AtomicReference<>(1.0);
+            Tags tags = buildTags(dep, ep).and("detail", detail);
+            Meter meter = Gauge.builder(STATUS_DETAIL_METRIC, newRef, AtomicReference::get)
+                    .description(STATUS_DETAIL_DESCRIPTION)
+                    .tags(tags)
+                    .register(registry);
+            detailMeters.put(key, meter);
+            return newRef;
+        });
+        ref.set(1.0);
+    }
+
+    /**
      * Builds tags in order: name, dependency, type, host, port, critical, custom (alphabetical).
      */
-    private Tags buildTags(Dependency dep, Endpoint ep) {
+    Tags buildTags(Dependency dep, Endpoint ep) {
         Tags tags = Tags.of(
                 "name", instanceName,
                 "dependency", dep.name(),

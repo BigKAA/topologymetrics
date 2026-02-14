@@ -3,6 +3,7 @@ package biz.kryukov.dev.dephealth.checks;
 import biz.kryukov.dev.dephealth.DependencyType;
 import biz.kryukov.dev.dephealth.Endpoint;
 import biz.kryukov.dev.dephealth.HealthChecker;
+import biz.kryukov.dev.dephealth.UnhealthyException;
 
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
@@ -30,7 +31,7 @@ public final class KafkaHealthChecker implements HealthChecker {
             Collection<Node> nodes = client.describeCluster().nodes()
                     .get(timeout.toMillis(), TimeUnit.MILLISECONDS);
             if (nodes.isEmpty()) {
-                throw new Exception("Kafka cluster has no nodes");
+                throw new UnhealthyException("Kafka cluster has no nodes", "no_brokers");
             }
         }
     }

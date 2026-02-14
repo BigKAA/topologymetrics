@@ -2,7 +2,7 @@
 
 # Check Behavior Contract
 
-> Specification version: **1.0-draft**
+> Specification version: **2.0-draft**
 >
 > This document describes the behavior of dependency health checks:
 > lifecycle, threshold logic, check types, operating modes, and error handling.
@@ -417,7 +417,70 @@ Return to healthy is logged at `INFO` level:
 INFO dephealth: dependency recovered dependency=postgres-main host=pg.svc port=5432
 ```
 
-### 6.2. Panic / Unexpected Errors
+### 6.2. Error Classification
+
+Every check error is classified into a **status category** and a **detail value**.
+This classification is used to populate the `app_dependency_status` and
+`app_dependency_status_detail` metrics (see metric-contract.md, sections 8-9).
+
+#### 6.2.1. Classification Chain
+
+The scheduler classifies errors using the following priority chain:
+
+1. **ClassifiedError interface** — if the error implements the `ClassifiedError`
+   interface (Go: `StatusCategory() string` + `StatusDetail() string`;
+   Java/C#: base exception class; Python: properties on `CheckError`),
+   its category and detail are used directly.
+2. **Sentinel errors** — known typed errors (`ErrTimeout`, `ErrConnectionRefused`,
+   `ErrUnhealthy`, etc.) are mapped to their corresponding category/detail.
+3. **Platform error detection** — standard library error types are inspected:
+   - `context.DeadlineExceeded` / `TimeoutException` → `timeout` / `timeout`
+   - `*net.DNSError` / `UnknownHostException` / `socket.gaierror` → `dns_error` / `dns_error`
+   - `*net.OpError` (connection refused) / `ConnectException` → `connection_error` / `connection_refused`
+   - `*tls.CertificateVerificationError` / `SSLException` → `tls_error` / `tls_error`
+4. **Fallback** — unrecognized errors → `error` / `error`.
+
+#### 6.2.2. Successful Check
+
+A successful check (no error) always produces:
+
+- status category: `ok`
+- detail: `ok`
+
+#### 6.2.3. Detail Values by Checker Type
+
+| Checker Type | Possible detail values |
+| --- | --- |
+| HTTP | `ok`, `timeout`, `connection_refused`, `dns_error`, `tls_error`, `http_NNN` (e.g., `http_404`, `http_503`), `error` |
+| gRPC | `ok`, `timeout`, `connection_refused`, `dns_error`, `tls_error`, `grpc_not_serving`, `grpc_unknown`, `error` |
+| TCP | `ok`, `timeout`, `connection_refused`, `dns_error`, `error` |
+| PostgreSQL | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `error` |
+| MySQL | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `error` |
+| Redis | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `unhealthy`, `error` |
+| AMQP | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `unhealthy`, `error` |
+| Kafka | `ok`, `timeout`, `connection_refused`, `dns_error`, `no_brokers`, `error` |
+
+#### 6.2.4. Detail to Status Mapping
+
+| detail | status |
+| --- | --- |
+| `ok` | `ok` |
+| `timeout` | `timeout` |
+| `connection_refused`, `network_unreachable`, `host_unreachable` | `connection_error` |
+| `dns_error` | `dns_error` |
+| `auth_error` | `auth_error` |
+| `tls_error` | `tls_error` |
+| `http_NNN`, `grpc_not_serving`, `grpc_unknown`, `unhealthy`, `no_brokers` | `unhealthy` |
+| `error`, `pool_exhausted`, `query_error` | `error` |
+
+#### 6.2.5. Backward Compatibility
+
+The `HealthChecker` interface is **not changed**. Checkers that do not return
+classified errors are handled by the platform error detection and fallback
+in the classification chain (steps 3-4). User-implemented custom checkers
+will automatically receive classification through this mechanism.
+
+### 6.3. Panic / Unexpected Errors
 
 SDK must catch panic (Go), unhandled exception (Java/C#/Python)
 inside the check. Panic must not interrupt the scheduler's operation.

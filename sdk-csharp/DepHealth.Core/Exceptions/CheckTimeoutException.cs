@@ -7,4 +7,7 @@ public class CheckTimeoutException : DepHealthException
 {
     public CheckTimeoutException(string message) : base(message) { }
     public CheckTimeoutException(string message, Exception innerException) : base(message, innerException) { }
+
+    public override string ExceptionStatusCategory => StatusCategory.Timeout;
+    public override string ExceptionStatusDetail => "timeout";
 }

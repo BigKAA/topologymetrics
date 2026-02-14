@@ -39,6 +39,40 @@ app_dependency_latency_seconds_bucket{name="my-service",dependency="postgres-mai
 | Buckets | `0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0` |
 | Labels | Identical to `app_dependency_health` |
 
+### Status Metric
+
+```text
+app_dependency_status{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="ok"} 1
+```
+
+| Property | Value |
+| --- | --- |
+| Name | `app_dependency_status` |
+| Type | Gauge (enum pattern) |
+| Values | `1` (active status), `0` (inactive status) |
+| Status values | `ok`, `timeout`, `connection_error`, `dns_error`, `auth_error`, `tls_error`, `unhealthy`, `error` |
+| Labels | Same as `app_dependency_health` + `status` |
+
+All 8 status series are always exported per endpoint. Exactly one = 1, the rest = 0.
+No series churn on state changes.
+
+### Status Detail Metric
+
+```text
+app_dependency_status_detail{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",detail="ok"} 1
+```
+
+| Property | Value |
+| --- | --- |
+| Name | `app_dependency_status_detail` |
+| Type | Gauge (info pattern) |
+| Values | Always `1` |
+| Detail values | Checker-specific: `ok`, `timeout`, `connection_refused`, `dns_error`, `http_503`, `grpc_not_serving`, `auth_error`, etc. |
+| Labels | Same as `app_dependency_health` + `detail` |
+
+One series per endpoint. When the detail changes, the old series is deleted
+and a new one is created (acceptable series churn).
+
 ### Label Formation Rules
 
 - `name` — unique application name (format `[a-z][a-z0-9-]*`, 1-63 characters)

@@ -2,7 +2,7 @@
 
 # Контракт метрик
 
-> Версия спецификации: **2.0-draft**
+> Версия спецификации: **3.0-draft**
 >
 > Этот документ является единым источником правды для формата метрик,
 > экспортируемых всеми SDK dephealth. Все реализации обязаны следовать этому контракту.
@@ -288,4 +288,190 @@ app_dependency_health{name="order-api"}
 
 # Все сервисы, которые зависят от payment-api
 app_dependency_health{dependency="payment-api"}
+```
+
+---
+
+## 8. Метрика статуса: `app_dependency_status`
+
+### 8.1. Описание
+
+Gauge-метрика (enum-паттерн), отражающая **категорию** результата последней проверки.
+Для каждого endpoint-а всегда экспортируются **все 8 значений** метки `status`.
+Ровно одно из них = `1`, остальные 7 = `0`.
+Это исключает series churn при смене состояния.
+
+### 8.2. Свойства
+
+| Свойство | Значение |
+| --- | --- |
+| Имя | `app_dependency_status` |
+| Тип | Gauge |
+| Текст HELP | `Category of the last check result` |
+| Допустимые значения | `1` (активный статус), `0` (неактивный статус) |
+
+### 8.3. Значения статуса
+
+| Значение | Описание | Типичные ситуации |
+| --- | --- | --- |
+| `ok` | Проверка успешна, зависимость доступна | HTTP 2xx, gRPC SERVING, TCP connected, SQL SELECT 1 OK, Redis PONG |
+| `timeout` | Превышен таймаут проверки | Connection timeout, query timeout, gRPC DEADLINE_EXCEEDED, context deadline exceeded |
+| `connection_error` | Невозможно установить TCP-соединение | Connection refused (RST), host unreachable, network unreachable, port not listening |
+| `dns_error` | Ошибка разрешения DNS-имени | Hostname not found, DNS lookup failure, NXDOMAIN |
+| `auth_error` | Ошибка аутентификации/авторизации | Wrong DB credentials, Redis NOAUTH/WRONGPASS, AMQP 403 Access Refused |
+| `tls_error` | Ошибка TLS/SSL | Certificate validation failed, TLS handshake error, expired certificate |
+| `unhealthy` | Сервис ответил, но сообщает о нездоровом состоянии | HTTP 4xx/5xx, gRPC NOT_SERVING, Kafka no brokers, Redis non-PONG, AMQP connection not open |
+| `error` | Прочие неклассифицированные ошибки | Unexpected exceptions, panics, pool exhaustion, query syntax error |
+
+### 8.4. Метки
+
+Те же обязательные и произвольные метки, что и у `app_dependency_health` (разделы 2.3, 2.4),
+плюс метка `status` в конце.
+
+Порядок меток: `name`, `dependency`, `type`, `host`, `port`, `critical`,
+произвольные метки в алфавитном порядке, `status`.
+
+### 8.5. Начальное значение
+
+До завершения первой проверки метрика **не экспортируется**
+(аналогично `app_dependency_health`, см. раздел 2.5).
+После первой проверки все 8 серий появляются одновременно.
+
+### 8.6. Пример вывода
+
+Endpoint `pg.svc:5432` доступен (status = ok):
+
+```text
+# HELP app_dependency_status Category of the last check result
+# TYPE app_dependency_status gauge
+app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="ok"} 1
+app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="timeout"} 0
+app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="connection_error"} 0
+app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="dns_error"} 0
+app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="auth_error"} 0
+app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="tls_error"} 0
+app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="unhealthy"} 0
+app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="error"} 0
+```
+
+---
+
+## 9. Метрика детального статуса: `app_dependency_status_detail`
+
+### 9.1. Описание
+
+Gauge-метрика (info-паттерн), содержащая **детальную причину** результата последней проверки.
+Одна серия на endpoint, значение всегда = `1`. Метка `detail` содержит конкретную причину.
+При смене причины старая серия удаляется, новая создаётся
+(допустимый series churn для info-метрик).
+
+### 9.2. Свойства
+
+| Свойство | Значение |
+| --- | --- |
+| Имя | `app_dependency_status_detail` |
+| Тип | Gauge |
+| Текст HELP | `Detailed reason of the last check result` |
+| Допустимые значения | `1` (всегда) |
+
+### 9.3. Значения detail по типам чекеров
+
+| Тип чекера | Возможные значения detail |
+| --- | --- |
+| HTTP | `ok`, `timeout`, `connection_refused`, `dns_error`, `tls_error`, `http_NNN` (конкретный HTTP-код: `http_404`, `http_503` и т.д.), `error` |
+| gRPC | `ok`, `timeout`, `connection_refused`, `dns_error`, `tls_error`, `grpc_not_serving`, `grpc_unknown`, `error` |
+| TCP | `ok`, `timeout`, `connection_refused`, `dns_error`, `error` |
+| PostgreSQL | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `error` |
+| MySQL | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `error` |
+| Redis | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `unhealthy`, `error` |
+| AMQP | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `unhealthy`, `error` |
+| Kafka | `ok`, `timeout`, `connection_refused`, `dns_error`, `no_brokers`, `error` |
+
+### 9.4. Маппинг detail → status (категория)
+
+Каждое значение `detail` соответствует ровно одной категории `status` (раздел 8.3):
+
+| detail | status |
+| --- | --- |
+| `ok` | `ok` |
+| `timeout` | `timeout` |
+| `connection_refused`, `network_unreachable`, `host_unreachable` | `connection_error` |
+| `dns_error` | `dns_error` |
+| `auth_error` | `auth_error` |
+| `tls_error` | `tls_error` |
+| `http_NNN`, `grpc_not_serving`, `grpc_unknown`, `unhealthy`, `no_brokers` | `unhealthy` |
+| `error`, `pool_exhausted`, `query_error` | `error` |
+
+### 9.5. Метки
+
+Те же обязательные и произвольные метки, что и у `app_dependency_health` (разделы 2.3, 2.4),
+плюс метка `detail` в конце.
+
+Порядок меток: `name`, `dependency`, `type`, `host`, `port`, `critical`,
+произвольные метки в алфавитном порядке, `detail`.
+
+### 9.6. Начальное значение
+
+До завершения первой проверки метрика **не экспортируется**
+(аналогично `app_dependency_health`, см. раздел 2.5).
+
+### 9.7. Пример вывода
+
+`payment-api` вернул HTTP 503:
+
+```text
+# HELP app_dependency_status_detail Detailed reason of the last check result
+# TYPE app_dependency_status_detail gauge
+app_dependency_status_detail{name="order-api",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",detail="http_503"} 1
+```
+
+### 9.8. Влияние на хранение
+
+Каждый endpoint порождает:
+
+- `app_dependency_health`: 1 серия
+- `app_dependency_latency_seconds`: 10 серий (8 бакетов + sum + count)
+- `app_dependency_status`: **8 серий** (по одной на значение status)
+- `app_dependency_status_detail`: **1 серия**
+
+Итого: +9 серий на endpoint по сравнению с базовым набором (health + latency).
+
+---
+
+## 10. Расширенные PromQL-запросы
+
+В дополнение к запросам раздела 7, следующие запросы используют новые
+метрики status и detail:
+
+```promql
+# Текущая категория состояния всех зависимостей
+app_dependency_status == 1
+
+# Все зависимости с таймаутом
+app_dependency_status{status="timeout"} == 1
+
+# Все зависимости с ошибкой аутентификации (alert-friendly)
+app_dependency_status{status="auth_error"} == 1
+
+# Детальная причина по конкретной зависимости
+app_dependency_status_detail{name="order-api",dependency="payment-api"}
+
+# Все HTTP 503 ошибки по всему кластеру
+app_dependency_status_detail{detail="http_503"}
+
+# Обнаружение flapping (без series churn — работает корректно!)
+changes(app_dependency_status{status="ok"}[15m]) > 4
+
+# Распределение по статусам
+count by (status) (app_dependency_status == 1)
+
+# Корреляция: unhealthy зависимости с деталями через join
+app_dependency_status{status="unhealthy"} == 1
+  AND on (name, dependency, type, host, port)
+app_dependency_status_detail
+
+# Алерт: критичная зависимость с non-ok статусом более 5 минут
+app_dependency_status{status!="ok",critical="yes"} == 1
+  AND on (name, dependency, type, host, port)
+(app_dependency_status offset 5m {status!="ok"} == 1)
 ```

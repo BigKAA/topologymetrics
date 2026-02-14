@@ -7,4 +7,7 @@ public class ConnectionRefusedException : DepHealthException
 {
     public ConnectionRefusedException(string message) : base(message) { }
     public ConnectionRefusedException(string message, Exception innerException) : base(message, innerException) { }
+
+    public override string ExceptionStatusCategory => StatusCategory.ConnectionError;
+    public override string ExceptionStatusDetail => "connection_refused";
 }

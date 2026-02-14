@@ -360,14 +360,17 @@ all_healthy = all(health.values())
 
 ## Экспорт метрик
 
-dephealth экспортирует две метрики Prometheus:
+dephealth экспортирует четыре метрики Prometheus:
 
 | Метрика | Тип | Описание |
 | --- | --- | --- |
 | `app_dependency_health` | Gauge | `1` = доступен, `0` = недоступен |
 | `app_dependency_latency_seconds` | Histogram | Латентность проверки (секунды) |
+| `app_dependency_status` | Gauge (enum) | Категория статуса: 8 серий на endpoint, ровно одна = 1 |
+| `app_dependency_status_detail` | Gauge (info) | Детальная причина: напр. `http_503`, `auth_error` |
 
 Метки: `name`, `dependency`, `type`, `host`, `port`, `critical`.
+Дополнительные: `status` (на `app_dependency_status`), `detail` (на `app_dependency_status_detail`).
 
 ## Поддерживаемые типы зависимостей
 

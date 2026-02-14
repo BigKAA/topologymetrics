@@ -40,12 +40,35 @@ public sealed class AmqpChecker : IHealthChecker
             factory.Password = _password;
         }
 
-        using var connection = factory.CreateConnection();
-        if (!connection.IsOpen)
+        try
         {
-            throw new Exceptions.UnhealthyException("AMQP connection is not open");
+            using var connection = factory.CreateConnection();
+            if (!connection.IsOpen)
+            {
+                throw new Exceptions.UnhealthyException("AMQP connection is not open");
+            }
+        }
+        catch (Exceptions.DepHealthException)
+        {
+            throw;
+        }
+        catch (Exception e)
+        {
+            throw ClassifyAmqpError(e);
         }
 
         return Task.CompletedTask;
+    }
+
+    private static Exception ClassifyAmqpError(Exception e)
+    {
+        var msg = e.Message ?? "";
+        if (msg.Contains("403", StringComparison.Ordinal)
+            || msg.Contains("ACCESS_REFUSED", StringComparison.OrdinalIgnoreCase))
+        {
+            return new Exceptions.CheckAuthException("AMQP auth error: " + msg, e);
+        }
+
+        return e;
     }
 }

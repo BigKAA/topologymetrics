@@ -26,6 +26,14 @@ app_dependency_health{name="order-service",dependency="postgres-main",type="post
 
 # Латентность проверки
 app_dependency_latency_seconds_bucket{name="order-service",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="0.01"} 42
+
+# Категория статуса (enum-паттерн — все 8 значений всегда экспортируются, ровно одно = 1)
+app_dependency_status{name="order-service",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",status="ok"} 1
+app_dependency_status{name="order-service",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",status="timeout"} 0
+# ... (ещё 6 значений status = 0)
+
+# Детальная причина
+app_dependency_status_detail{name="order-service",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",detail="ok"} 1
 ```
 
 Из метрик автоматически строится граф зависимостей, настраивается алертинг
@@ -93,7 +101,7 @@ dephealth:
 <dependency>
     <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-spring-boot-starter</artifactId>
-    <version>0.2.2</version>
+    <version>0.4.0</version>
 </dependency>
 ```
 
@@ -182,8 +190,11 @@ plans/                          # Планы разработки
 | --- | --- | --- |
 | `app_dependency_health` | Gauge | Доступность: `1` / `0` |
 | `app_dependency_latency_seconds` | Histogram | Латентность проверки |
+| `app_dependency_status` | Gauge | Категория статуса (enum-паттерн): 8 значений на endpoint, ровно одно = 1 |
+| `app_dependency_status_detail` | Gauge | Детальная причина (info-паттерн): напр. `http_503`, `auth_error` |
 
 Обязательные метки: `name`, `dependency`, `type`, `host`, `port`, `critical`.
+Дополнительные: `status` (на `app_dependency_status`), `detail` (на `app_dependency_status_detail`).
 
 ### Параметры по умолчанию
 
@@ -240,4 +251,4 @@ plans/                          # Планы разработки
 
 ## Лицензия
 
-[MIT License](LICENSE) - Copyright (c) 2026 Artur Kryukov
+[Apache License 2.0](LICENSE) - Copyright (c) 2026 Artur Kryukov

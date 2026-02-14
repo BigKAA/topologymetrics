@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/redis/go-redis/v9"
 
@@ -64,7 +65,7 @@ func (c *RedisChecker) Check(ctx context.Context, endpoint dephealth.Endpoint) e
 
 func (c *RedisChecker) checkPool(ctx context.Context) error {
 	if err := c.client.Ping(ctx).Err(); err != nil {
-		return fmt.Errorf("redis pool ping: %w", err)
+		return classifyRedisError(err, "pool")
 	}
 	return nil
 }
@@ -79,9 +80,22 @@ func (c *RedisChecker) checkStandalone(ctx context.Context, endpoint dephealth.E
 	defer func() { _ = client.Close() }()
 
 	if err := client.Ping(ctx).Err(); err != nil {
-		return fmt.Errorf("redis ping %s: %w", addr, err)
+		return classifyRedisError(err, addr)
 	}
 	return nil
+}
+
+// classifyRedisError wraps Redis errors with appropriate classification.
+func classifyRedisError(err error, target string) error {
+	msg := err.Error()
+	if strings.Contains(msg, "NOAUTH") || strings.Contains(msg, "WRONGPASS") {
+		return &dephealth.ClassifiedCheckError{
+			Category: dephealth.StatusAuthError,
+			Detail:   "auth_error",
+			Cause:    fmt.Errorf("redis %s: %w", target, err),
+		}
+	}
+	return fmt.Errorf("redis ping %s: %w", target, err)
 }
 
 // Type returns the dependency type for this checker.

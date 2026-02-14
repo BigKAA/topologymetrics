@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dephealth.checker import CheckConnectionRefusedError, CheckTimeoutError
+from dephealth.checker import CheckConnectionRefusedError, CheckTimeoutError, UnhealthyError
 from dephealth.dependency import Endpoint
 
 
@@ -29,7 +29,7 @@ class KafkaChecker:
             await client.bootstrap()
             if not client.cluster.brokers():
                 msg = f"Kafka broker {bootstrap}: no brokers in metadata"
-                raise CheckConnectionRefusedError(msg)
+                raise UnhealthyError(msg, detail="no_brokers")
         except TimeoutError as exc:
             msg = f"Kafka connection to {bootstrap} timed out"
             raise CheckTimeoutError(msg) from exc

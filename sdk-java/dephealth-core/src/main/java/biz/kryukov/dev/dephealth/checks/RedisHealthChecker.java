@@ -1,8 +1,10 @@
 package biz.kryukov.dev.dephealth.checks;
 
+import biz.kryukov.dev.dephealth.CheckAuthException;
 import biz.kryukov.dev.dephealth.DependencyType;
 import biz.kryukov.dev.dephealth.Endpoint;
 import biz.kryukov.dev.dephealth.HealthChecker;
+import biz.kryukov.dev.dephealth.UnhealthyException;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -39,8 +41,10 @@ public final class RedisHealthChecker implements HealthChecker {
         try (Jedis jedis = jedisPool.getResource()) {
             String result = jedis.ping();
             if (!"PONG".equals(result)) {
-                throw new Exception("Redis PING returned: " + result);
+                throw new UnhealthyException("Redis PING returned: " + result);
             }
+        } catch (Exception e) {
+            throw classifyRedisError(e);
         }
     }
 
@@ -54,9 +58,22 @@ public final class RedisHealthChecker implements HealthChecker {
             }
             String result = jedis.ping();
             if (!"PONG".equals(result)) {
-                throw new Exception("Redis PING returned: " + result);
+                throw new UnhealthyException("Redis PING returned: " + result);
             }
+        } catch (biz.kryukov.dev.dephealth.CheckException e) {
+            throw e;
+        } catch (Exception e) {
+            throw classifyRedisError(e);
         }
+    }
+
+    private static Exception classifyRedisError(Exception e) {
+        String msg = e.getMessage();
+        if (msg != null && (msg.contains("NOAUTH") || msg.contains("WRONGPASS")
+                || msg.contains("AUTH"))) {
+            return new CheckAuthException("Redis auth error: " + msg, e);
+        }
+        return e;
     }
 
     @Override

@@ -169,8 +169,11 @@ public sealed class CheckScheduler : IDisposable
             var wasBefore = state.Healthy;
             state.RecordSuccess(config.SuccessThreshold);
 
+            var result = ErrorClassifier.Classify(null);
             _metrics.SetHealth(dep, ep, 1.0);
             _metrics.ObserveLatency(dep, ep, duration);
+            _metrics.SetStatus(dep, ep, result.Category);
+            _metrics.SetStatusDetail(dep, ep, result.Detail);
 
             if (wasBefore is false && state.Healthy is true)
             {
@@ -185,8 +188,11 @@ public sealed class CheckScheduler : IDisposable
             var wasBefore = state.Healthy;
             state.RecordFailure(config.FailureThreshold);
 
+            var result = ErrorClassifier.Classify(e);
             _metrics.SetHealth(dep, ep, 0.0);
             _metrics.ObserveLatency(dep, ep, duration);
+            _metrics.SetStatus(dep, ep, result.Category);
+            _metrics.SetStatusDetail(dep, ep, result.Detail);
 
             if (wasBefore is null or true)
             {

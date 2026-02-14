@@ -55,6 +55,8 @@ groups:
 | --- | --- | --- | --- |
 | `app_dependency_health` | Gauge (0/1) | `name`, `dependency`, `type`, `host`, `port`, `critical` | Current health status |
 | `app_dependency_latency_seconds` | Histogram | `name`, `dependency`, `type`, `host`, `port`, `critical` | Health check latency distribution |
+| `app_dependency_status` | Gauge (enum) | `name`, `dependency`, `type`, `host`, `port`, `critical`, `status` | Status category — 8 series per endpoint, exactly one = 1 |
+| `app_dependency_status_detail` | Gauge (info) | `name`, `dependency`, `type`, `host`, `port`, `critical`, `detail` | Detailed reason — 1 series per endpoint |
 
 The `name` label identifies the application exporting metrics. The `dependency` label identifies the target dependency. See [Metric Contract](../../spec/metric-contract.md) for full details.
 
@@ -64,6 +66,8 @@ The `name` label identifies the application exporting metrics. The `dependency` 
 | --- | --- |
 | `type` | `http`, `grpc`, `tcp`, `postgres`, `mysql`, `redis`, `amqp`, `kafka` |
 | `critical` | `yes`, `no` |
+| `status` | `ok`, `timeout`, `connection_error`, `dns_error`, `auth_error`, `tls_error`, `unhealthy`, `error` |
+| `detail` | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `http_NNN`, `grpc_not_serving`, `grpc_unknown`, `unhealthy`, `no_brokers`, `error` |
 
 ---
 
@@ -347,6 +351,89 @@ This is the built-in DependencyDegraded rule. Use it as-is or adjust the `for` d
   annotations:
     summary: "More than 50% of {{ $labels.dependency }} ({{ $labels.type }}) endpoints are down in {{ $labels.job }}"
     description: "{{ $value | printf \"%.0f\" | humanizePercentage }} of endpoints for dependency {{ $labels.dependency }} in service {{ $labels.job }} are unavailable."
+```
+
+---
+
+## Example 6: Status-Based Alerting
+
+The `app_dependency_status` metric enables precise alerting based on **why** a dependency is unavailable, not just **that** it is unavailable.
+
+### Authentication Errors
+
+Alert when a dependency fails due to wrong credentials — typically requires immediate action (secret rotation, config fix).
+
+```yaml
+- alert: DependencyAuthError
+  expr: |
+    app_dependency_status{status="auth_error"} == 1
+  for: 1m
+  labels:
+    severity: critical
+    category: security
+  annotations:
+    summary: "Auth error for {{ $labels.dependency }} ({{ $labels.type }}) in {{ $labels.job }}"
+    description: "Dependency {{ $labels.dependency }} in service {{ $labels.job }} is failing due to authentication error. Check credentials and secrets."
+```
+
+### DNS Errors
+
+DNS failures often indicate infrastructure problems (CoreDNS issues, service removed, typo in hostname).
+
+```yaml
+- alert: DependencyDnsError
+  expr: |
+    app_dependency_status{status="dns_error"} == 1
+  for: 2m
+  labels:
+    severity: warning
+    category: infrastructure
+  annotations:
+    summary: "DNS resolution failed for {{ $labels.dependency }} in {{ $labels.job }}"
+    description: "Cannot resolve hostname for dependency {{ $labels.dependency }} ({{ $labels.type }}) in service {{ $labels.job }}. Check DNS configuration and whether the target service exists."
+```
+
+### TLS Certificate Errors
+
+TLS errors indicate expired or misconfigured certificates.
+
+```yaml
+- alert: DependencyTlsError
+  expr: |
+    app_dependency_status{status="tls_error"} == 1
+  for: 1m
+  labels:
+    severity: critical
+    category: security
+  annotations:
+    summary: "TLS error for {{ $labels.dependency }} ({{ $labels.type }}) in {{ $labels.job }}"
+    description: "TLS handshake failed for dependency {{ $labels.dependency }} in service {{ $labels.job }}. Check certificate validity and trust chain."
+```
+
+### Specific HTTP Status Codes
+
+Use `app_dependency_status_detail` to alert on specific failure reasons.
+
+```yaml
+- alert: DependencyHttp503
+  expr: |
+    app_dependency_status_detail{detail="http_503"} == 1
+  for: 2m
+  labels:
+    severity: warning
+  annotations:
+    summary: "{{ $labels.dependency }} returning 503 in {{ $labels.job }}"
+    description: "HTTP dependency {{ $labels.dependency }} in service {{ $labels.job }} is returning 503 Service Unavailable for more than 2 minutes."
+```
+
+### Status Category Distribution
+
+Use recording rules to track the distribution of status categories across all dependencies:
+
+```yaml
+- record: dephealth:status_distribution:count
+  expr: |
+    count by (status) (app_dependency_status == 1)
 ```
 
 ---
