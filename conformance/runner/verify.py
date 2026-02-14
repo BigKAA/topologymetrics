@@ -79,6 +79,49 @@ def fetch_metrics(url: str, timeout: int = 10) -> str:
     return resp.text
 
 
+def wait_for_metrics_ready(
+    metrics_url: str,
+    expected_deps: set[str],
+    timeout: int = 30,
+    poll_interval: int = 2,
+) -> None:
+    """Wait until app_dependency_health samples appear for all expected dependencies.
+
+    Polls the metrics endpoint every poll_interval seconds.
+    Raises TimeoutError if not all dependencies appear within timeout.
+    """
+    if not expected_deps:
+        return
+
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            text = fetch_metrics(metrics_url)
+            metrics = parse_metrics(text)
+            if HEALTH_METRIC in metrics:
+                found_deps = set()
+                for sample in metrics[HEALTH_METRIC]["samples"]:
+                    if sample["name"] == HEALTH_METRIC:
+                        found_deps.add(sample["labels"].get("dependency", ""))
+                if expected_deps.issubset(found_deps):
+                    logger.info(
+                        "all %d expected dependencies found in metrics",
+                        len(expected_deps),
+                    )
+                    return
+                missing = expected_deps - found_deps
+                logger.debug("waiting for dependencies: %s", missing)
+        except Exception as e:
+            logger.debug("metrics not ready yet: %s", e)
+
+        time.sleep(poll_interval)
+
+    raise TimeoutError(
+        f"timed out ({timeout}s) waiting for metrics of dependencies: "
+        f"{expected_deps - found_deps if 'found_deps' in dir() else expected_deps}"
+    )
+
+
 def parse_metrics(text: str) -> dict:
     """Парсинг Prometheus text format в структуру.
 
@@ -739,6 +782,13 @@ def run_scenario(
     """Выполнить все проверки из сценария."""
     results = []
 
+    # Determine expected dependency names from scenario checks
+    expected_deps: set[str] = set()
+    for check in scenario.get("checks", []):
+        if check.get("type") == "expected_dependencies":
+            for dep in check.get("dependencies", []):
+                expected_deps.add(dep["dependency"])
+
     # Выполнить pre_actions
     pre_actions = scenario.get("pre_actions", [])
     if pre_actions:
@@ -746,6 +796,13 @@ def run_scenario(
             execute_actions(pre_actions, "pre_actions", namespace=namespace, pod_label=pod_label)
         except Exception as e:
             return [CheckResult("pre_actions", False, f"ошибка pre_actions: {e}")]
+
+    # Wait for all dependencies to appear in metrics before running checks
+    if expected_deps:
+        try:
+            wait_for_metrics_ready(metrics_url, expected_deps)
+        except TimeoutError as e:
+            return [CheckResult("wait_for_metrics", False, str(e))]
 
     # Получить метрики
     try:

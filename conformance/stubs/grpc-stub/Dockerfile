@@ -1,11 +1,13 @@
 ARG REGISTRY=docker.io
-FROM ${REGISTRY}/golang:1.25-alpine AS builder
+FROM --platform=$BUILDPLATFORM ${REGISTRY}/golang:1.25-alpine AS builder
+
+ARG TARGETOS TARGETARCH
 
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY main.go ./
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /grpc-stub .
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-s -w" -o /grpc-stub .
 
 ARG REGISTRY=docker.io
 FROM ${REGISTRY}/alpine:3.21

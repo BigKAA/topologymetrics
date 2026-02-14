@@ -1,3 +1,4 @@
+using System.Net.Sockets;
 using StackExchange.Redis;
 
 namespace DepHealth.Checks;
@@ -67,7 +68,20 @@ public sealed class RedisChecker : IHealthChecker
         var connStr = _connectionString ??
             $"{endpoint.Host}:{endpoint.Port},connectTimeout=5000,abortConnect=true";
 
-        var mux = await ConnectionMultiplexer.ConnectAsync(connStr).ConfigureAwait(false);
+        IConnectionMultiplexer mux;
+        try
+        {
+            mux = await ConnectionMultiplexer.ConnectAsync(connStr).ConfigureAwait(false);
+        }
+        catch (Exceptions.DepHealthException)
+        {
+            throw;
+        }
+        catch (Exception e)
+        {
+            throw ClassifyRedisError(e);
+        }
+
         try
         {
             var db = mux.GetDatabase();
@@ -90,6 +104,8 @@ public sealed class RedisChecker : IHealthChecker
     private static Exception ClassifyRedisError(Exception e)
     {
         var msg = e.Message ?? "";
+
+        // Auth errors
         if (msg.Contains("NOAUTH", StringComparison.OrdinalIgnoreCase)
             || msg.Contains("WRONGPASS", StringComparison.OrdinalIgnoreCase)
             || msg.Contains("AUTH", StringComparison.OrdinalIgnoreCase))
@@ -97,6 +113,34 @@ public sealed class RedisChecker : IHealthChecker
             return new Exceptions.CheckAuthException("Redis auth error: " + msg, e);
         }
 
+        // StackExchange.Redis wraps SocketException in RedisConnectionException;
+        // check InnerException chain for SocketException with ConnectionRefused
+        if (HasConnectionRefusedSocket(e))
+        {
+            return new Exceptions.ConnectionRefusedException("Redis connection refused: " + msg, e);
+        }
+
+        // Message-based fallback for cases where SocketException is not in the chain
+        if (msg.Contains("connection refused", StringComparison.OrdinalIgnoreCase)
+            || msg.Contains("No connection", StringComparison.OrdinalIgnoreCase)
+            || msg.Contains("It was not possible to connect", StringComparison.OrdinalIgnoreCase))
+        {
+            return new Exceptions.ConnectionRefusedException("Redis connection refused: " + msg, e);
+        }
+
         return e;
+    }
+
+    private static bool HasConnectionRefusedSocket(Exception? e)
+    {
+        while (e is not null)
+        {
+            if (e is SocketException { SocketErrorCode: SocketError.ConnectionRefused })
+            {
+                return true;
+            }
+            e = e.InnerException;
+        }
+        return false;
     }
 }

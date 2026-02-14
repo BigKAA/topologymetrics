@@ -147,8 +147,11 @@ get_metrics_path() {
 deploy_helm() {
     log_info "Деплой через Helm: релиз=$HELM_RELEASE, чарт=$HELM_CHART_DIR"
 
-    # Создать namespace, если не существует
+    # Create namespace with Helm ownership labels so Helm can adopt it
     kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+    kubectl label namespace "$NAMESPACE" app.kubernetes.io/managed-by=Helm --overwrite
+    kubectl annotate namespace "$NAMESPACE" meta.helm.sh/release-name="$HELM_RELEASE" --overwrite
+    kubectl annotate namespace "$NAMESPACE" meta.helm.sh/release-namespace="$NAMESPACE" --overwrite
 
     local helm_args=("upgrade" "--install" "$HELM_RELEASE" "$HELM_CHART_DIR"
         "--namespace" "$NAMESPACE"
