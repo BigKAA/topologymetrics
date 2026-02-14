@@ -14,7 +14,7 @@ Core-модуль:
 <dependency>
     <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-core</artifactId>
-    <version>0.2.2</version>
+    <version>0.4.0</version>
 </dependency>
 ```
 
@@ -24,7 +24,7 @@ Spring Boot Starter (включает core):
 <dependency>
     <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-spring-boot-starter</artifactId>
-    <version>0.2.2</version>
+    <version>0.4.0</version>
 </dependency>
 ```
 
@@ -62,6 +62,8 @@ public class Main {
 ```text
 app_dependency_health{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes"} 1
 app_dependency_latency_seconds_bucket{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",le="0.01"} 42
+app_dependency_status{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",status="healthy"} 1
+app_dependency_status_detail{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",detail=""} 1
 ```
 
 ## Несколько зависимостей
@@ -326,14 +328,17 @@ boolean allHealthy = health.values().stream().allMatch(Boolean::booleanValue);
 
 ## Экспорт метрик
 
-dephealth экспортирует две метрики Prometheus через Micrometer:
+dephealth экспортирует четыре метрики Prometheus через Micrometer:
 
 | Метрика | Тип | Описание |
 | --- | --- | --- |
 | `app_dependency_health` | Gauge | `1` = доступен, `0` = недоступен |
 | `app_dependency_latency_seconds` | Histogram | Латентность проверки (секунды) |
+| `app_dependency_status` | Gauge (enum) | Категория статуса: 8 серий на endpoint, ровно одна = 1 |
+| `app_dependency_status_detail` | Gauge (info) | Детальная причина: напр. `http_503`, `auth_error` |
 
 Метки: `name`, `dependency`, `type`, `host`, `port`, `critical`.
+Дополнительные: `status` (на `app_dependency_status`), `detail` (на `app_dependency_status_detail`).
 
 Для Spring Boot: метрики доступны на `/actuator/prometheus`.
 

@@ -50,7 +50,7 @@ class HTTPChecker:
             ):
                 if resp.status < 200 or resp.status >= 300:
                     msg = f"HTTP {resp.status} from {url}"
-                    raise UnhealthyError(msg)
+                    raise UnhealthyError(msg, detail=f"http_{resp.status}")
         except TimeoutError as exc:
             msg = f"HTTP request to {url} timed out"
             raise CheckTimeoutError(msg) from exc

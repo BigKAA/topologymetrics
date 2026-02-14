@@ -15,3 +15,6 @@ checks:
   # Основная проверка: если метрика есть, она должна быть 0 или 1 (не какое-то
   # промежуточное значение).
   - type: health_values
+
+  # If status metrics are present, they must be consistent with health
+  - type: status_health_consistency

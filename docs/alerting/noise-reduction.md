@@ -442,6 +442,55 @@ The goal: **one problem → one alert → one clear action**.
 
 ---
 
+## Using Status Metrics for Root Cause Analysis
+
+Starting from v0.4.0, dephealth exports two additional metrics: `app_dependency_status` (status category) and `app_dependency_status_detail` (detailed reason). These metrics help identify the root cause faster without writing custom rules.
+
+### How Status Metrics Complement Alerting
+
+When `DependencyDown` fires, the operator knows **what** is down but not **why**. Status metrics provide the "why":
+
+| Scenario | `app_dependency_health` | `app_dependency_status` (series = 1) | `app_dependency_status_detail` |
+| --- | --- | --- | --- |
+| DB unreachable | 0 | `connection_error` | `connection_refused` |
+| DB auth failure | 0 | `auth_error` | `password_authentication_failed` |
+| HTTP 503 | 0 | `response_error` | `http_503` |
+| TLS certificate expired | 0 | `connection_error` | `certificate_has_expired` |
+| DNS resolution failure | 0 | `connection_error` | `no_such_host` |
+| Redis timeout | 0 | `timeout` | `context_deadline_exceeded` |
+
+### Example: Scenario 1 with Status Metrics
+
+Returning to [Scenario 1 (Database Master Down)](#scenario-1-database-master-down), the operator receives `DependencyDown (critical)`. To determine the root cause, query the status metrics:
+
+```promql
+# What is the status category?
+app_dependency_status{job="order-api", dependency="user-db", status!=""} == 1
+# Result: status="connection_error" → 1
+
+# What is the detailed reason?
+app_dependency_status_detail{job="order-api", dependency="user-db", detail!=""} == 1
+# Result: detail="connection_refused" → 1
+```
+
+The operator immediately knows: PostgreSQL is refusing connections (not an auth failure, not a timeout, not a DNS issue). This narrows the investigation to: is the process running? Is the port open? Is the network path clear?
+
+### Grafana Integration
+
+Add these queries to your Grafana dashboards for instant root cause visibility:
+
+```promql
+# Status category for a dependency (use in Stat or Table panel)
+app_dependency_status{status!=""} == 1
+
+# Detailed reason (use in Table panel)
+app_dependency_status_detail{detail!=""} == 1
+```
+
+For custom alert rules using status metrics, see [Custom Rules — Example 6](custom-rules.md#example-6-status-category-alerts).
+
+---
+
 ## What's Next
 
 - [Alert Rules](alert-rules.md) — detailed description of each rule's PromQL

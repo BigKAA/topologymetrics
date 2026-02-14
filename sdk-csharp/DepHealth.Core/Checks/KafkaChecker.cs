@@ -22,7 +22,7 @@ public sealed class KafkaChecker : IHealthChecker
 
         if (metadata.Brokers.Count == 0)
         {
-            throw new Exceptions.UnhealthyException("Kafka: no brokers in metadata response");
+            throw new Exceptions.UnhealthyException("Kafka: no brokers in metadata response", "no_brokers");
         }
 
         return Task.CompletedTask;

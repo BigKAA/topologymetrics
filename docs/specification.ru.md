@@ -39,6 +39,40 @@ app_dependency_latency_seconds_bucket{name="my-service",dependency="postgres-mai
 | Бакеты | `0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0` |
 | Метки | Идентичны `app_dependency_health` |
 
+### Метрика статуса
+
+```text
+app_dependency_status{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="ok"} 1
+```
+
+| Свойство | Значение |
+| --- | --- |
+| Имя | `app_dependency_status` |
+| Тип | Gauge (enum-паттерн) |
+| Значения | `1` (активный статус), `0` (неактивный статус) |
+| Значения status | `ok`, `timeout`, `connection_error`, `dns_error`, `auth_error`, `tls_error`, `unhealthy`, `error` |
+| Метки | Те же, что у `app_dependency_health` + `status` |
+
+Все 8 серий status всегда экспортируются для каждого endpoint. Ровно одна = 1, остальные = 0.
+Нет series churn при смене состояния.
+
+### Метрика детализации статуса
+
+```text
+app_dependency_status_detail{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",detail="ok"} 1
+```
+
+| Свойство | Значение |
+| --- | --- |
+| Имя | `app_dependency_status_detail` |
+| Тип | Gauge (info-паттерн) |
+| Значения | Всегда `1` |
+| Значения detail | Зависят от чекера: `ok`, `timeout`, `connection_refused`, `dns_error`, `http_503`, `grpc_not_serving`, `auth_error` и др. |
+| Метки | Те же, что у `app_dependency_health` + `detail` |
+
+Одна серия на endpoint. При смене detail старая серия удаляется,
+новая создаётся (допустимый series churn).
+
 ### Правила формирования меток
 
 - `name` — уникальное имя приложения (формат `[a-z][a-z0-9-]*`, 1-63 символа)

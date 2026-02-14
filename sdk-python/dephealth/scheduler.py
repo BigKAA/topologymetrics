@@ -8,6 +8,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 
+from dephealth.check_result import classify_error
 from dephealth.checker import CheckError, HealthChecker
 from dephealth.dependency import Dependency, Endpoint
 from dephealth.metrics import MetricsExporter
@@ -143,6 +144,7 @@ class CheckScheduler:
         state = entry.states[key]
 
         start = time.monotonic()
+        check_err: BaseException | None = None
         try:
             await asyncio.wait_for(
                 entry.checker.check(ep),
@@ -151,10 +153,16 @@ class CheckScheduler:
             success = True
         except (CheckError, TimeoutError, Exception) as e:
             success = False
+            check_err = e
             self._log.debug("Check failed for %s (%s): %s", entry.dep.name, key, e)
 
         duration = time.monotonic() - start
         self._metrics.observe_latency(entry.dep, ep, duration)
+
+        # Classify the error and set status/detail metrics.
+        result = classify_error(check_err)
+        self._metrics.set_status(entry.dep, ep, result.category)
+        self._metrics.set_status_detail(entry.dep, ep, result.detail)
 
         if success:
             state.consecutive_successes += 1

@@ -220,3 +220,54 @@ deploy/helm/dephealth-monitoring/dashboards/
   links-status.json
   link-status.json
 ```
+
+## Recommended Panels for Status Metrics
+
+Starting from v0.4.0, dephealth exports two additional metrics: `app_dependency_status` (status category) and `app_dependency_status_detail` (detailed failure reason). The current dashboards use `app_dependency_health` and `app_dependency_latency_seconds`. The following panels can be added to enhance root cause visibility.
+
+### Status Category Panel (Table)
+
+Shows the current status category for each dependency. Add to **Service Status** or **Link Status** dashboards.
+
+```promql
+# Current status category (the series with value = 1)
+app_dependency_status{status!=""} == 1
+```
+
+Display as a Table panel with columns: dependency, host, port, status (the label value). Use value mappings to color-code status categories:
+
+| Status | Color | Meaning |
+| --- | --- | --- |
+| `healthy` | green | Dependency is healthy |
+| `connection_error` | red | Cannot establish connection |
+| `timeout` | orange | Connection or response timed out |
+| `auth_error` | red | Authentication/authorization failure |
+| `response_error` | orange | Unexpected response (e.g. HTTP 5xx) |
+| `protocol_error` | orange | Protocol-level error |
+| `resource_error` | orange | Resource exhaustion |
+| `unknown_error` | gray | Unclassified error |
+
+### Failure Detail Panel (Table)
+
+Shows the detailed failure reason alongside the status category. Add to **Link Status** dashboard for drill-down investigation.
+
+```promql
+# Detailed reason (non-empty detail label when value = 1)
+app_dependency_status_detail{detail!=""} == 1
+```
+
+Display as a Table panel with columns: dependency, host, port, detail. This helps operators quickly identify the exact failure reason (e.g., `connection_refused`, `http_503`, `password_authentication_failed`).
+
+### Status Timeline Panel
+
+Shows status category changes over time. Add to **Service Status** dashboard alongside the existing health timeline.
+
+```promql
+# Status category over time
+label_replace(
+  app_dependency_status == 1,
+  "status_value", "$1", "status", "(.*)"
+)
+```
+
+Display as a State Timeline panel, mapping status label values to colors.

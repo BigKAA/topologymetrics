@@ -3,6 +3,7 @@ package biz.kryukov.dev.dephealth.checks;
 import biz.kryukov.dev.dephealth.DependencyType;
 import biz.kryukov.dev.dephealth.Endpoint;
 import biz.kryukov.dev.dephealth.HealthChecker;
+import biz.kryukov.dev.dephealth.UnhealthyException;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -52,7 +53,10 @@ public final class GrpcHealthChecker implements HealthChecker {
             HealthCheckResponse response = stub.check(request);
 
             if (response.getStatus() != HealthCheckResponse.ServingStatus.SERVING) {
-                throw new Exception("gRPC health check: status " + response.getStatus());
+                String detail = response.getStatus() == HealthCheckResponse.ServingStatus.UNKNOWN
+                        ? "grpc_unknown" : "grpc_not_serving";
+                throw new UnhealthyException(
+                        "gRPC health check: status " + response.getStatus(), detail);
             }
         } finally {
             channel.shutdownNow();

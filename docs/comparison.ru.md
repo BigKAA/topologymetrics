@@ -52,7 +52,7 @@
 | --- | --- |
 | Go | `go get github.com/BigKAA/topologymetrics/sdk-go@latest` |
 | Python | `pip install dephealth[fastapi]` |
-| Java | Maven: `biz.kryukov.dev:dephealth-spring-boot-starter:0.2.2` |
+| Java | Maven: `biz.kryukov.dev:dephealth-spring-boot-starter:0.4.0` |
 | C# | `dotnet add package DepHealth.AspNetCore` |
 
 ## Экспортируемые метрики
@@ -63,8 +63,11 @@
 | --- | --- | --- |
 | `app_dependency_health` | Gauge | `1` = healthy, `0` = unhealthy |
 | `app_dependency_latency_seconds` | Histogram | Латентность проверки (секунды) |
+| `app_dependency_status` | Gauge (enum) | Категория статуса: 8 серий на endpoint, ровно одна = 1 |
+| `app_dependency_status_detail` | Gauge (info) | Детальная причина сбоя: напр. `http_503`, `auth_error` |
 
 Метки: `name`, `dependency`, `type`, `host`, `port`, `critical` + произвольные через `WithLabel`.
+Дополнительные: `status` (на `app_dependency_status`), `detail` (на `app_dependency_status_detail`).
 
 Бакеты histogram: `0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0`
 
@@ -72,6 +75,8 @@ HELP-строки:
 
 - `Health status of a dependency (1 = healthy, 0 = unhealthy)`
 - `Latency of dependency health check in seconds`
+- `Status category of a dependency health check`
+- `Detailed status information for a dependency health check`
 
 ## Параметры по умолчанию
 

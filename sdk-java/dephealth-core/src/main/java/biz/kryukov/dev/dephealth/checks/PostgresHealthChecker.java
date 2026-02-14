@@ -1,5 +1,6 @@
 package biz.kryukov.dev.dephealth.checks;
 
+import biz.kryukov.dev.dephealth.CheckAuthException;
 import biz.kryukov.dev.dephealth.DependencyType;
 import biz.kryukov.dev.dephealth.Endpoint;
 import biz.kryukov.dev.dephealth.HealthChecker;
@@ -47,6 +48,8 @@ public final class PostgresHealthChecker implements HealthChecker {
              Statement stmt = conn.createStatement()) {
             stmt.setQueryTimeout(timeoutSec);
             stmt.execute(query);
+        } catch (java.sql.SQLException e) {
+            throw classifyPostgresError(e);
         }
     }
 
@@ -59,7 +62,19 @@ public final class PostgresHealthChecker implements HealthChecker {
              Statement stmt = conn.createStatement()) {
             stmt.setQueryTimeout(timeoutSec);
             stmt.execute(query);
+        } catch (java.sql.SQLException e) {
+            throw classifyPostgresError(e);
         }
+    }
+
+    private static Exception classifyPostgresError(java.sql.SQLException e) {
+        String state = e.getSQLState();
+        String msg = e.getMessage();
+        if (("28000".equals(state) || "28P01".equals(state))
+                || (msg != null && msg.contains("password authentication failed"))) {
+            return new CheckAuthException("Postgres auth error: " + msg, e);
+        }
+        return e;
     }
 
     @Override

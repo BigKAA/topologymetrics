@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from dephealth.checker import CheckConnectionRefusedError, CheckTimeoutError
+from dephealth.checker import (
+    CheckAuthError,
+    CheckConnectionRefusedError,
+    CheckTimeoutError,
+    UnhealthyError,
+)
 from dephealth.dependency import Endpoint
 
 
@@ -34,7 +39,11 @@ class RedisChecker:
             raise ImportError(msg) from None
 
         if self._client is not None:
-            await self._client.ping()
+            try:
+                await self._client.ping()
+            except Exception as e:
+                _classify_redis_error(e, endpoint)
+                raise
             return
 
         conn_url = self._url or f"redis://{endpoint.host}:{endpoint.port}/{self._db}"
@@ -49,16 +58,31 @@ class RedisChecker:
             kwargs["password"] = None
         client = Redis.from_url(conn_url, **kwargs)
         try:
-            await client.ping()
+            result = await client.ping()
+            if result is not True:
+                msg = f"Redis PING to {endpoint.host}:{endpoint.port} returned {result!r}"
+                raise UnhealthyError(msg)
+        except (CheckAuthError, CheckTimeoutError, CheckConnectionRefusedError, UnhealthyError):
+            raise
         except TimeoutError as exc:
             msg = f"Redis connection to {endpoint.host}:{endpoint.port} timed out"
             raise CheckTimeoutError(msg) from exc
         except OSError as e:
             msg = f"Redis connection to {endpoint.host}:{endpoint.port} refused: {e}"
             raise CheckConnectionRefusedError(msg) from e
+        except Exception as e:
+            _classify_redis_error(e, endpoint)
+            raise
         finally:
             await client.aclose()
 
     def checker_type(self) -> str:
         """Return the checker type."""
         return "redis"
+
+
+def _classify_redis_error(err: Exception, endpoint: Endpoint) -> None:
+    """Re-raise Redis auth errors as CheckAuthError."""
+    msg = str(err)
+    if "NOAUTH" in msg or "WRONGPASS" in msg or "AUTH" in msg:
+        raise CheckAuthError(f"Redis auth error at {endpoint.host}:{endpoint.port}: {msg}") from err

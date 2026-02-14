@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net"
+	"strings"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // PostgreSQL driver
 
@@ -69,7 +70,7 @@ func (c *PostgresChecker) Check(ctx context.Context, endpoint dephealth.Endpoint
 func (c *PostgresChecker) checkPool(ctx context.Context) error {
 	rows, err := c.db.QueryContext(ctx, c.query)
 	if err != nil {
-		return fmt.Errorf("postgres pool query: %w", err)
+		return classifyPostgresError(err, "pool")
 	}
 	return rows.Close()
 }
@@ -88,9 +89,24 @@ func (c *PostgresChecker) checkStandalone(ctx context.Context, endpoint dephealt
 
 	rows, err := db.QueryContext(ctx, c.query)
 	if err != nil {
-		return fmt.Errorf("postgres query %s: %w", endpoint.Host, err)
+		return classifyPostgresError(err, endpoint.Host)
 	}
 	return rows.Close()
+}
+
+// classifyPostgresError wraps PostgreSQL errors with appropriate classification.
+// Detects auth errors via SQLSTATE codes 28000/28P01 in the error message.
+func classifyPostgresError(err error, target string) error {
+	msg := err.Error()
+	if strings.Contains(msg, "28000") || strings.Contains(msg, "28P01") ||
+		strings.Contains(msg, "password authentication failed") {
+		return &dephealth.ClassifiedCheckError{
+			Category: dephealth.StatusAuthError,
+			Detail:   "auth_error",
+			Cause:    fmt.Errorf("postgres %s: %w", target, err),
+		}
+	}
+	return fmt.Errorf("postgres query %s: %w", target, err)
 }
 
 // Type returns the dependency type for this checker.

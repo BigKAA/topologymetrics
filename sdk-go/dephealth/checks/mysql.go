@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net"
+	"strings"
 
 	_ "github.com/go-sql-driver/mysql" // MySQL driver
 
@@ -69,7 +70,7 @@ func (c *MySQLChecker) Check(ctx context.Context, endpoint dephealth.Endpoint) e
 func (c *MySQLChecker) checkPool(ctx context.Context) error {
 	rows, err := c.db.QueryContext(ctx, c.query)
 	if err != nil {
-		return fmt.Errorf("mysql pool query: %w", err)
+		return classifyMySQLError(err, "pool")
 	}
 	return rows.Close()
 }
@@ -88,9 +89,23 @@ func (c *MySQLChecker) checkStandalone(ctx context.Context, endpoint dephealth.E
 
 	rows, err := db.QueryContext(ctx, c.query)
 	if err != nil {
-		return fmt.Errorf("mysql query %s: %w", endpoint.Host, err)
+		return classifyMySQLError(err, endpoint.Host)
 	}
 	return rows.Close()
+}
+
+// classifyMySQLError wraps MySQL errors with appropriate classification.
+// Detects auth errors via MySQL error code 1045 (Access denied).
+func classifyMySQLError(err error, target string) error {
+	msg := err.Error()
+	if strings.Contains(msg, "1045") || strings.Contains(msg, "Access denied") {
+		return &dephealth.ClassifiedCheckError{
+			Category: dephealth.StatusAuthError,
+			Detail:   "auth_error",
+			Cause:    fmt.Errorf("mysql %s: %w", target, err),
+		}
+	}
+	return fmt.Errorf("mysql query %s: %w", target, err)
 }
 
 // Type returns the dependency type for this checker.

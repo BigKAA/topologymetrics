@@ -2,8 +2,12 @@ package checks
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
+	"strings"
+	"syscall"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 
@@ -64,7 +68,7 @@ func (c *RedisChecker) Check(ctx context.Context, endpoint dephealth.Endpoint) e
 
 func (c *RedisChecker) checkPool(ctx context.Context) error {
 	if err := c.client.Ping(ctx).Err(); err != nil {
-		return fmt.Errorf("redis pool ping: %w", err)
+		return classifyRedisError(err, "pool")
 	}
 	return nil
 }
@@ -72,16 +76,77 @@ func (c *RedisChecker) checkPool(ctx context.Context) error {
 func (c *RedisChecker) checkStandalone(ctx context.Context, endpoint dephealth.Endpoint) error {
 	addr := net.JoinHostPort(endpoint.Host, endpoint.Port)
 	client := redis.NewClient(&redis.Options{
-		Addr:     addr,
-		Password: c.password,
-		DB:       c.db,
+		Addr:         addr,
+		Password:     c.password,
+		DB:           c.db,
+		MaxRetries:   0,              // Single attempt; retries are handled by the check scheduler.
+		DialTimeout:  3 * time.Second, // Shorter than the check timeout to get a classifiable net error.
+		ReadTimeout:  3 * time.Second,
+		WriteTimeout: 3 * time.Second,
 	})
 	defer func() { _ = client.Close() }()
 
 	if err := client.Ping(ctx).Err(); err != nil {
-		return fmt.Errorf("redis ping %s: %w", addr, err)
+		return classifyRedisError(err, addr)
 	}
 	return nil
+}
+
+// classifyRedisError wraps Redis errors with appropriate classification.
+func classifyRedisError(err error, target string) error {
+	msg := err.Error()
+
+	// Auth errors.
+	if strings.Contains(msg, "NOAUTH") || strings.Contains(msg, "WRONGPASS") {
+		return &dephealth.ClassifiedCheckError{
+			Category: dephealth.StatusAuthError,
+			Detail:   "auth_error",
+			Cause:    fmt.Errorf("redis %s: %w", target, err),
+		}
+	}
+
+	// Connection refused — go-redis wraps net.OpError; detect via error chain.
+	var opErr *net.OpError
+	if errors.As(err, &opErr) {
+		if errors.Is(opErr.Err, syscall.ECONNREFUSED) {
+			return &dephealth.ClassifiedCheckError{
+				Category: dephealth.StatusConnectionError,
+				Detail:   "connection_refused",
+				Cause:    fmt.Errorf("redis %s: %w", target, err),
+			}
+		}
+		// Dial/connect timeout (e.g., k8s service with no endpoints).
+		if opErr.Timeout() {
+			return &dephealth.ClassifiedCheckError{
+				Category: dephealth.StatusConnectionError,
+				Detail:   "connection_refused",
+				Cause:    fmt.Errorf("redis %s: %w", target, err),
+			}
+		}
+	}
+
+	// Message-based fallback for connection refused.
+	if strings.Contains(msg, "connection refused") {
+		return &dephealth.ClassifiedCheckError{
+			Category: dephealth.StatusConnectionError,
+			Detail:   "connection_refused",
+			Cause:    fmt.Errorf("redis %s: %w", target, err),
+		}
+	}
+
+	// Context deadline exceeded — the check scheduler's timeout fired before
+	// go-redis could complete the dial. In Kubernetes, when a Service has no
+	// endpoints (e.g. scaled to 0), TCP SYN hangs until the context deadline.
+	// This is effectively a connection error, not an application-level timeout.
+	if errors.Is(err, context.DeadlineExceeded) {
+		return &dephealth.ClassifiedCheckError{
+			Category: dephealth.StatusConnectionError,
+			Detail:   "connection_refused",
+			Cause:    fmt.Errorf("redis %s: %w", target, err),
+		}
+	}
+
+	return fmt.Errorf("redis ping %s: %w", target, err)
 }
 
 // Type returns the dependency type for this checker.

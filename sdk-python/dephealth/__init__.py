@@ -2,10 +2,26 @@
 
 from __future__ import annotations
 
+from dephealth.check_result import (
+    ALL_STATUS_CATEGORIES,
+    STATUS_AUTH_ERROR,
+    STATUS_CONNECTION_ERROR,
+    STATUS_DNS_ERROR,
+    STATUS_ERROR,
+    STATUS_OK,
+    STATUS_TIMEOUT,
+    STATUS_TLS_ERROR,
+    STATUS_UNHEALTHY,
+    CheckResult,
+    classify_error,
+)
 from dephealth.checker import (
+    CheckAuthError,
     CheckConnectionRefusedError,
+    CheckDnsError,
     CheckError,
     CheckTimeoutError,
+    CheckTlsError,
     HealthChecker,
     UnhealthyError,
 )
@@ -24,10 +40,15 @@ from dephealth.dependency import (
 from dephealth.parser import ParsedConnection, parse_jdbc, parse_params, parse_url
 
 __all__ = [
+    "ALL_STATUS_CATEGORIES",
+    "CheckAuthError",
     "CheckConfig",
-    "CheckError",
-    "CheckTimeoutError",
     "CheckConnectionRefusedError",
+    "CheckDnsError",
+    "CheckError",
+    "CheckResult",
+    "CheckTimeoutError",
+    "CheckTlsError",
     "Dependency",
     "DependencyType",
     "Endpoint",
@@ -35,8 +56,17 @@ __all__ = [
     "LABEL_NAME_PATTERN",
     "ParsedConnection",
     "RESERVED_LABELS",
+    "STATUS_AUTH_ERROR",
+    "STATUS_CONNECTION_ERROR",
+    "STATUS_DNS_ERROR",
+    "STATUS_ERROR",
+    "STATUS_OK",
+    "STATUS_TIMEOUT",
+    "STATUS_TLS_ERROR",
+    "STATUS_UNHEALTHY",
     "UnhealthyError",
     "bool_to_yes_no",
+    "classify_error",
     "default_check_config",
     "parse_jdbc",
     "parse_params",

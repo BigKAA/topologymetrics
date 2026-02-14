@@ -26,6 +26,102 @@ checks:
   - type: label_values
     metric: app_dependency_health
 
+  # --- Status / Detail metrics ---
+
+  - type: metric_exists
+    metric: app_dependency_status
+
+  - type: metric_exists
+    metric: app_dependency_status_detail
+
+  - type: help_text
+    metric: app_dependency_status
+    expected: "Category of the last check result"
+
+  - type: help_text
+    metric: app_dependency_status_detail
+    expected: "Detailed reason of the last check result"
+
+  - type: required_labels
+    metric: app_dependency_status
+
+  - type: required_labels
+    metric: app_dependency_status_detail
+
+  - type: status_enum_completeness
+
+  - type: status_health_consistency
+
+  - type: detail_value_always_one
+
+  - type: detail_valid_values
+
+  - type: detail_status_mapping
+
+  - type: expected_status
+    endpoints:
+      - dependency: postgres-primary
+        host: postgres-primary.dephealth-conformance.svc
+        port: 5432
+        status: ok
+      - dependency: postgres-replica
+        host: postgres-replica.dephealth-conformance.svc
+        port: 5432
+        status: ok
+      - dependency: redis-cache
+        host: redis.dephealth-conformance.svc
+        port: 6379
+        status: ok
+      - dependency: rabbitmq
+        host: rabbitmq.dephealth-conformance.svc
+        port: 5672
+        status: ok
+      - dependency: kafka-main
+        host: kafka.dephealth-conformance.svc
+        port: 9092
+        status: ok
+      - dependency: http-service
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        status: ok
+      - dependency: grpc-service
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        status: ok
+
+  - type: expected_detail
+    endpoints:
+      - dependency: postgres-primary
+        host: postgres-primary.dephealth-conformance.svc
+        port: 5432
+        detail: ok
+      - dependency: postgres-replica
+        host: postgres-replica.dephealth-conformance.svc
+        port: 5432
+        detail: ok
+      - dependency: redis-cache
+        host: redis.dephealth-conformance.svc
+        port: 6379
+        detail: ok
+      - dependency: rabbitmq
+        host: rabbitmq.dephealth-conformance.svc
+        port: 5672
+        detail: ok
+      - dependency: kafka-main
+        host: kafka.dephealth-conformance.svc
+        port: 9092
+        detail: ok
+      - dependency: http-service
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        detail: ok
+      - dependency: grpc-service
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        detail: ok
+
+  # --- Health metric dependencies ---
+
   - type: expected_dependencies
     dependencies:
       - dependency: postgres-primary

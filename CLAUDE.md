@@ -57,7 +57,7 @@ GIT-WORKFLOW.md      # Git workflow (GitHub Flow + Conventional Commits + Semver
 - Тестовые домены: `test1.kryukov.lan`, `test2.kryukov.lan` → 192.168.218.180 (Gateway API)
 - Доменные имена для тестов — добавлять в hosts (просить пользователя)
 - Доступные инструменты: `kubectl`, `helm`, `docker`
-- docker - сборка контейнеров сразу для двух архитектур (amd64 и arm64)
+- docker — сборка контейнеров **только для linux/amd64** (`--platform linux/amd64`)
 
 ## Git Workflow
 

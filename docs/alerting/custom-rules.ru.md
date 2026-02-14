@@ -54,6 +54,8 @@ groups:
 | --- | --- | --- | --- |
 | `app_dependency_health` | Gauge (0/1) | `name`, `dependency`, `type`, `host`, `port`, `critical` | Текущий статус здоровья |
 | `app_dependency_latency_seconds` | Histogram | `name`, `dependency`, `type`, `host`, `port`, `critical` | Распределение латентности health check |
+| `app_dependency_status` | Gauge (enum) | `name`, `dependency`, `type`, `host`, `port`, `critical`, `status` | Категория статуса — 8 серий на endpoint, ровно одна = 1 |
+| `app_dependency_status_detail` | Gauge (info) | `name`, `dependency`, `type`, `host`, `port`, `critical`, `detail` | Детальная причина — 1 серия на endpoint |
 
 Label `name` идентифицирует приложение, экспортирующее метрики. Label `dependency` идентифицирует целевую зависимость. Полные детали — в [Контракт метрик](../../spec/metric-contract.ru.md).
 
@@ -63,6 +65,8 @@ Label `name` идентифицирует приложение, экспорти
 | --- | --- |
 | `type` | `http`, `grpc`, `tcp`, `postgres`, `mysql`, `redis`, `amqp`, `kafka` |
 | `critical` | `yes`, `no` |
+| `status` | `ok`, `timeout`, `connection_error`, `dns_error`, `auth_error`, `tls_error`, `unhealthy`, `error` |
+| `detail` | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `http_NNN`, `grpc_not_serving`, `grpc_unknown`, `unhealthy`, `no_brokers`, `error` |
 
 ---
 
@@ -342,6 +346,89 @@ routes:
   annotations:
     summary: "Более 50% endpoint-ов {{ $labels.dependency }} ({{ $labels.type }}) упали в {{ $labels.job }}"
     description: "{{ $value | printf \"%.0f\" | humanizePercentage }} endpoint-ов зависимости {{ $labels.dependency }} в сервисе {{ $labels.job }} недоступны."
+```
+
+---
+
+## Пример 6: Алерты по категории статуса
+
+Метрика `app_dependency_status` позволяет точно алертить на основе **причины** недоступности зависимости, а не только факта недоступности.
+
+### Ошибки аутентификации
+
+Алерт при отказе зависимости из-за неверных credentials — обычно требует немедленных действий (ротация секретов, исправление конфига).
+
+```yaml
+- alert: DependencyAuthError
+  expr: |
+    app_dependency_status{status="auth_error"} == 1
+  for: 1m
+  labels:
+    severity: critical
+    category: security
+  annotations:
+    summary: "Ошибка аутентификации {{ $labels.dependency }} ({{ $labels.type }}) в {{ $labels.job }}"
+    description: "Зависимость {{ $labels.dependency }} в сервисе {{ $labels.job }} недоступна из-за ошибки аутентификации. Проверьте credentials и секреты."
+```
+
+### Ошибки DNS
+
+DNS-ошибки часто указывают на инфраструктурные проблемы (CoreDNS, удалённый сервис, опечатка в hostname).
+
+```yaml
+- alert: DependencyDnsError
+  expr: |
+    app_dependency_status{status="dns_error"} == 1
+  for: 2m
+  labels:
+    severity: warning
+    category: infrastructure
+  annotations:
+    summary: "DNS-ошибка для {{ $labels.dependency }} в {{ $labels.job }}"
+    description: "Невозможно разрешить hostname зависимости {{ $labels.dependency }} ({{ $labels.type }}) в сервисе {{ $labels.job }}. Проверьте DNS-конфигурацию и существование целевого сервиса."
+```
+
+### Ошибки TLS-сертификатов
+
+TLS-ошибки указывают на просроченные или неправильно настроенные сертификаты.
+
+```yaml
+- alert: DependencyTlsError
+  expr: |
+    app_dependency_status{status="tls_error"} == 1
+  for: 1m
+  labels:
+    severity: critical
+    category: security
+  annotations:
+    summary: "TLS-ошибка для {{ $labels.dependency }} ({{ $labels.type }}) в {{ $labels.job }}"
+    description: "TLS handshake не удался для зависимости {{ $labels.dependency }} в сервисе {{ $labels.job }}. Проверьте валидность сертификата и цепочку доверия."
+```
+
+### Конкретные HTTP-коды
+
+Используйте `app_dependency_status_detail` для алертов на конкретные причины отказа.
+
+```yaml
+- alert: DependencyHttp503
+  expr: |
+    app_dependency_status_detail{detail="http_503"} == 1
+  for: 2m
+  labels:
+    severity: warning
+  annotations:
+    summary: "{{ $labels.dependency }} возвращает 503 в {{ $labels.job }}"
+    description: "HTTP-зависимость {{ $labels.dependency }} в сервисе {{ $labels.job }} возвращает 503 Service Unavailable более 2 минут."
+```
+
+### Распределение категорий статуса
+
+Recording rule для отслеживания распределения категорий статуса по всем зависимостям:
+
+```yaml
+- record: dephealth:status_distribution:count
+  expr: |
+    count by (status) (app_dependency_status == 1)
 ```
 
 ---

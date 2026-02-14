@@ -5,6 +5,38 @@
 Step-by-step instructions for adding dependency monitoring
 to a running microservice.
 
+## Migration to v0.4.0
+
+### New Status Metrics (no code changes required)
+
+v0.4.0 adds two new automatically exported Prometheus metrics:
+
+| Metric | Type | Description |
+| --- | --- | --- |
+| `app_dependency_status` | Gauge (enum) | Status category: 8 series per endpoint, exactly one = 1 |
+| `app_dependency_status_detail` | Gauge (info) | Detailed failure reason: e.g. `http_503`, `auth_error` |
+
+**No code changes are needed** — the SDK exports these metrics automatically alongside the existing `app_dependency_health` and `app_dependency_latency_seconds`.
+
+### Storage Impact
+
+Each endpoint now produces 9 additional time series (8 for `app_dependency_status` + 1 for `app_dependency_status_detail`). For a service with 5 endpoints, this adds 45 series.
+
+### New PromQL Queries
+
+```promql
+# Status category for a dependency
+app_dependency_status{dependency="postgres-main", status!=""} == 1
+
+# Detailed failure reason
+app_dependency_status_detail{dependency="postgres-main", detail!=""} == 1
+
+# Alert on authentication errors
+app_dependency_status{status="auth_error"} == 1
+```
+
+For the full list of status values, see [Specification — Status Metrics](../specification.md).
+
 ## Migration from v0.2 to v0.3
 
 ### Breaking change: new module path

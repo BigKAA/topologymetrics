@@ -1,8 +1,10 @@
 package biz.kryukov.dev.dephealth.checks;
 
+import biz.kryukov.dev.dephealth.CheckAuthException;
 import biz.kryukov.dev.dephealth.DependencyType;
 import biz.kryukov.dev.dephealth.Endpoint;
 import biz.kryukov.dev.dephealth.HealthChecker;
+import biz.kryukov.dev.dephealth.UnhealthyException;
 
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -53,9 +55,21 @@ public final class AmqpHealthChecker implements HealthChecker {
 
         try (Connection conn = factory.newConnection("dephealth-check")) {
             if (!conn.isOpen()) {
-                throw new Exception("AMQP connection is not open");
+                throw new UnhealthyException("AMQP connection is not open");
             }
+        } catch (biz.kryukov.dev.dephealth.CheckException e) {
+            throw e;
+        } catch (Exception e) {
+            throw classifyAmqpError(e);
         }
+    }
+
+    private static Exception classifyAmqpError(Exception e) {
+        String msg = e.getMessage();
+        if (msg != null && (msg.contains("403") || msg.contains("ACCESS_REFUSED"))) {
+            return new CheckAuthException("AMQP auth error: " + msg, e);
+        }
+        return e;
     }
 
     @Override

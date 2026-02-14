@@ -21,10 +21,21 @@ public sealed class MySqlChecker : IHealthChecker
         var connStr = _connectionString ??
             $"Server={endpoint.Host};Port={endpoint.Port};ConnectionTimeout=5";
 
-        await using var conn = new MySqlConnection(connStr);
-        await conn.OpenAsync(ct).ConfigureAwait(false);
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT 1";
-        await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
+        try
+        {
+            await using var conn = new MySqlConnection(connStr);
+            await conn.OpenAsync(ct).ConfigureAwait(false);
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT 1";
+            await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
+        }
+        catch (Exceptions.DepHealthException)
+        {
+            throw;
+        }
+        catch (MySqlException me) when (me.ErrorCode == MySqlErrorCode.AccessDenied)
+        {
+            throw new Exceptions.CheckAuthException("MySQL auth error: " + me.Message, me);
+        }
     }
 }

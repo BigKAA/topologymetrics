@@ -52,6 +52,8 @@ After startup, metrics will appear at `/metrics`:
 ```text
 app_dependency_health{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes"} 1
 app_dependency_latency_seconds_bucket{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",le="0.01"} 42
+app_dependency_status{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",status="healthy"} 1
+app_dependency_status_detail{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",detail=""} 1
 ```
 
 ## Multiple Dependencies
@@ -360,14 +362,17 @@ all_healthy = all(health.values())
 
 ## Metrics Export
 
-dephealth exports two Prometheus metrics:
+dephealth exports four Prometheus metrics:
 
 | Metric | Type | Description |
 | --- | --- | --- |
 | `app_dependency_health` | Gauge | `1` = available, `0` = unavailable |
 | `app_dependency_latency_seconds` | Histogram | Check latency (seconds) |
+| `app_dependency_status` | Gauge (enum) | Status category: 8 series per endpoint, exactly one = 1 |
+| `app_dependency_status_detail` | Gauge (info) | Detailed reason: e.g. `http_503`, `auth_error` |
 
 Labels: `name`, `dependency`, `type`, `host`, `port`, `critical`.
+Additional: `status` (on `app_dependency_status`), `detail` (on `app_dependency_status_detail`).
 
 ## Supported Dependency Types
 

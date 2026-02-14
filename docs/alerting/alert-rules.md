@@ -466,6 +466,6 @@ spec:
 
 ## What's Next
 
+- [Custom Rules](custom-rules.md) — writing your own rules on top of dephealth metrics, including [status-based alerting](custom-rules.md#example-6-status-based-alerting) with `app_dependency_status` and `app_dependency_status_detail`
 - [Noise Reduction](noise-reduction.md) — how these rules interact, inhibition, and real-world scenarios
 - [Alertmanager Configuration](alertmanager.md) — routing, receivers, and notification delivery
-- [Custom Rules](custom-rules.md) — writing your own rules on top of dephealth metrics

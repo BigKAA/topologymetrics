@@ -1,8 +1,10 @@
 package biz.kryukov.dev.dephealth.scheduler;
 
 import biz.kryukov.dev.dephealth.CheckConfig;
+import biz.kryukov.dev.dephealth.CheckResult;
 import biz.kryukov.dev.dephealth.Dependency;
 import biz.kryukov.dev.dephealth.Endpoint;
+import biz.kryukov.dev.dephealth.ErrorClassifier;
 import biz.kryukov.dev.dephealth.HealthChecker;
 import biz.kryukov.dev.dephealth.metrics.MetricsExporter;
 
@@ -164,6 +166,11 @@ public final class CheckScheduler {
             metrics.setHealth(dep, ep, 1.0);
             metrics.observeLatency(dep, ep, duration);
 
+            // Classify success.
+            CheckResult result = ErrorClassifier.classify(null);
+            metrics.setStatus(dep, ep, result.category());
+            metrics.setStatusDetail(dep, ep, result.detail());
+
             if (wasBefore != null && !wasBefore && Boolean.TRUE.equals(state.healthy())) {
                 logger.info("dephealth: {} [{}] recovered", dep.name(), ep);
             }
@@ -176,6 +183,11 @@ public final class CheckScheduler {
 
             metrics.setHealth(dep, ep, 0.0);
             metrics.observeLatency(dep, ep, duration);
+
+            // Classify error.
+            CheckResult result = ErrorClassifier.classify(e);
+            metrics.setStatus(dep, ep, result.category());
+            metrics.setStatusDetail(dep, ep, result.detail());
 
             if (wasBefore == null || wasBefore) {
                 String msg = e.getMessage() != null ? e.getMessage()

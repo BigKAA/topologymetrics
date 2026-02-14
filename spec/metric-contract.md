@@ -2,7 +2,7 @@
 
 # Metric Contract
 
-> Specification version: **2.0-draft**
+> Specification version: **3.0-draft**
 >
 > This document is the single source of truth for the format of metrics
 > exported by all dephealth SDKs. All implementations must follow this contract.
@@ -288,4 +288,190 @@ app_dependency_health{name="order-api"}
 
 # All services that depend on payment-api
 app_dependency_health{dependency="payment-api"}
+```
+
+---
+
+## 8. Status Metric: `app_dependency_status`
+
+### 8.1. Description
+
+Gauge metric (enum pattern) reflecting the **category** of the last check result.
+For each endpoint, **all 8 values** of the `status` label are always exported.
+Exactly one of them equals `1`, the remaining 7 equal `0`.
+This eliminates series churn when the status changes.
+
+### 8.2. Properties
+
+| Property | Value |
+| --- | --- |
+| Name | `app_dependency_status` |
+| Type | Gauge |
+| HELP text | `Category of the last check result` |
+| Allowed values | `1` (active status), `0` (inactive status) |
+
+### 8.3. Status Values
+
+| Value | Description | Typical Situations |
+| --- | --- | --- |
+| `ok` | Check succeeded, dependency is available | HTTP 2xx, gRPC SERVING, TCP connected, SQL SELECT 1 OK, Redis PONG |
+| `timeout` | Check timeout exceeded | Connection timeout, query timeout, gRPC DEADLINE_EXCEEDED, context deadline exceeded |
+| `connection_error` | Unable to establish TCP connection | Connection refused (RST), host unreachable, network unreachable, port not listening |
+| `dns_error` | DNS name resolution failure | Hostname not found, DNS lookup failure, NXDOMAIN |
+| `auth_error` | Authentication/authorization failure | Wrong DB credentials, Redis NOAUTH/WRONGPASS, AMQP 403 Access Refused |
+| `tls_error` | TLS/SSL error | Certificate validation failed, TLS handshake error, expired certificate |
+| `unhealthy` | Service responded but reports an unhealthy state | HTTP 4xx/5xx, gRPC NOT_SERVING, Kafka no brokers, Redis non-PONG, AMQP connection not open |
+| `error` | Other unclassified errors | Unexpected exceptions, panics, pool exhaustion, query syntax error |
+
+### 8.4. Labels
+
+Same required and custom labels as `app_dependency_health` (section 2.3, 2.4),
+plus the `status` label at the end.
+
+Label order: `name`, `dependency`, `type`, `host`, `port`, `critical`,
+custom labels in alphabetical order, `status`.
+
+### 8.5. Initial Value
+
+Before the first check completes, the metric is **not exported**
+(same behavior as `app_dependency_health`, see section 2.5).
+After the first check, all 8 series appear simultaneously.
+
+### 8.6. Output Example
+
+Endpoint `pg.svc:5432` is available (status = ok):
+
+```text
+# HELP app_dependency_status Category of the last check result
+# TYPE app_dependency_status gauge
+app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="ok"} 1
+app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="timeout"} 0
+app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="connection_error"} 0
+app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="dns_error"} 0
+app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="auth_error"} 0
+app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="tls_error"} 0
+app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="unhealthy"} 0
+app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="error"} 0
+```
+
+---
+
+## 9. Status Detail Metric: `app_dependency_status_detail`
+
+### 9.1. Description
+
+Gauge metric (info pattern) containing the **detailed reason** of the last check result.
+One series per endpoint, value is always `1`. The `detail` label contains the specific reason.
+When the reason changes, the old series is deleted and a new one is created
+(acceptable series churn for info-style metrics).
+
+### 9.2. Properties
+
+| Property | Value |
+| --- | --- |
+| Name | `app_dependency_status_detail` |
+| Type | Gauge |
+| HELP text | `Detailed reason of the last check result` |
+| Allowed values | `1` (always) |
+
+### 9.3. Detail Values by Checker Type
+
+| Checker Type | Possible detail values |
+| --- | --- |
+| HTTP | `ok`, `timeout`, `connection_refused`, `dns_error`, `tls_error`, `http_NNN` (specific HTTP code: `http_404`, `http_503`, etc.), `error` |
+| gRPC | `ok`, `timeout`, `connection_refused`, `dns_error`, `tls_error`, `grpc_not_serving`, `grpc_unknown`, `error` |
+| TCP | `ok`, `timeout`, `connection_refused`, `dns_error`, `error` |
+| PostgreSQL | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `error` |
+| MySQL | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `error` |
+| Redis | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `unhealthy`, `error` |
+| AMQP | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `unhealthy`, `error` |
+| Kafka | `ok`, `timeout`, `connection_refused`, `dns_error`, `no_brokers`, `error` |
+
+### 9.4. Mapping detail to status (Category)
+
+Each `detail` value maps to exactly one `status` category (section 8.3):
+
+| detail | status |
+| --- | --- |
+| `ok` | `ok` |
+| `timeout` | `timeout` |
+| `connection_refused`, `network_unreachable`, `host_unreachable` | `connection_error` |
+| `dns_error` | `dns_error` |
+| `auth_error` | `auth_error` |
+| `tls_error` | `tls_error` |
+| `http_NNN`, `grpc_not_serving`, `grpc_unknown`, `unhealthy`, `no_brokers` | `unhealthy` |
+| `error`, `pool_exhausted`, `query_error` | `error` |
+
+### 9.5. Labels
+
+Same required and custom labels as `app_dependency_health` (section 2.3, 2.4),
+plus the `detail` label at the end.
+
+Label order: `name`, `dependency`, `type`, `host`, `port`, `critical`,
+custom labels in alphabetical order, `detail`.
+
+### 9.6. Initial Value
+
+Before the first check completes, the metric is **not exported**
+(same behavior as `app_dependency_health`, see section 2.5).
+
+### 9.7. Output Example
+
+`payment-api` returned HTTP 503:
+
+```text
+# HELP app_dependency_status_detail Detailed reason of the last check result
+# TYPE app_dependency_status_detail gauge
+app_dependency_status_detail{name="order-api",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",detail="http_503"} 1
+```
+
+### 9.8. Storage Impact
+
+Each endpoint produces:
+
+- `app_dependency_health`: 1 series
+- `app_dependency_latency_seconds`: 10 series (8 buckets + sum + count)
+- `app_dependency_status`: **8 series** (one per status value)
+- `app_dependency_status_detail`: **1 series**
+
+Total: +9 series per endpoint compared to the base (health + latency).
+
+---
+
+## 10. Extended PromQL Queries
+
+In addition to the queries in section 7, the following queries leverage the new
+status and detail metrics:
+
+```promql
+# Current status category for all dependencies
+app_dependency_status == 1
+
+# All dependencies with timeout
+app_dependency_status{status="timeout"} == 1
+
+# All dependencies with authentication error (alert-friendly)
+app_dependency_status{status="auth_error"} == 1
+
+# Detailed reason for a specific dependency
+app_dependency_status_detail{name="order-api",dependency="payment-api"}
+
+# All HTTP 503 errors across the cluster
+app_dependency_status_detail{detail="http_503"}
+
+# Flapping detection (no series churn — works correctly!)
+changes(app_dependency_status{status="ok"}[15m]) > 4
+
+# Distribution by status
+count by (status) (app_dependency_status == 1)
+
+# Correlation: unhealthy dependencies with details via join
+app_dependency_status{status="unhealthy"} == 1
+  AND on (name, dependency, type, host, port)
+app_dependency_status_detail
+
+# Alert: critical dependency with non-ok status for > 5 minutes
+app_dependency_status{status!="ok",critical="yes"} == 1
+  AND on (name, dependency, type, host, port)
+(app_dependency_status offset 5m {status!="ok"} == 1)
 ```

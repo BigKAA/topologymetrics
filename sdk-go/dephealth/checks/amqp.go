@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 
@@ -62,7 +63,7 @@ func (c *AMQPChecker) Check(ctx context.Context, endpoint dephealth.Endpoint) er
 		return fmt.Errorf("amqp dial %s: %w", endpoint.Host, ctx.Err())
 	case res := <-ch:
 		if res.err != nil {
-			return fmt.Errorf("amqp dial %s: %w", endpoint.Host, res.err)
+			return classifyAMQPError(res.err, endpoint.Host)
 		}
 		_ = res.conn.Close()
 		return nil
@@ -72,4 +73,18 @@ func (c *AMQPChecker) Check(ctx context.Context, endpoint dephealth.Endpoint) er
 // Type returns the dependency type for this checker.
 func (c *AMQPChecker) Type() string {
 	return string(dephealth.TypeAMQP)
+}
+
+// classifyAMQPError wraps AMQP errors with appropriate classification.
+func classifyAMQPError(err error, host string) error {
+	msg := err.Error()
+	// AMQP 403 ACCESS_REFUSED indicates authentication/authorization failure.
+	if strings.Contains(msg, "403") || strings.Contains(msg, "ACCESS_REFUSED") {
+		return &dephealth.ClassifiedCheckError{
+			Category: dephealth.StatusAuthError,
+			Detail:   "auth_error",
+			Cause:    fmt.Errorf("amqp dial %s: %w", host, err),
+		}
+	}
+	return fmt.Errorf("amqp dial %s: %w", host, err)
 }

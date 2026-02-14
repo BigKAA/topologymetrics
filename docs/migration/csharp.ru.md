@@ -5,6 +5,38 @@
 Пошаговая инструкция по добавлению мониторинга зависимостей
 в работающий микросервис.
 
+## Миграция на v0.4.0
+
+### Новые метрики статуса (изменения кода не требуются)
+
+v0.4.0 добавляет две новые автоматически экспортируемые метрики Prometheus:
+
+| Метрика | Тип | Описание |
+| --- | --- | --- |
+| `app_dependency_status` | Gauge (enum) | Категория статуса: 8 серий на endpoint, ровно одна = 1 |
+| `app_dependency_status_detail` | Gauge (info) | Детальная причина сбоя: напр. `http_503`, `auth_error` |
+
+**Изменения кода не требуются** — SDK экспортирует эти метрики автоматически наряду с существующими `app_dependency_health` и `app_dependency_latency_seconds`.
+
+### Влияние на хранилище
+
+Каждый endpoint теперь создаёт 9 дополнительных временных рядов (8 для `app_dependency_status` + 1 для `app_dependency_status_detail`). Для сервиса с 5 endpoint-ами это добавляет 45 рядов.
+
+### Новые PromQL-запросы
+
+```promql
+# Категория статуса зависимости
+app_dependency_status{dependency="postgres-main", status!=""} == 1
+
+# Детальная причина сбоя
+app_dependency_status_detail{dependency="postgres-main", detail!=""} == 1
+
+# Алерт на ошибки аутентификации
+app_dependency_status{status="auth_error"} == 1
+```
+
+Полный список значений статуса см. в [Спецификация — Метрики статуса](../specification.ru.md).
+
 ## Миграция с v0.1 на v0.2
 
 ### Изменения API

@@ -31,13 +31,24 @@ public sealed class PostgresChecker : IHealthChecker
 
     public async Task CheckAsync(Endpoint endpoint, CancellationToken ct)
     {
-        if (_dataSource is not null)
+        try
         {
-            await CheckWithDataSourceAsync(ct).ConfigureAwait(false);
+            if (_dataSource is not null)
+            {
+                await CheckWithDataSourceAsync(ct).ConfigureAwait(false);
+            }
+            else
+            {
+                await CheckWithNewConnectionAsync(endpoint, ct).ConfigureAwait(false);
+            }
         }
-        else
+        catch (Exceptions.DepHealthException)
         {
-            await CheckWithNewConnectionAsync(endpoint, ct).ConfigureAwait(false);
+            throw;
+        }
+        catch (PostgresException pe) when (pe.SqlState is "28000" or "28P01")
+        {
+            throw new Exceptions.CheckAuthException("PostgreSQL auth error: " + pe.Message, pe);
         }
     }
 

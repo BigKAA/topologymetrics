@@ -1,5 +1,7 @@
 ARG REGISTRY=docker.io
-FROM ${REGISTRY}/golang:1.25-alpine AS builder
+FROM --platform=$BUILDPLATFORM ${REGISTRY}/golang:1.25-alpine AS builder
+
+ARG TARGETOS TARGETARCH
 
 WORKDIR /build
 
@@ -12,7 +14,7 @@ WORKDIR /build/conformance/test-service
 RUN go mod download
 
 COPY conformance/test-service/main.go .
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /app .
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-s -w" -o /app .
 
 ARG REGISTRY=docker.io
 FROM ${REGISTRY}/alpine:3.21

@@ -3,6 +3,7 @@ package biz.kryukov.dev.dephealth.checks;
 import biz.kryukov.dev.dephealth.DependencyType;
 import biz.kryukov.dev.dephealth.Endpoint;
 import biz.kryukov.dev.dephealth.HealthChecker;
+import biz.kryukov.dev.dephealth.UnhealthyException;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -16,7 +17,7 @@ import java.time.Duration;
 public final class HttpHealthChecker implements HealthChecker {
 
     private static final String DEFAULT_HEALTH_PATH = "/health";
-    private static final String USER_AGENT = "dephealth/0.2.1";
+    private static final String USER_AGENT = "dephealth/0.4.0";
 
     private final String healthPath;
     private final boolean tlsEnabled;
@@ -59,7 +60,8 @@ public final class HttpHealthChecker implements HealthChecker {
 
         int status = response.statusCode();
         if (status < 200 || status >= 300) {
-            throw new Exception("HTTP health check failed: status " + status);
+            throw new UnhealthyException(
+                    "HTTP health check failed: status " + status, "http_" + status);
         }
     }
 

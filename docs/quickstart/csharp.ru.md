@@ -52,6 +52,8 @@ app.Run();
 ```text
 app_dependency_health{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes"} 1
 app_dependency_latency_seconds_bucket{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",le="0.01"} 42
+app_dependency_status{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",status="healthy"} 1
+app_dependency_status_detail{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",detail=""} 1
 ```
 
 ## Несколько зависимостей
@@ -268,14 +270,17 @@ bool allHealthy = health.Values.All(v => v);
 
 ## Экспорт метрик
 
-dephealth экспортирует две метрики Prometheus через prometheus-net:
+dephealth экспортирует четыре метрики Prometheus через prometheus-net:
 
 | Метрика | Тип | Описание |
 | --- | --- | --- |
 | `app_dependency_health` | Gauge | `1` = доступен, `0` = недоступен |
 | `app_dependency_latency_seconds` | Histogram | Латентность проверки (секунды) |
+| `app_dependency_status` | Gauge (enum) | Категория статуса: 8 серий на endpoint, ровно одна = 1 |
+| `app_dependency_status_detail` | Gauge (info) | Детальная причина: напр. `http_503`, `auth_error` |
 
 Метки: `name`, `dependency`, `type`, `host`, `port`, `critical`.
+Дополнительные: `status` (на `app_dependency_status`), `detail` (на `app_dependency_status_detail`).
 
 ## Поддерживаемые типы зависимостей
 

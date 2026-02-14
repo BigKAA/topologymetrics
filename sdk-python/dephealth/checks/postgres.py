@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from dephealth.checker import CheckConnectionRefusedError, CheckTimeoutError
+from dephealth.checker import CheckAuthError, CheckConnectionRefusedError, CheckTimeoutError
 from dephealth.dependency import Endpoint
 
 
@@ -51,7 +51,19 @@ class PostgresChecker:
         except OSError as e:
             msg = f"Postgres connection to {endpoint.host}:{endpoint.port} refused: {e}"
             raise CheckConnectionRefusedError(msg) from e
+        except Exception as e:
+            _classify_postgres_error(e, endpoint)
+            raise
 
     def checker_type(self) -> str:
         """Return the checker type."""
         return "postgres"
+
+
+def _classify_postgres_error(err: Exception, endpoint: Endpoint) -> None:
+    """Re-raise PostgreSQL auth errors as CheckAuthError."""
+    msg = str(err)
+    if "28000" in msg or "28P01" in msg or "password authentication failed" in msg:
+        raise CheckAuthError(
+            f"Postgres auth error at {endpoint.host}:{endpoint.port}: {msg}"
+        ) from err

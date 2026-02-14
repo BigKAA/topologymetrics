@@ -89,14 +89,33 @@ RabbitMQ, Kafka, HTTP/gRPC-заглушки) и все 4 тестовых сер
 
 | Сценарий | Что проверяет |
 | --- | --- |
-| `basic-health` | Все зависимости healthy, метрики существуют, значения = 1 |
-| `partial-failure` | Часть зависимостей отключена, значения = 0 для них |
-| `full-failure` | Все зависимости отключены, все значения = 0 |
-| `recovery` | Восстановление после сбоя: 0 → 1 |
-| `latency` | Histogram бакеты, `_sum`, `_count` присутствуют |
-| `labels` | Обязательные метки (name, dependency, type, host, port, critical), корректные значения |
-| `timeout` | Поведение при недоступности зависимости (таймаут) |
-| `initial-state` | Начальное состояние при запуске сервиса |
+| `basic-health` | Все зависимости healthy, все 4 метрики существуют, health=1, status=ok, detail=ok, enum полнота, consistency |
+| `partial-failure` | Часть зависимостей отключена, health=0, status=connection_error, detail=connection_refused |
+| `full-failure` | Все зависимости отключены, health=0, status/detail consistency |
+| `recovery` | Восстановление после сбоя: health 0→1, status ok, detail ok |
+| `latency` | Histogram бакеты, `_sum`, `_count`, наличие status/detail метрик |
+| `labels` | Обязательные метки (name, dependency, type, host, port, critical), status enum полнота, detail валидность |
+| `timeout` | Поведение при таймауте: status=timeout, detail=timeout |
+| `initial-state` | Начальное состояние, health/status consistency |
+
+## Типы проверок (check types)
+
+| Check type | Параметры | Что проверяет |
+| --- | --- | --- |
+| `metric_exists` | `metric` | Метрика присутствует в выводе |
+| `help_text` | `metric`, `expected` | HELP-строка соответствует спецификации |
+| `required_labels` | `metric` | Обязательные метки (name, dependency, type, host, port, critical) |
+| `label_values` | `metric` | Корректность значений меток (формат, диапазоны) |
+| `health_values` | — | Значения health-метрики строго 0 или 1 |
+| `histogram_buckets` | — | Наличие всех спецификационных бакетов |
+| `expected_dependencies` | `dependencies` | Конкретные зависимости имеют ожидаемый health |
+| `status_enum_completeness` | — | Каждый endpoint: 8 серий status, ровно одна = 1 |
+| `status_health_consistency` | — | health=1 ↔ status{ok}=1, health=0 ↔ status{ok}=0 |
+| `detail_value_always_one` | — | Все значения detail-метрики = 1 (info-паттерн) |
+| `detail_valid_values` | — | detail допустимо для типа checker |
+| `detail_status_mapping` | — | detail→status маппинг по спецификации |
+| `expected_status` | `endpoints` | Конкретные endpoint-ы имеют ожидаемый активный status |
+| `expected_detail` | `endpoints` | Конкретные endpoint-ы имеют ожидаемый detail |
 
 ## Runner (verify.py)
 
