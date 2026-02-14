@@ -9,6 +9,22 @@ pre_actions:
     seconds: 30
 
 checks:
+  - type: status_health_consistency
+
+  - type: expected_status
+    endpoints:
+      - dependency: http-service
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        status: timeout
+
+  - type: expected_detail
+    endpoints:
+      - dependency: http-service
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        detail: timeout
+
   - type: expected_dependencies
     dependencies:
       - dependency: http-service

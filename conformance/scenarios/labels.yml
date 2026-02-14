@@ -8,8 +8,18 @@ checks:
   - type: required_labels
     metric: app_dependency_latency_seconds
 
+  - type: required_labels
+    metric: app_dependency_status
+
+  - type: required_labels
+    metric: app_dependency_status_detail
+
   - type: label_values
     metric: app_dependency_health
 
   - type: label_values
     metric: app_dependency_latency_seconds
+
+  - type: status_enum_completeness
+
+  - type: detail_valid_values

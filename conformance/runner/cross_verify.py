@@ -2,10 +2,11 @@
 """Кросс-языковая верификация идентичности метрик dephealth SDK.
 
 Снимает метрики со всех 4 SDK-сервисов и проверяет:
-- Имена метрик (app_dependency_health, app_dependency_latency_seconds)
-- Метки (name, dependency, type, host, port, critical + custom)
+- Имена метрик (health, latency, status, status_detail)
+- Метки (name, dependency, type, host, port, critical + status/detail)
 - HELP-строки
 - Бакеты histogram
+- Status enum полноту (8 серий)
 - Формат Prometheus text format
 """
 
@@ -18,17 +19,29 @@ from prometheus_client.parser import text_string_to_metric_families
 
 HEALTH_METRIC = "app_dependency_health"
 LATENCY_METRIC = "app_dependency_latency_seconds"
+STATUS_METRIC = "app_dependency_status"
+DETAIL_METRIC = "app_dependency_status_detail"
+
+ALL_METRICS = [HEALTH_METRIC, LATENCY_METRIC, STATUS_METRIC, DETAIL_METRIC]
+
 REQUIRED_LABELS = {"name", "dependency", "type", "host", "port", "critical"}
 EXPECTED_BUCKETS = {0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0}
+
+VALID_STATUSES = {"ok", "timeout", "connection_error", "dns_error",
+                  "auth_error", "tls_error", "unhealthy", "error"}
 
 EXPECTED_HELP = {
     HEALTH_METRIC: "Health status of a dependency (1 = healthy, 0 = unhealthy)",
     LATENCY_METRIC: "Latency of dependency health check in seconds",
+    STATUS_METRIC: "Category of the last check result",
+    DETAIL_METRIC: "Detailed reason of the last check result",
 }
 
 EXPECTED_TYPES = {
     HEALTH_METRIC: "gauge",
     LATENCY_METRIC: "histogram",
+    STATUS_METRIC: "gauge",
+    DETAIL_METRIC: "gauge",
 }
 
 
@@ -56,7 +69,7 @@ def fetch_and_parse(url: str) -> dict:
 def extract_dephealth_info(metrics: dict) -> dict:
     """Извлечь информацию о dephealth-метриках."""
     info = {}
-    for name in [HEALTH_METRIC, LATENCY_METRIC]:
+    for name in ALL_METRICS:
         if name not in metrics:
             info[name] = None
             continue
@@ -66,9 +79,11 @@ def extract_dephealth_info(metrics: dict) -> dict:
         buckets = set()
         dep_names = set()
         dep_types = set()
+        status_values = set()
+        detail_values = set()
 
         for sample in family["samples"]:
-            sample_labels = set(sample["labels"].keys()) - {"le"}
+            sample_labels = set(sample["labels"].keys()) - {"le", "status", "detail"}
             labels_set.update(sample_labels)
 
             if sample["labels"].get("dependency"):
@@ -81,7 +96,12 @@ def extract_dephealth_info(metrics: dict) -> dict:
                 if le_val != "+Inf":
                     buckets.add(float(le_val))
 
-        info[name] = {
+            if "status" in sample["labels"]:
+                status_values.add(sample["labels"]["status"])
+            if "detail" in sample["labels"]:
+                detail_values.add(sample["labels"]["detail"])
+
+        entry = {
             "help": family["documentation"],
             "type": family["type"],
             "labels": sorted(labels_set),
@@ -89,6 +109,12 @@ def extract_dephealth_info(metrics: dict) -> dict:
             "dependencies": sorted(dep_names),
             "dep_types": sorted(dep_types),
         }
+        if status_values:
+            entry["status_values"] = sorted(status_values)
+        if detail_values:
+            entry["detail_values"] = sorted(detail_values)
+
+        info[name] = entry
 
     return info
 
@@ -98,7 +124,7 @@ def compare_sdks(sdk_data: dict[str, dict]) -> list[str]:
     errors = []
     langs = list(sdk_data.keys())
 
-    for metric_name in [HEALTH_METRIC, LATENCY_METRIC]:
+    for metric_name in ALL_METRICS:
         # Проверить наличие метрики
         for lang in langs:
             if sdk_data[lang].get(metric_name) is None:
@@ -146,6 +172,18 @@ def compare_sdks(sdk_data: dict[str, dict]) -> list[str]:
                     missing = EXPECTED_BUCKETS - actual_buckets
                     errors.append(
                         f"[{lang}] {metric_name} отсутствуют бакеты: {sorted(missing)}"
+                    )
+
+        # Status enum completeness (only for STATUS_METRIC)
+        if metric_name == STATUS_METRIC:
+            for lang in present:
+                status_vals = set(sdk_data[lang][metric_name].get("status_values", []))
+                if status_vals != VALID_STATUSES:
+                    missing = VALID_STATUSES - status_vals
+                    extra = status_vals - VALID_STATUSES
+                    errors.append(
+                        f"[{lang}] {metric_name} status набор неполный: "
+                        f"missing={missing}, extra={extra}"
                     )
 
         # Зависимости (должны совпадать)
@@ -207,6 +245,10 @@ def main():
                         print(f"    buckets: {data['buckets']}")
                     print(f"    dependencies: {data['dependencies']}")
                     print(f"    dep_types: {data['dep_types']}")
+                    if "status_values" in data:
+                        print(f"    status_values: {data['status_values']}")
+                    if "detail_values" in data:
+                        print(f"    detail_values: {data['detail_values']}")
         except Exception as e:
             print(f"  ОШИБКА: {e}")
             sdk_data[lang] = {}
@@ -224,11 +266,12 @@ def main():
         sys.exit(1)
     else:
         print("\n  [+] Все метрики идентичны между SDK")
-        print("  [+] Имена метрик совпадают")
+        print("  [+] Имена метрик совпадают (4 метрики)")
         print("  [+] HELP-строки совпадают")
         print("  [+] Типы метрик совпадают")
         print("  [+] Обязательные метки присутствуют")
         print("  [+] Бакеты histogram совпадают")
+        print("  [+] Status enum полнота (8 серий)")
         print("  [+] Зависимости совпадают")
         print("  [+] Типы зависимостей совпадают")
 

@@ -20,6 +20,22 @@ pre_actions:
     seconds: 30
 
 checks:
+  - type: status_health_consistency
+
+  - type: expected_status
+    endpoints:
+      - dependency: redis-cache
+        host: redis.dephealth-conformance.svc
+        port: 6379
+        status: ok
+
+  - type: expected_detail
+    endpoints:
+      - dependency: redis-cache
+        host: redis.dephealth-conformance.svc
+        port: 6379
+        detail: ok
+
   - type: expected_dependencies
     dependencies:
       - dependency: redis-cache

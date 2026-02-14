@@ -5,6 +5,12 @@ checks:
   - type: metric_exists
     metric: app_dependency_latency_seconds
 
+  - type: metric_exists
+    metric: app_dependency_status
+
+  - type: metric_exists
+    metric: app_dependency_status_detail
+
   - type: histogram_buckets
 
   - type: required_labels

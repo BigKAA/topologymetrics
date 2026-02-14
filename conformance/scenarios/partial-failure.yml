@@ -10,6 +10,30 @@ pre_actions:
     seconds: 30
 
 checks:
+  - type: status_health_consistency
+
+  - type: expected_status
+    endpoints:
+      - dependency: postgres-primary
+        host: postgres-primary.dephealth-conformance.svc
+        port: 5432
+        status: ok
+      - dependency: postgres-replica
+        host: postgres-replica.dephealth-conformance.svc
+        port: 5432
+        status: connection_error
+
+  - type: expected_detail
+    endpoints:
+      - dependency: postgres-primary
+        host: postgres-primary.dephealth-conformance.svc
+        port: 5432
+        detail: ok
+      - dependency: postgres-replica
+        host: postgres-replica.dephealth-conformance.svc
+        port: 5432
+        detail: connection_refused
+
   - type: expected_dependencies
     dependencies:
       - dependency: postgres-primary

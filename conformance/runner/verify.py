@@ -11,6 +11,7 @@
 
 import argparse
 import logging
+import re
 import subprocess
 import sys
 import time
@@ -31,6 +32,35 @@ VALID_TYPES = {"http", "grpc", "tcp", "postgres", "mysql", "redis", "amqp", "kaf
 
 HELP_HEALTH = "Health status of a dependency (1 = healthy, 0 = unhealthy)"
 HELP_LATENCY = "Latency of dependency health check in seconds"
+
+STATUS_METRIC = "app_dependency_status"
+DETAIL_METRIC = "app_dependency_status_detail"
+VALID_STATUSES = {"ok", "timeout", "connection_error", "dns_error",
+                  "auth_error", "tls_error", "unhealthy", "error"}
+HELP_STATUS = "Category of the last check result"
+HELP_DETAIL = "Detailed reason of the last check result"
+
+DETAIL_TO_STATUS = {
+    "ok": "ok", "timeout": "timeout",
+    "connection_refused": "connection_error", "network_unreachable": "connection_error",
+    "host_unreachable": "connection_error", "dns_error": "dns_error",
+    "auth_error": "auth_error", "tls_error": "tls_error",
+    "unhealthy": "unhealthy", "no_brokers": "unhealthy",
+    "grpc_not_serving": "unhealthy", "grpc_unknown": "unhealthy",
+    "error": "error", "pool_exhausted": "error", "query_error": "error",
+}
+
+VALID_DETAILS_BY_TYPE = {
+    "http": {"ok", "timeout", "connection_refused", "dns_error", "tls_error", "error"},
+    "grpc": {"ok", "timeout", "connection_refused", "dns_error", "tls_error",
+             "grpc_not_serving", "grpc_unknown", "error"},
+    "tcp": {"ok", "timeout", "connection_refused", "dns_error", "error"},
+    "postgres": {"ok", "timeout", "connection_refused", "dns_error", "auth_error", "tls_error", "error"},
+    "mysql": {"ok", "timeout", "connection_refused", "dns_error", "auth_error", "tls_error", "error"},
+    "redis": {"ok", "timeout", "connection_refused", "dns_error", "auth_error", "unhealthy", "error"},
+    "amqp": {"ok", "timeout", "connection_refused", "dns_error", "auth_error", "tls_error", "unhealthy", "error"},
+    "kafka": {"ok", "timeout", "connection_refused", "dns_error", "no_brokers", "error"},
+}
 
 
 @dataclass
@@ -101,15 +131,22 @@ def check_required_labels(metrics: dict, name: str) -> list[CheckResult]:
         )
         return results
 
+    # Extra labels depending on metric type
+    extra_labels = set()
+    if name == STATUS_METRIC:
+        extra_labels = {"status"}
+    elif name == DETAIL_METRIC:
+        extra_labels = {"detail"}
+
     for sample in metrics[name]["samples"]:
-        # Пропускаем _bucket, _sum, _count — у них есть доп. метки (le)
+        # Skip _bucket, _sum, _count — they have extra labels (le)
         base_name = name
         if sample["name"].endswith(("_bucket", "_sum", "_count")):
             base_name = sample["name"].rsplit("_", 1)[0]
             if base_name != name:
                 continue
 
-        labels = set(sample["labels"].keys()) - {"le"}
+        labels = set(sample["labels"].keys()) - {"le"} - extra_labels
         missing = REQUIRED_LABELS - labels
         if missing:
             results.append(CheckResult(
@@ -143,7 +180,6 @@ def check_label_values(metrics: dict, name: str) -> list[CheckResult]:
 
         # Проверить формат name ([a-z][a-z0-9-]*, 1-63 символа)
         if instance_name:
-            import re
             if not re.fullmatch(r"[a-z][a-z0-9-]{0,62}", instance_name):
                 results.append(CheckResult(
                     f"label_name_{dep}", False,
@@ -307,6 +343,316 @@ def check_expected_dependencies(
     return results
 
 
+def _endpoint_key(labels: dict) -> tuple:
+    """Build a unique key for an endpoint from labels."""
+    return (
+        labels.get("dependency", ""),
+        labels.get("host", ""),
+        labels.get("port", ""),
+    )
+
+
+def check_status_enum_completeness(metrics: dict) -> list[CheckResult]:
+    """Check that each endpoint has exactly 8 status series, with exactly one = 1."""
+    results = []
+    if STATUS_METRIC not in metrics:
+        return [CheckResult("status_enum_completeness", False,
+                            f"метрика {STATUS_METRIC} не найдена")]
+
+    # Group samples by endpoint
+    endpoints: dict[tuple, dict[str, float]] = {}
+    for sample in metrics[STATUS_METRIC]["samples"]:
+        key = _endpoint_key(sample["labels"])
+        status = sample["labels"].get("status", "")
+        endpoints.setdefault(key, {})[status] = sample["value"]
+
+    for key, statuses in endpoints.items():
+        dep = key[0]
+        status_set = set(statuses.keys())
+        if status_set != VALID_STATUSES:
+            missing = VALID_STATUSES - status_set
+            extra = status_set - VALID_STATUSES
+            results.append(CheckResult(
+                f"status_enum_{dep}", False,
+                f"неполный набор status: missing={missing}, extra={extra}",
+            ))
+            continue
+
+        active = [s for s, v in statuses.items() if v == 1.0]
+        if len(active) != 1:
+            results.append(CheckResult(
+                f"status_enum_{dep}", False,
+                f"ожидался ровно 1 активный status, получено {len(active)}: {active}",
+            ))
+        else:
+            results.append(CheckResult(
+                f"status_enum_{dep}", True,
+                f"8 серий, активный: {active[0]}",
+            ))
+
+    if not results:
+        results.append(CheckResult("status_enum_completeness", True,
+                                   "все endpoint-ы имеют 8 серий status"))
+    return results
+
+
+def check_status_health_consistency(metrics: dict) -> list[CheckResult]:
+    """Check that health=1 ↔ status{ok}=1 and health=0 ↔ status{ok}=0."""
+    results = []
+    if HEALTH_METRIC not in metrics or STATUS_METRIC not in metrics:
+        return [CheckResult("status_health_consistency", True,
+                            "метрики health или status ещё не появились — пропуск")]
+
+    # Build health lookup
+    health_map: dict[tuple, float] = {}
+    for sample in metrics[HEALTH_METRIC]["samples"]:
+        if sample["name"] != HEALTH_METRIC:
+            continue
+        key = _endpoint_key(sample["labels"])
+        health_map[key] = sample["value"]
+
+    # Build status{ok} lookup
+    status_ok_map: dict[tuple, float] = {}
+    for sample in metrics[STATUS_METRIC]["samples"]:
+        if sample["labels"].get("status") == "ok":
+            key = _endpoint_key(sample["labels"])
+            status_ok_map[key] = sample["value"]
+
+    for key in health_map:
+        dep = key[0]
+        health_val = health_map[key]
+        status_ok_val = status_ok_map.get(key)
+
+        if status_ok_val is None:
+            results.append(CheckResult(
+                f"consistency_{dep}", False,
+                f"status{{ok}} не найден для {dep}",
+            ))
+            continue
+
+        if health_val == 1.0 and status_ok_val != 1.0:
+            results.append(CheckResult(
+                f"consistency_{dep}", False,
+                f"health=1 но status{{ok}}={status_ok_val}",
+            ))
+        elif health_val == 0.0 and status_ok_val != 0.0:
+            results.append(CheckResult(
+                f"consistency_{dep}", False,
+                f"health=0 но status{{ok}}={status_ok_val}",
+            ))
+        else:
+            results.append(CheckResult(
+                f"consistency_{dep}", True,
+                f"health={health_val} ↔ status{{ok}}={status_ok_val}",
+            ))
+
+    if not results:
+        results.append(CheckResult("status_health_consistency", True, "consistent"))
+    return results
+
+
+def check_detail_value_always_one(metrics: dict) -> list[CheckResult]:
+    """Check that all detail metric values are exactly 1."""
+    results = []
+    if DETAIL_METRIC not in metrics:
+        return [CheckResult("detail_value_always_one", False,
+                            f"метрика {DETAIL_METRIC} не найдена")]
+
+    for sample in metrics[DETAIL_METRIC]["samples"]:
+        dep = sample["labels"].get("dependency", "?")
+        detail = sample["labels"].get("detail", "?")
+        if sample["value"] != 1.0:
+            results.append(CheckResult(
+                f"detail_value_{dep}", False,
+                f"detail{{detail={detail}}} = {sample['value']}, ожидалось 1",
+            ))
+
+    if not results:
+        results.append(CheckResult("detail_value_always_one", True,
+                                   "все значения detail-метрики = 1"))
+    return results
+
+
+def check_detail_valid_values(metrics: dict) -> list[CheckResult]:
+    """Check that detail values are valid for the checker type."""
+    results = []
+    if DETAIL_METRIC not in metrics:
+        return [CheckResult("detail_valid_values", False,
+                            f"метрика {DETAIL_METRIC} не найдена")]
+
+    for sample in metrics[DETAIL_METRIC]["samples"]:
+        dep = sample["labels"].get("dependency", "?")
+        dep_type = sample["labels"].get("type", "")
+        detail = sample["labels"].get("detail", "")
+
+        # http_NNN pattern (e.g. http_503) is valid for http type
+        if dep_type == "http" and re.fullmatch(r"http_\d{3}", detail):
+            continue
+
+        valid_set = VALID_DETAILS_BY_TYPE.get(dep_type)
+        if valid_set is None:
+            results.append(CheckResult(
+                f"detail_valid_{dep}", False,
+                f"неизвестный тип '{dep_type}' для {dep}",
+            ))
+            continue
+
+        if detail not in valid_set:
+            results.append(CheckResult(
+                f"detail_valid_{dep}", False,
+                f"detail='{detail}' невалидно для типа '{dep_type}'",
+            ))
+
+    if not results:
+        results.append(CheckResult("detail_valid_values", True,
+                                   "все detail-значения валидны"))
+    return results
+
+
+def check_detail_status_mapping(metrics: dict) -> list[CheckResult]:
+    """Check that detail→status mapping matches specification."""
+    results = []
+    if STATUS_METRIC not in metrics or DETAIL_METRIC not in metrics:
+        return [CheckResult("detail_status_mapping", False,
+                            "метрики status или detail не найдены")]
+
+    # Build active status per endpoint
+    active_status: dict[tuple, str] = {}
+    for sample in metrics[STATUS_METRIC]["samples"]:
+        if sample["value"] == 1.0:
+            key = _endpoint_key(sample["labels"])
+            active_status[key] = sample["labels"].get("status", "")
+
+    # Build detail per endpoint
+    detail_map: dict[tuple, str] = {}
+    for sample in metrics[DETAIL_METRIC]["samples"]:
+        key = _endpoint_key(sample["labels"])
+        detail_map[key] = sample["labels"].get("detail", "")
+
+    for key in detail_map:
+        dep = key[0]
+        detail = detail_map[key]
+        actual_status = active_status.get(key)
+
+        if actual_status is None:
+            results.append(CheckResult(
+                f"mapping_{dep}", False,
+                f"активный status не найден для {dep}",
+            ))
+            continue
+
+        # http_NNN maps to "error"
+        if re.fullmatch(r"http_\d{3}", detail):
+            expected_status = "error"
+        else:
+            expected_status = DETAIL_TO_STATUS.get(detail)
+
+        if expected_status is None:
+            results.append(CheckResult(
+                f"mapping_{dep}", False,
+                f"нет маппинга для detail='{detail}'",
+            ))
+            continue
+
+        if actual_status != expected_status:
+            results.append(CheckResult(
+                f"mapping_{dep}", False,
+                f"detail='{detail}' → ожидался status='{expected_status}', "
+                f"получен '{actual_status}'",
+            ))
+        else:
+            results.append(CheckResult(
+                f"mapping_{dep}", True,
+                f"detail='{detail}' → status='{expected_status}'",
+            ))
+
+    if not results:
+        results.append(CheckResult("detail_status_mapping", True,
+                                   "все маппинги detail→status корректны"))
+    return results
+
+
+def check_expected_status(
+    metrics: dict, expected: list[dict],
+) -> list[CheckResult]:
+    """Check that specific endpoints have the expected active status."""
+    results = []
+    if STATUS_METRIC not in metrics:
+        return [CheckResult("expected_status", False,
+                            f"метрика {STATUS_METRIC} не найдена")]
+
+    # Build active status per (dependency, host, port)
+    active_status: dict[tuple, str] = {}
+    for sample in metrics[STATUS_METRIC]["samples"]:
+        if sample["value"] == 1.0:
+            key = _endpoint_key(sample["labels"])
+            active_status[key] = sample["labels"].get("status", "")
+
+    for exp in expected:
+        key = (exp["dependency"], exp["host"], str(exp["port"]))
+        dep = exp["dependency"]
+        exp_status = exp["status"]
+
+        actual = active_status.get(key)
+        if actual is None:
+            results.append(CheckResult(
+                f"expected_status_{dep}", False,
+                f"активный status не найден для {dep}",
+            ))
+        elif actual != exp_status:
+            results.append(CheckResult(
+                f"expected_status_{dep}", False,
+                f"status='{actual}', ожидалось '{exp_status}'",
+            ))
+        else:
+            results.append(CheckResult(
+                f"expected_status_{dep}", True,
+                f"status='{actual}' OK",
+            ))
+
+    return results
+
+
+def check_expected_detail(
+    metrics: dict, expected: list[dict],
+) -> list[CheckResult]:
+    """Check that specific endpoints have the expected detail value."""
+    results = []
+    if DETAIL_METRIC not in metrics:
+        return [CheckResult("expected_detail", False,
+                            f"метрика {DETAIL_METRIC} не найдена")]
+
+    # Build detail per (dependency, host, port)
+    detail_map: dict[tuple, str] = {}
+    for sample in metrics[DETAIL_METRIC]["samples"]:
+        key = _endpoint_key(sample["labels"])
+        detail_map[key] = sample["labels"].get("detail", "")
+
+    for exp in expected:
+        key = (exp["dependency"], exp["host"], str(exp["port"]))
+        dep = exp["dependency"]
+        exp_detail = exp["detail"]
+
+        actual = detail_map.get(key)
+        if actual is None:
+            results.append(CheckResult(
+                f"expected_detail_{dep}", False,
+                f"detail не найден для {dep}",
+            ))
+        elif actual != exp_detail:
+            results.append(CheckResult(
+                f"expected_detail_{dep}", False,
+                f"detail='{actual}', ожидалось '{exp_detail}'",
+            ))
+        else:
+            results.append(CheckResult(
+                f"expected_detail_{dep}", True,
+                f"detail='{actual}' OK",
+            ))
+
+    return results
+
+
 def execute_action(
     action: dict,
     namespace: str = "dephealth-conformance",
@@ -433,6 +779,27 @@ def run_scenario(
 
         elif check_type == "expected_dependencies":
             results.extend(check_expected_dependencies(metrics, check["dependencies"]))
+
+        elif check_type == "status_enum_completeness":
+            results.extend(check_status_enum_completeness(metrics))
+
+        elif check_type == "status_health_consistency":
+            results.extend(check_status_health_consistency(metrics))
+
+        elif check_type == "detail_value_always_one":
+            results.extend(check_detail_value_always_one(metrics))
+
+        elif check_type == "detail_valid_values":
+            results.extend(check_detail_valid_values(metrics))
+
+        elif check_type == "detail_status_mapping":
+            results.extend(check_detail_status_mapping(metrics))
+
+        elif check_type == "expected_status":
+            results.extend(check_expected_status(metrics, check["endpoints"]))
+
+        elif check_type == "expected_detail":
+            results.extend(check_expected_detail(metrics, check["endpoints"]))
 
         else:
             results.append(CheckResult(
