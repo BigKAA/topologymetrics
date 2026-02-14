@@ -81,44 +81,52 @@ def fetch_metrics(url: str, timeout: int = 10) -> str:
 
 def wait_for_metrics_ready(
     metrics_url: str,
-    expected_deps: set[str],
-    timeout: int = 30,
+    expected_healthy: dict[str, float],
+    timeout: int = 60,
     poll_interval: int = 2,
 ) -> None:
-    """Wait until app_dependency_health samples appear for all expected dependencies.
+    """Wait until app_dependency_health samples match expected values.
 
     Polls the metrics endpoint every poll_interval seconds.
-    Raises TimeoutError if not all dependencies appear within timeout.
+    expected_healthy maps dependency name to expected health value (1.0 or 0.0).
+    Raises TimeoutError if not all dependencies match within timeout.
     """
-    if not expected_deps:
+    if not expected_healthy:
         return
 
     deadline = time.monotonic() + timeout
+    not_ready: dict[str, str] = {}
     while time.monotonic() < deadline:
         try:
             text = fetch_metrics(metrics_url)
             metrics = parse_metrics(text)
             if HEALTH_METRIC in metrics:
-                found_deps = set()
+                actual: dict[str, float] = {}
                 for sample in metrics[HEALTH_METRIC]["samples"]:
                     if sample["name"] == HEALTH_METRIC:
-                        found_deps.add(sample["labels"].get("dependency", ""))
-                if expected_deps.issubset(found_deps):
+                        actual[sample["labels"].get("dependency", "")] = sample["value"]
+
+                not_ready = {}
+                for dep, expected_val in expected_healthy.items():
+                    if dep not in actual:
+                        not_ready[dep] = "missing"
+                    elif actual[dep] != expected_val:
+                        not_ready[dep] = f"health={actual[dep]}, want={expected_val}"
+
+                if not not_ready:
                     logger.info(
-                        "all %d expected dependencies found in metrics",
-                        len(expected_deps),
+                        "all %d expected dependencies ready in metrics",
+                        len(expected_healthy),
                     )
                     return
-                missing = expected_deps - found_deps
-                logger.debug("waiting for dependencies: %s", missing)
+                logger.debug("waiting for dependencies: %s", not_ready)
         except Exception as e:
             logger.debug("metrics not ready yet: %s", e)
 
         time.sleep(poll_interval)
 
     raise TimeoutError(
-        f"timed out ({timeout}s) waiting for metrics of dependencies: "
-        f"{expected_deps - found_deps if 'found_deps' in dir() else expected_deps}"
+        f"timed out ({timeout}s) waiting for dependencies: {not_ready}"
     )
 
 
@@ -782,12 +790,12 @@ def run_scenario(
     """Выполнить все проверки из сценария."""
     results = []
 
-    # Determine expected dependency names from scenario checks
-    expected_deps: set[str] = set()
+    # Determine expected dependency health values from scenario checks
+    expected_healthy: dict[str, float] = {}
     for check in scenario.get("checks", []):
         if check.get("type") == "expected_dependencies":
             for dep in check.get("dependencies", []):
-                expected_deps.add(dep["dependency"])
+                expected_healthy[dep["dependency"]] = float(dep["value"])
 
     # Выполнить pre_actions
     pre_actions = scenario.get("pre_actions", [])
@@ -797,10 +805,10 @@ def run_scenario(
         except Exception as e:
             return [CheckResult("pre_actions", False, f"ошибка pre_actions: {e}")]
 
-    # Wait for all dependencies to appear in metrics before running checks
-    if expected_deps:
+    # Wait for all dependencies to reach expected health values before running checks
+    if expected_healthy:
         try:
-            wait_for_metrics_ready(metrics_url, expected_deps)
+            wait_for_metrics_ready(metrics_url, expected_healthy)
         except TimeoutError as e:
             return [CheckResult("wait_for_metrics", False, str(e))]
 

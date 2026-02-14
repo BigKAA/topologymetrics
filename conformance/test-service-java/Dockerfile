@@ -4,27 +4,21 @@ FROM ${REGISTRY}/maven:3.9-eclipse-temurin-21 AS builder
 
 WORKDIR /workspace
 
-# Копируем POM-файлы для кэширования зависимостей
+# Download SDK dependencies and install SDK first
 COPY sdk-java/pom.xml sdk-java/pom.xml
 COPY sdk-java/dephealth-core/pom.xml sdk-java/dephealth-core/pom.xml
 COPY sdk-java/dephealth-spring-boot-starter/pom.xml sdk-java/dephealth-spring-boot-starter/pom.xml
-COPY conformance/test-service-java/pom.xml conformance/test-service-java/pom.xml
 
-# Загружаем зависимости
 RUN cd sdk-java && mvn dependency:go-offline -q || true
-RUN cd conformance/test-service-java && mvn dependency:go-offline -q || true
 
-# Копируем исходники SDK
 COPY sdk-java/dephealth-core/src sdk-java/dephealth-core/src
 COPY sdk-java/dephealth-spring-boot-starter/src sdk-java/dephealth-spring-boot-starter/src
 
-# Собираем и устанавливаем SDK в локальный Maven
 RUN cd sdk-java && mvn install -DskipTests -q
 
-# Копируем исходники conformance-сервиса
+# Build conformance service (SDK is already in local Maven repo)
+COPY conformance/test-service-java/pom.xml conformance/test-service-java/pom.xml
 COPY conformance/test-service-java/src conformance/test-service-java/src
-
-# Собираем conformance-сервис
 RUN cd conformance/test-service-java && mvn package -DskipTests -q
 
 # Stage 2: Runtime

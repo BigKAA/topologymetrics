@@ -27,7 +27,10 @@ DEPLOYED=false
 # Режим деплоя: helm (по умолчанию) или kubectl (legacy)
 DEPLOY_MODE="${DEPLOY_MODE:-helm}"
 HELM_CHART_DIR="${HELM_CHART_DIR:-$(cd "$SCRIPT_DIR/../deploy/helm/dephealth-conformance" 2>/dev/null && pwd || echo "")}"
-HELM_VALUES="${HELM_VALUES:-}"
+# Auto-detect homelab values if not set
+if [ -z "${HELM_VALUES:-}" ] && [ -n "${HELM_CHART_DIR:-}" ] && [ -f "$HELM_CHART_DIR/values-homelab.yaml" ]; then
+    HELM_VALUES="$HELM_CHART_DIR/values-homelab.yaml"
+fi
 HELM_RELEASE="dephealth-conformance"
 
 # Цвета
@@ -322,6 +325,13 @@ TOTAL_FAILED=0
 
 for lang in $LANGS; do
     log_info "========== Тестирование SDK: $lang =========="
+
+    # Reset http-stub delay to prevent cross-contamination between SDKs
+    reset_pod=$(kubectl -n "$NAMESPACE" get pods -l app=http-stub -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+    if [ -n "$reset_pod" ]; then
+        kubectl -n "$NAMESPACE" exec "$reset_pod" -- \
+            curl -s -X PUT "http://localhost:8080/admin/delay?ms=0" >/dev/null 2>&1 || true
+    fi
 
     if [ "$DEPLOY_MODE" = "kubectl" ]; then
         # kubectl-режим: деплоим сервисы по одному

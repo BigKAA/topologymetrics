@@ -3,6 +3,7 @@ package biz.kryukov.dev.dephealth;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.net.http.HttpTimeoutException;
 import javax.net.ssl.SSLException;
 
 /**
@@ -60,6 +61,9 @@ public final class ErrorClassifier {
             return new CheckResult(StatusCategory.TIMEOUT, "timeout");
         }
         if (err instanceof java.util.concurrent.TimeoutException) {
+            return new CheckResult(StatusCategory.TIMEOUT, "timeout");
+        }
+        if (err instanceof HttpTimeoutException) {
             return new CheckResult(StatusCategory.TIMEOUT, "timeout");
         }
         if (err instanceof UnknownHostException) {
