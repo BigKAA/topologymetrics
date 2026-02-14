@@ -5,7 +5,7 @@ Go SDK for monitoring microservice dependencies via Prometheus metrics.
 ## Features
 
 - Automatic health checking for dependencies (PostgreSQL, MySQL, Redis, RabbitMQ, Kafka, HTTP, gRPC, TCP)
-- Prometheus metrics export: `app_dependency_health` (Gauge 0/1) and `app_dependency_latency_seconds` (Histogram)
+- Prometheus metrics export: `app_dependency_health` (Gauge 0/1), `app_dependency_latency_seconds` (Histogram), `app_dependency_status` (enum), `app_dependency_status_detail` (info)
 - Connection pool support (preferred) and standalone checks
 - Functional options pattern for configuration
 - contrib/ packages for popular drivers (pgx, go-redis, go-sql-driver)

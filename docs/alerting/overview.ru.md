@@ -14,10 +14,11 @@
 Стек мониторинга dephealth состоит из четырёх компонентов, соединённых в pipeline:
 
 ```text
-┌─────────────────────┐
-│  Сервисы (SDK)      │  dephealth SDK экспортирует Prometheus-метрики
-│  /metrics endpoint  │  app_dependency_health, app_dependency_latency_seconds
-└────────┬────────────┘
+┌──────────────────────────┐
+│  Сервисы (SDK)           │  dephealth SDK экспортирует Prometheus-метрики:
+│  /metrics endpoint       │  app_dependency_health, app_dependency_latency_seconds,
+│                          │  app_dependency_status, app_dependency_status_detail
+└────────┬─────────────────┘
          │ scrape (pull)
          ▼
 ┌─────────────────────┐

@@ -27,7 +27,8 @@ public sealed class GrpcChecker : IHealthChecker
         {
             HttpHandler = new SocketsHttpHandler
             {
-                EnableMultipleHttp2Connections = true
+                EnableMultipleHttp2Connections = true,
+                ConnectTimeout = Timeout.InfiniteTimeSpan
             }
         });
 

@@ -52,6 +52,8 @@ After startup, metrics will appear at `/metrics`:
 ```text
 app_dependency_health{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes"} 1
 app_dependency_latency_seconds_bucket{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",le="0.01"} 42
+app_dependency_status{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",status="healthy"} 1
+app_dependency_status_detail{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",detail=""} 1
 ```
 
 ## Multiple Dependencies
