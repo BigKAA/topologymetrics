@@ -150,7 +150,7 @@ app_dependency_status_detail
 
 ## Фазы реализации
 
-### Фаза 1: Обновление спецификации ✅→☐
+### Фаза 1: Обновление спецификации ✅
 
 **Файлы**:
 - `spec/metric-contract.md` — новые секции 8 и 9 (status + detail метрики)
@@ -162,7 +162,7 @@ app_dependency_status_detail
 
 ---
 
-### Фаза 2: Go SDK — ядро (инфраструктура + scheduler + metrics) ✅→☐
+### Фаза 2: Go SDK — ядро (инфраструктура + scheduler + metrics) ✅
 
 **Создать**:
 - `sdk-go/dephealth/check_result.go` — тип `CheckResult{Category, Detail}`, константы `StatusOK`..`StatusError`, интерфейс `ClassifiedError`, тип `StatusError` (implements `error` + `ClassifiedError`)
@@ -183,7 +183,7 @@ app_dependency_status_detail
 
 ---
 
-### Фаза 3: Go SDK — обновление чекеров ✅→☐
+### Фаза 3: Go SDK — обновление чекеров ✅
 
 **Изменить** (каждый чекер + его тест):
 - `sdk-go/dephealth/checks/http.go` — non-2xx → `StatusError{Category:"unhealthy", Detail:fmt.Sprintf("http_%d",code)}`
@@ -199,7 +199,7 @@ app_dependency_status_detail
 
 ---
 
-### Фаза 4: Python SDK ✅→☐
+### Фаза 4: Python SDK ✅
 
 **Создать**:
 - `sdk-python/dephealth/check_result.py` — `CheckResult` frozen dataclass, `classify_error()` функция
@@ -214,7 +214,7 @@ app_dependency_status_detail
 
 ---
 
-### Фаза 5: Java SDK ✅→☐
+### Фаза 5: Java SDK ✅
 
 **Создать**:
 - `CheckResult.java` — record class
@@ -231,7 +231,7 @@ app_dependency_status_detail
 
 ---
 
-### Фаза 6: C# SDK ✅→☐
+### Фаза 6: C# SDK ✅
 
 **Создать**:
 - `CheckResult.cs` — record struct
@@ -304,11 +304,11 @@ cd sdk-csharp && make test && make lint
 6. Проверить PromQL-запросы из раздела "PromQL-примеры"
 
 ### Checklist per SDK:
-- [ ] `make test` — все тесты зелёные
-- [ ] `make lint` — без ошибок
-- [ ] Метрика `app_dependency_status` экспортирует ровно 8 серий на endpoint
-- [ ] Ровно одна серия = 1, остальные 7 = 0
-- [ ] Метрика `app_dependency_status_detail` экспортирует 1 серию на endpoint
-- [ ] При смене detail — старая серия удаляется
-- [ ] До первой проверки — обе метрики не экспортируются
-- [ ] Существующие `app_dependency_health` и `app_dependency_latency_seconds` не изменились
+- [x] `make test` — все тесты зелёные (Go 42, Python 127, Java 175, C# 129)
+- [x] `make lint` — без ошибок (C#: только предсуществующие IDE1006)
+- [x] Метрика `app_dependency_status` экспортирует ровно 8 серий на endpoint
+- [x] Ровно одна серия = 1, остальные 7 = 0
+- [x] Метрика `app_dependency_status_detail` экспортирует 1 серию на endpoint
+- [x] При смене detail — старая серия удаляется
+- [x] До первой проверки — обе метрики не экспортируются
+- [x] Существующие `app_dependency_health` и `app_dependency_latency_seconds` не изменились
