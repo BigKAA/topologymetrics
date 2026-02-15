@@ -257,6 +257,36 @@ host: "redis.my-namespace.svc.cluster.local."
 This optimization applies to all dependency types and is especially
 noticeable for check types with higher connection overhead (gRPC, TLS).
 
+## Programmatic Health Details API
+
+> Full document: [`spec/check-behavior.md` § 8](../spec/check-behavior.md)
+
+The `HealthDetails()` method returns an `EndpointStatus` for each monitored
+endpoint with 11 fields:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `dependency` | string | Logical dependency name |
+| `type` | string | Dependency type (`http`, `postgres`, etc.) |
+| `host` | string | Endpoint host |
+| `port` | string | Endpoint port |
+| `healthy` | bool/null | `true`/`false`/`null` (unknown before first check) |
+| `status` | string | Status category: `ok`, `timeout`, `connection_error`, etc. |
+| `detail` | string | Detailed reason: `ok`, `http_503`, `auth_error`, etc. |
+| `latency` | duration | Last check latency |
+| `last_checked_at` | timestamp | Time of last check (null if never checked) |
+| `critical` | bool | Dependency criticality |
+| `labels` | map | Custom labels |
+
+Key format: `"dependency:host:port"` (same as `Health()`).
+
+Language-specific methods:
+
+- Go: `dh.HealthDetails()` → `map[string]EndpointStatus`
+- Java: `depHealth.healthDetails()` → `Map<String, EndpointStatus>`
+- Python: `dh.health_details()` → `dict[str, EndpointStatus]`
+- C#: `depHealth.HealthDetails()` → `Dictionary<string, EndpointStatus>`
+
 ## Conformance Testing
 
 All SDKs pass a unified set of conformance scenarios in Kubernetes:
@@ -271,6 +301,7 @@ All SDKs pass a unified set of conformance scenarios in Kubernetes:
 | `labels` | Correctness of all labels (name, critical, custom labels) |
 | `timeout` | Delay > timeout -> unhealthy |
 | `initial-state` | Initial state is correct |
+| `health-details` | HealthDetails() returns correct endpoint data |
 
 More details: [`conformance/`](../conformance/)
 

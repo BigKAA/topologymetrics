@@ -5,6 +5,30 @@
 Step-by-step instructions for adding dependency monitoring
 to a running microservice.
 
+## Migration to v0.4.1
+
+### New: HealthDetails() API
+
+v0.4.1 adds the `HealthDetails()` method that returns detailed status for each
+endpoint. No existing API changes — this is a purely additive feature.
+
+```go
+details := dh.HealthDetails()
+// map[string]dephealth.EndpointStatus
+
+for key, ep := range details {
+    fmt.Printf("%s: healthy=%v status=%s detail=%s latency=%v\n",
+        key, ep.Healthy, ep.Status, ep.Detail, ep.Latency)
+}
+```
+
+`EndpointStatus` fields: `Dependency`, `Type`, `Host`, `Port`, `Healthy` (`*bool`),
+`Status`, `Detail`, `Latency`, `LastCheckedAt`, `Critical`, `Labels`.
+
+Before the first check, `Healthy` is `nil` and `Status` is `"unknown"`.
+
+---
+
 ## Migration to v0.4.0
 
 ### New Status Metrics (no code changes required)

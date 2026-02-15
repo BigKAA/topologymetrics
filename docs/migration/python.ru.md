@@ -5,6 +5,32 @@
 Пошаговая инструкция по добавлению мониторинга зависимостей
 в работающий микросервис.
 
+## Миграция на v0.4.1
+
+### Новое: health_details() API
+
+В v0.4.1 добавлен метод `health_details()`, возвращающий детальный статус каждого
+endpoint-а. Изменений в существующем API нет — это чисто аддитивная функция.
+
+```python
+details = dh.health_details()
+# dict[str, EndpointStatus]
+
+for key, ep in details.items():
+    print(f"{key}: healthy={ep.healthy} status={ep.status} "
+          f"detail={ep.detail} latency={ep.latency_millis():.1f}ms")
+```
+
+Поля `EndpointStatus`: `dependency`, `type`, `host`, `port`,
+`healthy` (`bool | None`, `None` = неизвестно), `status`, `detail`,
+`latency`, `last_checked_at`, `critical`, `labels`.
+
+> **Примечание:** `health_details()` использует ключи по endpoint-ам (`"dep:host:port"`),
+> тогда как `health()` — агрегированные ключи (`"dep"`). Метод `to_dict()`
+> сериализует `EndpointStatus` в JSON-совместимый словарь.
+
+---
+
 ## Миграция на v0.4.0
 
 ### Новые метрики статуса (изменения кода не требуются)

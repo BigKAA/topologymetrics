@@ -5,6 +5,32 @@
 Step-by-step instructions for adding dependency monitoring
 to a running microservice.
 
+## Migration to v0.4.1
+
+### New: healthDetails() API
+
+v0.4.1 adds the `healthDetails()` method that returns detailed status for each
+endpoint. No existing API changes — this is a purely additive feature.
+
+```java
+Map<String, EndpointStatus> details = depHealth.healthDetails();
+
+for (var entry : details.entrySet()) {
+    EndpointStatus ep = entry.getValue();
+    System.out.printf("%s: healthy=%s status=%s detail=%s latency=%s%n",
+        entry.getKey(), ep.healthy(), ep.status(), ep.detail(),
+        ep.latencyMillis());
+}
+```
+
+`EndpointStatus` fields: `dependency()`, `type()`, `host()`, `port()`,
+`healthy()` (`Boolean`, `null` = unknown), `status()`, `detail()`,
+`latency()`, `lastCheckedAt()`, `critical()`, `labels()`.
+
+Before the first check, `healthy()` is `null` and `status()` is `"unknown"`.
+
+---
+
 ## Migration to v0.4.0
 
 ### New Status Metrics (no code changes required)

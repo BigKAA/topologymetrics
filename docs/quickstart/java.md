@@ -326,6 +326,27 @@ Map<String, Boolean> health = depHealth.health();
 boolean allHealthy = health.values().stream().allMatch(Boolean::booleanValue);
 ```
 
+## Detailed Health Status
+
+The `healthDetails()` method returns detailed information about each endpoint,
+including status category, failure detail, latency, and custom labels:
+
+```java
+Map<String, EndpointStatus> details = depHealth.healthDetails();
+// {"postgres-main:pg.svc:5432": EndpointStatus{
+//     dependency="postgres-main", type="postgres",
+//     host="pg.svc", port="5432",
+//     healthy=true, status="ok", detail="ok",
+//     latency=Duration.ofMillis(15),
+//     lastCheckedAt=Instant.now(),
+//     critical=true, labels={"role": "primary"}
+// }}
+```
+
+Unlike `health()` which returns `Map<String, Boolean>`, `healthDetails()`
+provides the full `EndpointStatus` object for each endpoint. Before the first
+check completes, `healthy` is `null` (unknown) and `status` is `"unknown"`.
+
 ## Metrics Export
 
 dephealth exports four Prometheus metrics via Micrometer:

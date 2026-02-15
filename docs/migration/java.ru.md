@@ -5,6 +5,32 @@
 Пошаговая инструкция по добавлению мониторинга зависимостей
 в работающий микросервис.
 
+## Миграция на v0.4.1
+
+### Новое: healthDetails() API
+
+В v0.4.1 добавлен метод `healthDetails()`, возвращающий детальный статус каждого
+endpoint-а. Изменений в существующем API нет — это чисто аддитивная функция.
+
+```java
+Map<String, EndpointStatus> details = depHealth.healthDetails();
+
+for (var entry : details.entrySet()) {
+    EndpointStatus ep = entry.getValue();
+    System.out.printf("%s: healthy=%s status=%s detail=%s latency=%s%n",
+        entry.getKey(), ep.healthy(), ep.status(), ep.detail(),
+        ep.latencyMillis());
+}
+```
+
+Поля `EndpointStatus`: `dependency()`, `type()`, `host()`, `port()`,
+`healthy()` (`Boolean`, `null` = неизвестно), `status()`, `detail()`,
+`latency()`, `lastCheckedAt()`, `critical()`, `labels()`.
+
+До завершения первой проверки `healthy()` равен `null`, а `status()` — `"unknown"`.
+
+---
+
 ## Миграция на v0.4.0
 
 ### Новые метрики статуса (изменения кода не требуются)

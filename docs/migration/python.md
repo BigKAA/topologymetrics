@@ -5,6 +5,32 @@
 Step-by-step instructions for adding dependency monitoring
 to a running microservice.
 
+## Migration to v0.4.1
+
+### New: health_details() API
+
+v0.4.1 adds the `health_details()` method that returns detailed status for each
+endpoint. No existing API changes — this is a purely additive feature.
+
+```python
+details = dh.health_details()
+# dict[str, EndpointStatus]
+
+for key, ep in details.items():
+    print(f"{key}: healthy={ep.healthy} status={ep.status} "
+          f"detail={ep.detail} latency={ep.latency_millis():.1f}ms")
+```
+
+`EndpointStatus` fields: `dependency`, `type`, `host`, `port`,
+`healthy` (`bool | None`, `None` = unknown), `status`, `detail`,
+`latency`, `last_checked_at`, `critical`, `labels`.
+
+> **Note:** `health_details()` uses per-endpoint keys (`"dep:host:port"`),
+> while `health()` uses aggregated keys (`"dep"`). The `to_dict()` method
+> serializes `EndpointStatus` to a JSON-compatible dict.
+
+---
+
 ## Migration to v0.4.0
 
 ### New Status Metrics (no code changes required)

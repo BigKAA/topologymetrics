@@ -268,6 +268,30 @@ var health = depHealth.Health();
 bool allHealthy = health.Values.All(v => v);
 ```
 
+## Детальный статус зависимостей
+
+Метод `HealthDetails()` возвращает подробную информацию о каждом endpoint-е,
+включая категорию статуса, причину сбоя, латентность и пользовательские метки:
+
+```csharp
+Dictionary<string, EndpointStatus> details = depHealth.HealthDetails();
+// {"postgres-main:pg.svc:5432": EndpointStatus {
+//     Dependency = "postgres-main", Type = "postgres",
+//     Host = "pg.svc", Port = "5432",
+//     Healthy = true, Status = "ok", Detail = "ok",
+//     Latency = TimeSpan.FromMilliseconds(15),
+//     LastCheckedAt = DateTimeOffset.UtcNow,
+//     Critical = true, Labels = {{"role", "primary"}}
+// }}
+
+// Сериализация в JSON
+var json = JsonSerializer.Serialize(details);
+```
+
+В отличие от `Health()`, который возвращает `Dictionary<string, bool>`, `HealthDetails()`
+предоставляет полный объект `EndpointStatus` для каждого endpoint-а. До завершения
+первой проверки `Healthy` равен `null` (неизвестно), а `Status` — `"unknown"`.
+
 ## Экспорт метрик
 
 dephealth экспортирует четыре метрики Prometheus через prometheus-net:

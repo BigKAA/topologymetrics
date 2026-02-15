@@ -211,9 +211,9 @@ plans/                          # Планы разработки
 
 - Kubernetes-манифесты для зависимостей (PostgreSQL, Redis, RabbitMQ, Kafka)
 - Управляемые HTTP и gRPC заглушки
-- 8 тестовых сценариев: basic-health, partial-failure, full-failure, recovery,
-  latency, labels, timeout, initial-state
-- Все 4 SDK проходят 8/8 сценариев (32 теста суммарно)
+- 9 тестовых сценариев: basic-health, partial-failure, full-failure, recovery,
+  latency, labels, timeout, initial-state, health-details
+- Все 4 SDK проходят 9/9 сценариев (36 тестов суммарно)
 
 ## Документация
 

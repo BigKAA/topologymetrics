@@ -284,6 +284,37 @@ for _, ok := range health {
 }
 ```
 
+## Детальный статус зависимостей
+
+Метод `HealthDetails()` возвращает подробную информацию о каждом endpoint-е,
+включая категорию статуса, причину сбоя, латентность и пользовательские метки:
+
+```go
+details := dh.HealthDetails()
+// map[string]dephealth.EndpointStatus{
+//   "postgres-main:pg.svc:5432": {
+//     Dependency:    "postgres-main",
+//     Type:          "postgres",
+//     Host:          "pg.svc",
+//     Port:          "5432",
+//     Healthy:       boolPtr(true),
+//     Status:        "ok",
+//     Detail:        "ok",
+//     Latency:       15 * time.Millisecond,
+//     LastCheckedAt: time.Now(),
+//     Critical:      true,
+//     Labels:        map[string]string{"role": "primary"},
+//   },
+// }
+
+// Сериализация в JSON для HTTP-эндпоинта
+json.NewEncoder(w).Encode(details)
+```
+
+В отличие от `Health()`, который возвращает `map[string]bool`, `HealthDetails()`
+предоставляет полную структуру `EndpointStatus` для каждого endpoint-а. До завершения
+первой проверки `Healthy` равен `nil` (неизвестно), а `Status` — `"unknown"`.
+
 ## Экспорт метрик
 
 dephealth экспортирует четыре метрики Prometheus:

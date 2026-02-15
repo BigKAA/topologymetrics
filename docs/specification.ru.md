@@ -259,6 +259,36 @@ host: "redis.my-namespace.svc.cluster.local."
 заметна для типов проверок с высокими накладными расходами на соединение
 (gRPC, TLS).
 
+## Программный API детального статуса
+
+> Полный документ: [`spec/check-behavior.md` § 8](../spec/check-behavior.ru.md)
+
+Метод `HealthDetails()` возвращает `EndpointStatus` для каждого
+отслеживаемого endpoint-а с 11 полями:
+
+| Поле | Тип | Описание |
+| --- | --- | --- |
+| `dependency` | string | Логическое имя зависимости |
+| `type` | string | Тип зависимости (`http`, `postgres` и т.д.) |
+| `host` | string | Хост endpoint-а |
+| `port` | string | Порт endpoint-а |
+| `healthy` | bool/null | `true`/`false`/`null` (неизвестно до первой проверки) |
+| `status` | string | Категория статуса: `ok`, `timeout`, `connection_error` и др. |
+| `detail` | string | Детальная причина: `ok`, `http_503`, `auth_error` и др. |
+| `latency` | duration | Латентность последней проверки |
+| `last_checked_at` | timestamp | Время последней проверки (null если не проверялось) |
+| `critical` | bool | Критичность зависимости |
+| `labels` | map | Пользовательские метки |
+
+Формат ключа: `"dependency:host:port"` (аналогично `Health()`).
+
+Методы по языкам:
+
+- Go: `dh.HealthDetails()` → `map[string]EndpointStatus`
+- Java: `depHealth.healthDetails()` → `Map<String, EndpointStatus>`
+- Python: `dh.health_details()` → `dict[str, EndpointStatus]`
+- C#: `depHealth.HealthDetails()` → `Dictionary<string, EndpointStatus>`
+
 ## Conformance-тестирование
 
 Все SDK проходят единый набор conformance-сценариев в Kubernetes:
@@ -273,6 +303,7 @@ host: "redis.my-namespace.svc.cluster.local."
 | `labels` | Правильность всех меток (name, critical, custom labels) |
 | `timeout` | Задержка > timeout -> unhealthy |
 | `initial-state` | Начальное состояние корректно |
+| `health-details` | HealthDetails() возвращает корректные данные endpoint-ов |
 
 Подробнее: [`conformance/`](../conformance/)
 

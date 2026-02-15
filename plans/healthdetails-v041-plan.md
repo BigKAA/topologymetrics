@@ -37,6 +37,7 @@ update documentation, and release v0.4.1.
 3. ✅ Lint markdown files — clean
 
 ### Acceptance criteria
+
 - [x] Spec clearly defines all 11 fields of EndpointStatus
 - [x] StatusCategory type documented with all 9 values
 - [x] Behavior for UNKNOWN state documented
@@ -85,6 +86,7 @@ update documentation, and release v0.4.1.
 9. ✅ **Lint**: `make lint` — 0 issues; `make test` — all pass with `-race`
 
 ### Acceptance criteria
+
 - [x] `HealthDetails()` returns `map[string]EndpointStatus`
 - [x] All 11 fields populated correctly
 - [x] UNKNOWN endpoints included with `Status="unknown"`
@@ -139,6 +141,7 @@ update documentation, and release v0.4.1.
 9. ✅ **Lint**: Checkstyle 0 violations, SpotBugs 0 bugs
 
 ### Acceptance criteria
+
 - [x] Same behavior as Go SDK
 - [x] All tests pass (176 total, 0 failures)
 - [x] Checkstyle + SpotBugs clean (0 violations, 0 bugs)
@@ -192,6 +195,7 @@ update documentation, and release v0.4.1.
 10. ✅ **Lint**: ruff check 0 errors, ruff format clean, mypy --strict 0 issues
 
 ### Key Design Decisions
+
 1. **STATUS_UNKNOWN as string constant** — matches existing pattern (not StrEnum), not in ALL_STATUS_CATEGORIES
 2. **EndpointStatus as frozen dataclass** — follows project convention for value objects
 3. **`healthy: bool | None = None`** — `None` = unknown (before first check), `any()` treats None as falsy → no behavior change in `health()`
@@ -199,6 +203,7 @@ update documentation, and release v0.4.1.
 5. **Labels deep copy** in `add()` and `health_details()` — caller isolation
 
 ### Acceptance criteria
+
 - [x] Same behavior as Go SDK
 - [x] Key format `"dep:host:port"` (not aggregated like `health()`)
 - [x] Frozen dataclass with type hints
@@ -249,6 +254,7 @@ update documentation, and release v0.4.1.
 9. ✅ **Lint**: dotnet format (IDE0055) clean; IDE1006 pre-existing (TODO)
 
 ### Key Design Decisions
+
 1. **EndpointStatus as sealed class** — immutable, public constructor, `IReadOnlyDictionary` for labels
 2. **System.Text.Json attributes** — `JsonPropertyName` for snake_case, `JsonIgnore` on `Latency`, computed `LatencyMillis`
 3. **`bool?` for Healthy** — null = UNKNOWN, matching Go's `*bool` pattern
@@ -256,6 +262,7 @@ update documentation, and release v0.4.1.
 5. **StatusCategory.Unknown not in All** — matches Go/Java/Python (only for HealthDetails API)
 
 ### Acceptance criteria
+
 - [x] Same behavior as Go SDK
 - [x] All tests pass (139 total, 12 new)
 - [x] dotnet format clean (IDE1006 pre-existing)
@@ -277,21 +284,25 @@ update documentation, and release v0.4.1.
 #### 6.1. Update test services (add `/health-details` endpoint)
 
 **Go** (`conformance/test-service/main.go`):
+
 - Add HTTP handler for `/health-details`
 - Call `dh.HealthDetails()`, marshal to JSON, return
 - JSON keys: snake_case (matching Go struct tags)
 
 **Java** (`conformance/test-service-java/`):
+
 - Add REST endpoint `GET /health-details`
 - Call `depHealth.healthDetails()`, serialize to JSON
 - Ensure same JSON key naming as Go (snake_case)
 
 **Python** (`conformance/test-service-python/`):
+
 - Add route `GET /health-details`
 - Call `dh.health_details()`, serialize to JSON
 - Use `dataclasses.asdict()` or custom serializer
 
 **C#** (`conformance/test-service-csharp/`):
+
 - Add endpoint `GET /health-details`
 - Call `monitor.HealthDetails()`, serialize to JSON
 - Configure snake_case naming policy
@@ -301,7 +312,7 @@ update documentation, and release v0.4.1.
 New check types for `health-details.yml` scenario:
 
 | Check type | Description |
-|---|---|
+| --- | --- |
 | `health_details_endpoint_exists` | `/health-details` returns HTTP 200 with JSON |
 | `health_details_structure` | Each entry has all 11 required fields |
 | `health_details_types` | Field types are correct (healthy=bool/null, latency=number, etc.) |
@@ -340,6 +351,7 @@ checks:
 - Push to `harbor.kryukov.lan/library`
 
 ### Acceptance criteria
+
 - [x] All 4 test services expose `/health-details`
 - [x] JSON format consistent across all 4 SDKs
 - [x] New scenario passes for all 4 SDKs
@@ -361,61 +373,66 @@ checks:
 4. ✅ All 4 SDKs × 9 scenarios = 36/36 PASSED
 
 ### Fix applied
+
 - `conformance/scenarios/health-details.yml`: added `expected_dependencies` check with all 7 deps (value=1)
   to trigger `wait_for_metrics_ready` before health-details checks (Redis recovery after full-failure scenario)
 
 ### Acceptance criteria
+
 - [x] All 8 existing scenarios: PASS for all 4 SDKs (+ new health-details = 9 total)
 - [x] New health-details scenario: PASS for all 4 SDKs (37 checks each)
 - [x] Cross-verify: health_details_consistency check verifies keys match between /metrics and /health-details
 
 ---
 
-## Phase 8: Documentation
+## Phase 8: Documentation ✅
 
 > Scope: Update docs for HealthDetails() API
 > Estimated effort: Medium (many files, templated)
 > **Prerequisite**: Phase 7 complete (successful testing)
+> **Status: COMPLETED**
 
 ### Tasks
 
-1. **Quickstart guides** (8 files):
+1. ✅ **Quickstart guides** (8 files):
    - `docs/quickstart/go.md` + `go.ru.md`
    - `docs/quickstart/java.md` + `java.ru.md`
    - `docs/quickstart/python.md` + `python.ru.md`
    - `docs/quickstart/csharp.md` + `csharp.ru.md`
-   - Add section: "Getting detailed health status"
-   - Code example for each language
+   - Added section: "Detailed Health Status" / "Детальный статус зависимостей"
+   - Code example for each language with EndpointStatus usage
 
-2. **Migration guides** (8 files):
+2. ✅ **Migration guides** (8 files):
    - `docs/migration/go.md` + `go.ru.md`
    - `docs/migration/java.md` + `java.ru.md`
    - `docs/migration/python.md` + `python.ru.md`
    - `docs/migration/csharp.md` + `csharp.ru.md`
-   - Add "v0.4.1: HealthDetails() API" section
-   - Note: Python `health_details()` key format differs from `health()`
+   - Added "Migration to v0.4.1" / "Миграция на v0.4.1" section
+   - Python note: `health_details()` key format differs from `health()`
 
-3. **Specification overview** (`docs/specification.md` + `.ru.md`):
-   - Add HealthDetails() to "SDK API" section
+3. ✅ **Specification overview** (`docs/specification.md` + `.ru.md`):
+   - Added "Programmatic Health Details API" section with 11-field table
+   - Added `health-details` to conformance scenarios table
 
-4. **Root README.md**:
-   - Add HealthDetails() mention in features list
+4. ✅ **Root README.md** + `README.ru.md`:
+   - Updated conformance tests: 8 → 9 scenarios, 32 → 36 tests
 
-5. **CHANGELOG.md**:
-   - v0.4.1 entry for all 4 SDKs
+5. ✅ **CHANGELOG.md**:
+   - v0.4.1 entry for all 4 SDKs + specification + conformance
 
-6. **SDK READMEs** (if they exist):
-   - `sdk-go/README.md`, `sdk-java/README.md`, etc.
-   - Add HealthDetails() usage example
+6. ✅ **SDK READMEs** (Go, Python — Java/C# don't have dedicated READMEs):
+   - `sdk-go/README.md`: added "Health Details" section
+   - `sdk-python/README.md`: added "Health Details" section
 
-7. Lint all markdown files
+7. ✅ Lint all markdown files — 21 files clean (0 errors)
 
 ### Acceptance criteria
-- [ ] All quickstart guides updated (4 langs × 2 languages)
-- [ ] All migration guides updated
-- [ ] CHANGELOG.md has v0.4.1 entries
-- [ ] README.md mentions HealthDetails()
-- [ ] Markdownlint clean
+
+- [x] All quickstart guides updated (4 langs × 2 languages)
+- [x] All migration guides updated (4 langs × 2 languages)
+- [x] CHANGELOG.md has v0.4.1 entries
+- [x] README.md mentions HealthDetails() (conformance updated)
+- [x] Markdownlint clean
 
 ---
 
@@ -456,6 +473,7 @@ checks:
 6. **Push tags**: `git push origin --tags`
 
 ### Acceptance criteria
+
 - [ ] All 4 SDK versions bumped to 0.4.1
 - [ ] 4 per-SDK tags created
 - [ ] 4 GitHub Releases created
@@ -466,7 +484,7 @@ checks:
 
 ## Phase Dependencies
 
-```
+```text
 Phase 1 (spec)
     ↓
 Phase 2 (Go SDK) ← reference implementation
@@ -494,7 +512,7 @@ Phase 9 (release 0.4.1)
 ## Risk Assessment
 
 | Risk | Mitigation |
-|------|-----------|
+| --- | --- |
 | Python `health_details()` key format differs from `health()` | Document clearly in migration guide |
 | Conformance JSON format inconsistency across SDKs | Cross-verify check, strict schema |
 | JSON serialization edge cases (Duration, Time) | Define canonical format in spec |

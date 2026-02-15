@@ -360,6 +360,35 @@ health = dh.health()
 all_healthy = all(health.values())
 ```
 
+## Detailed Health Status
+
+The `health_details()` method returns detailed information about each endpoint,
+including status category, failure detail, latency, and custom labels:
+
+```python
+details = dh.health_details()
+# {
+#   "postgres-main:pg.svc:5432": EndpointStatus(
+#     dependency="postgres-main", type="postgres",
+#     host="pg.svc", port="5432",
+#     healthy=True, status="ok", detail="ok",
+#     latency=0.015, last_checked_at=datetime(...),
+#     critical=True, labels={"role": "primary"},
+#   ),
+# }
+
+# Serialize to JSON via to_dict()
+import json
+json.dumps({k: v.to_dict() for k, v in details.items()})
+```
+
+Unlike `health()` which returns `dict[str, bool]`, `health_details()` provides
+the full `EndpointStatus` dataclass for each endpoint. Before the first check
+completes, `healthy` is `None` (unknown) and `status` is `"unknown"`.
+
+> **Note:** `health_details()` uses per-endpoint keys (`"dep:host:port"`),
+> while `health()` uses aggregated keys (`"dep"`).
+
 ## Metrics Export
 
 dephealth exports four Prometheus metrics:

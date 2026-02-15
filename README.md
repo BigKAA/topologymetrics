@@ -211,9 +211,9 @@ Infrastructure for verifying SDK compliance with the specification (`conformance
 
 - Kubernetes manifests for dependencies (PostgreSQL, Redis, RabbitMQ, Kafka)
 - Managed HTTP and gRPC stubs
-- 8 test scenarios: basic-health, partial-failure, full-failure, recovery,
-  latency, labels, timeout, initial-state
-- All 4 SDKs pass 8/8 scenarios (32 tests total)
+- 9 test scenarios: basic-health, partial-failure, full-failure, recovery,
+  latency, labels, timeout, initial-state, health-details
+- All 4 SDKs pass 9/9 scenarios (36 tests total)
 
 ## Documentation
 

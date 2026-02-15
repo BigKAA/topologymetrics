@@ -5,6 +5,30 @@
 Пошаговая инструкция по добавлению мониторинга зависимостей
 в работающий микросервис.
 
+## Миграция на v0.4.1
+
+### Новое: HealthDetails() API
+
+В v0.4.1 добавлен метод `HealthDetails()`, возвращающий детальный статус каждого
+endpoint-а. Изменений в существующем API нет — это чисто аддитивная функция.
+
+```go
+details := dh.HealthDetails()
+// map[string]dephealth.EndpointStatus
+
+for key, ep := range details {
+    fmt.Printf("%s: healthy=%v status=%s detail=%s latency=%v\n",
+        key, ep.Healthy, ep.Status, ep.Detail, ep.Latency)
+}
+```
+
+Поля `EndpointStatus`: `Dependency`, `Type`, `Host`, `Port`, `Healthy` (`*bool`),
+`Status`, `Detail`, `Latency`, `LastCheckedAt`, `Critical`, `Labels`.
+
+До завершения первой проверки `Healthy` равен `nil`, а `Status` — `"unknown"`.
+
+---
+
 ## Миграция на v0.4.0
 
 ### Новые метрики статуса (изменения кода не требуются)

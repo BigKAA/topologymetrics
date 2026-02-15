@@ -50,17 +50,26 @@ dh = DepHealthFastAPI(app)
 dh.add("postgres", url="postgresql://user:pass@localhost:5432/mydb")
 ```
 
+## Health Details
+
+```python
+details = dh.health_details()
+for key, ep in details.items():
+    print(f"{key}: healthy={ep.healthy} status={ep.status} "
+          f"latency={ep.latency_millis():.1f}ms")
+```
+
 ## Configuration
 
 | Parameter | Default | Description |
-|-----------|---------|-------------|
+| --- | --- | --- |
 | `interval` | `15` | Check interval (seconds) |
 | `timeout` | `5` | Check timeout (seconds) |
 
 ## Supported Dependencies
 
 | Type | Extra | URL Format |
-|------|-------|-----------|
+| --- | --- | --- |
 | PostgreSQL | `postgres` | `postgresql://user:pass@host:5432/db` |
 | MySQL | `mysql` | `mysql://user:pass@host:3306/db` |
 | Redis | `redis` | `redis://host:6379` |

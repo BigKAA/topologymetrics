@@ -284,6 +284,37 @@ for _, ok := range health {
 }
 ```
 
+## Detailed Health Status
+
+The `HealthDetails()` method returns detailed information about each endpoint,
+including status category, failure detail, latency, and custom labels:
+
+```go
+details := dh.HealthDetails()
+// map[string]dephealth.EndpointStatus{
+//   "postgres-main:pg.svc:5432": {
+//     Dependency:    "postgres-main",
+//     Type:          "postgres",
+//     Host:          "pg.svc",
+//     Port:          "5432",
+//     Healthy:       boolPtr(true),
+//     Status:        "ok",
+//     Detail:        "ok",
+//     Latency:       15 * time.Millisecond,
+//     LastCheckedAt: time.Now(),
+//     Critical:      true,
+//     Labels:        map[string]string{"role": "primary"},
+//   },
+// }
+
+// Encode as JSON for HTTP endpoint
+json.NewEncoder(w).Encode(details)
+```
+
+Unlike `Health()` which returns `map[string]bool`, `HealthDetails()` provides
+the full `EndpointStatus` struct for each endpoint. Before the first check
+completes, `Healthy` is `nil` (unknown) and `Status` is `"unknown"`.
+
 ## Metrics Export
 
 dephealth exports four Prometheus metrics:

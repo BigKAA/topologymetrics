@@ -267,6 +267,30 @@ var health = depHealth.Health();
 bool allHealthy = health.Values.All(v => v);
 ```
 
+## Detailed Health Status
+
+The `HealthDetails()` method returns detailed information about each endpoint,
+including status category, failure detail, latency, and custom labels:
+
+```csharp
+Dictionary<string, EndpointStatus> details = depHealth.HealthDetails();
+// {"postgres-main:pg.svc:5432": EndpointStatus {
+//     Dependency = "postgres-main", Type = "postgres",
+//     Host = "pg.svc", Port = "5432",
+//     Healthy = true, Status = "ok", Detail = "ok",
+//     Latency = TimeSpan.FromMilliseconds(15),
+//     LastCheckedAt = DateTimeOffset.UtcNow,
+//     Critical = true, Labels = {{"role", "primary"}}
+// }}
+
+// Serialize to JSON
+var json = JsonSerializer.Serialize(details);
+```
+
+Unlike `Health()` which returns `Dictionary<string, bool>`, `HealthDetails()`
+provides the full `EndpointStatus` object for each endpoint. Before the first
+check completes, `Healthy` is `null` (unknown) and `Status` is `"unknown"`.
+
 ## Metrics Export
 
 dephealth exports four Prometheus metrics via prometheus-net:

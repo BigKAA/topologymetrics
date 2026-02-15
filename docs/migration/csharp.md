@@ -5,6 +5,31 @@
 Step-by-step instructions for adding dependency monitoring
 to a running microservice.
 
+## Migration to v0.4.1
+
+### New: HealthDetails() API
+
+v0.4.1 adds the `HealthDetails()` method that returns detailed status for each
+endpoint. No existing API changes — this is a purely additive feature.
+
+```csharp
+Dictionary<string, EndpointStatus> details = depHealth.HealthDetails();
+
+foreach (var (key, ep) in details)
+{
+    Console.WriteLine($"{key}: healthy={ep.Healthy} status={ep.Status} " +
+        $"detail={ep.Detail} latency={ep.LatencyMillis:F1}ms");
+}
+```
+
+`EndpointStatus` properties: `Dependency`, `Type`, `Host`, `Port`,
+`Healthy` (`bool?`, `null` = unknown), `Status`, `Detail`,
+`Latency`, `LastCheckedAt`, `Critical`, `Labels`.
+
+JSON serialization uses `System.Text.Json` with snake_case naming.
+
+---
+
 ## Migration to v0.4.0
 
 ### New Status Metrics (no code changes required)

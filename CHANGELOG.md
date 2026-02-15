@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-02-15
+
+Programmatic health details: new `HealthDetails()` API across all SDKs,
+returning detailed endpoint status (category, detail, latency, labels)
+without relying on Prometheus metrics parsing.
+
+### Added
+
+#### All SDKs
+
+- `HealthDetails()` / `healthDetails()` / `health_details()` method returning
+  `EndpointStatus` for each monitored endpoint with 11 fields: dependency,
+  type, host, port, healthy, status, detail, latency, last_checked_at,
+  critical, labels.
+- `EndpointStatus` type: immutable value object with JSON serialization
+  support (Go: custom MarshalJSON, Java: immutable class, Python: frozen
+  dataclass with `to_dict()`, C#: sealed class with System.Text.Json).
+- `StatusCategory.Unknown` / `STATUS_UNKNOWN` — new status for endpoints
+  that have not been checked yet.
+
+#### Specification
+
+- `spec/check-behavior.md` section 8: Programmatic Health Details API contract
+
+#### Conformance
+
+- New `health-details` scenario (37 checks per SDK): endpoint exists,
+  structure, types, consistency with /metrics, status values, expected values.
+- All 4 SDKs pass 9/9 scenarios (36 tests total).
+
 ## [0.4.0] - 2026-02-14
 
 Status metrics: two new Prometheus metrics for diagnosing **why** a dependency
@@ -202,6 +232,7 @@ verifying cross-language compatibility.
 - SDK comparison table
 - CONTRIBUTING.md with development workflow
 
+[0.4.1]: https://github.com/BigKAA/topologymetrics/releases/tag/v0.4.1
 [0.4.0]: https://github.com/BigKAA/topologymetrics/releases/tag/v0.4.0
 [Java SDK 0.2.2]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-java/v0.2.2
 [Python SDK 0.2.2]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-python/v0.2.2

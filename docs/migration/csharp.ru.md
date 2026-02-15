@@ -5,6 +5,31 @@
 Пошаговая инструкция по добавлению мониторинга зависимостей
 в работающий микросервис.
 
+## Миграция на v0.4.1
+
+### Новое: HealthDetails() API
+
+В v0.4.1 добавлен метод `HealthDetails()`, возвращающий детальный статус каждого
+endpoint-а. Изменений в существующем API нет — это чисто аддитивная функция.
+
+```csharp
+Dictionary<string, EndpointStatus> details = depHealth.HealthDetails();
+
+foreach (var (key, ep) in details)
+{
+    Console.WriteLine($"{key}: healthy={ep.Healthy} status={ep.Status} " +
+        $"detail={ep.Detail} latency={ep.LatencyMillis:F1}ms");
+}
+```
+
+Свойства `EndpointStatus`: `Dependency`, `Type`, `Host`, `Port`,
+`Healthy` (`bool?`, `null` = неизвестно), `Status`, `Detail`,
+`Latency`, `LastCheckedAt`, `Critical`, `Labels`.
+
+JSON-сериализация использует `System.Text.Json` с именованием snake_case.
+
+---
+
 ## Миграция на v0.4.0
 
 ### Новые метрики статуса (изменения кода не требуются)

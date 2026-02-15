@@ -49,7 +49,7 @@ func main() {
 ## Configuration
 
 | Option | Default | Description |
-|--------|---------|-------------|
+| --- | --- | --- |
 | `WithInterval` | `15s` | Check interval |
 | `WithTimeout` | `5s` | Check timeout |
 | `WithFailureThreshold` | `1` | Consecutive failures before unhealthy |
@@ -58,7 +58,7 @@ func main() {
 ## Supported Dependencies
 
 | Type | URL Format |
-|------|-----------|
+| --- | --- |
 | PostgreSQL | `postgresql://user:pass@host:5432/db` |
 | MySQL | `mysql://user:pass@host:3306/db` |
 | Redis | `redis://host:6379` |
@@ -67,6 +67,16 @@ func main() {
 | HTTP | `http://host:8080/health` |
 | gRPC | via `dephealth.FromParams(host, port)` |
 | TCP | `tcp://host:port` |
+
+## Health Details
+
+```go
+details := dh.HealthDetails()
+for key, ep := range details {
+    fmt.Printf("%s: healthy=%v status=%s latency=%v\n",
+        key, ep.Healthy, ep.Status, ep.Latency)
+}
+```
 
 ## Connection Pool Integration
 
