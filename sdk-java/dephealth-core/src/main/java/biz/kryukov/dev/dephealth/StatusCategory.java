@@ -16,7 +16,10 @@ public final class StatusCategory {
     public static final String UNHEALTHY = "unhealthy";
     public static final String ERROR = "error";
 
-    /** All status category values in specification order. */
+    /** Unknown status — used only for HealthDetails API before the first check. */
+    public static final String UNKNOWN = "unknown";
+
+    /** All status category values in specification order (excludes UNKNOWN). */
     public static final List<String> ALL = List.of(
             OK, TIMEOUT, CONNECTION_ERROR, DNS_ERROR, AUTH_ERROR, TLS_ERROR, UNHEALTHY, ERROR
     );

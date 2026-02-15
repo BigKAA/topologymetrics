@@ -73,6 +73,11 @@ public final class DepHealth {
         return scheduler.health();
     }
 
+    /** Returns detailed health status. Key: "name:host:port", value: EndpointStatus. */
+    public Map<String, EndpointStatus> healthDetails() {
+        return scheduler.healthDetails();
+    }
+
     /**
      * Creates a builder with a required application name.
      *

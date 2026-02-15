@@ -4,6 +4,7 @@ import biz.kryukov.dev.dephealth.CheckConfig;
 import biz.kryukov.dev.dephealth.CheckResult;
 import biz.kryukov.dev.dephealth.Dependency;
 import biz.kryukov.dev.dephealth.Endpoint;
+import biz.kryukov.dev.dephealth.EndpointStatus;
 import biz.kryukov.dev.dephealth.ErrorClassifier;
 import biz.kryukov.dev.dephealth.HealthChecker;
 import biz.kryukov.dev.dephealth.metrics.MetricsExporter;
@@ -57,7 +58,10 @@ public final class CheckScheduler {
         deps.add(new ScheduledDep(dependency, checker));
         for (Endpoint ep : dependency.endpoints()) {
             String key = stateKey(dependency.name(), ep);
-            states.put(key, new EndpointState());
+            EndpointState state = new EndpointState();
+            state.setStaticFields(dependency.name(), dependency.type(),
+                    ep.host(), ep.port(), dependency.critical(), ep.labels());
+            states.put(key, state);
         }
     }
 
@@ -149,6 +153,17 @@ public final class CheckScheduler {
         return result;
     }
 
+    /**
+     * Returns the detailed health status of all endpoints (including UNKNOWN).
+     */
+    public Map<String, EndpointStatus> healthDetails() {
+        Map<String, EndpointStatus> result = new LinkedHashMap<>();
+        for (Map.Entry<String, EndpointState> entry : states.entrySet()) {
+            result.put(entry.getKey(), entry.getValue().toEndpointStatus());
+        }
+        return result;
+    }
+
     private void runCheck(Dependency dep, HealthChecker checker, Endpoint ep,
                           CheckConfig config) {
         String key = stateKey(dep.name(), ep);
@@ -171,6 +186,9 @@ public final class CheckScheduler {
             metrics.setStatus(dep, ep, result.category());
             metrics.setStatusDetail(dep, ep, result.detail());
 
+            // Store classification results for HealthDetails() API.
+            state.storeCheckResult(result.category(), result.detail(), duration);
+
             if (wasBefore != null && !wasBefore && Boolean.TRUE.equals(state.healthy())) {
                 logger.info("dephealth: {} [{}] recovered", dep.name(), ep);
             }
@@ -188,6 +206,9 @@ public final class CheckScheduler {
             CheckResult result = ErrorClassifier.classify(e);
             metrics.setStatus(dep, ep, result.category());
             metrics.setStatusDetail(dep, ep, result.detail());
+
+            // Store classification results for HealthDetails() API.
+            state.storeCheckResult(result.category(), result.detail(), duration);
 
             if (wasBefore == null || wasBefore) {
                 String msg = e.getMessage() != null ? e.getMessage()

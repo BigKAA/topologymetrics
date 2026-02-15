@@ -1,13 +1,36 @@
 package biz.kryukov.dev.dephealth.scheduler;
 
+import biz.kryukov.dev.dephealth.DependencyType;
+import biz.kryukov.dev.dephealth.EndpointStatus;
+import biz.kryukov.dev.dephealth.StatusCategory;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Map;
+
 /**
- * Thread-safe endpoint state: healthy/unhealthy, consecutive success/failure counters.
+ * Thread-safe endpoint state: healthy/unhealthy, consecutive success/failure counters,
+ * and fields for the HealthDetails() API.
  */
 public final class EndpointState {
 
     private Boolean healthy;         // null = UNKNOWN
     private int consecutiveFailures;
     private int consecutiveSuccesses;
+
+    // Dynamic fields for HealthDetails() API.
+    private String lastStatus;
+    private String lastDetail;
+    private Duration lastLatency;
+    private Instant lastCheckedAt;
+
+    // Static fields set at state creation time.
+    private String depName;
+    private DependencyType depType;
+    private String host;
+    private String port;
+    private boolean critical;
+    private Map<String, String> labels;
 
     public synchronized Boolean healthy() {
         return healthy;
@@ -41,5 +64,53 @@ public final class EndpointState {
         if (healthy && consecutiveFailures >= failureThreshold) {
             healthy = false;
         }
+    }
+
+    /**
+     * Sets the static fields for this endpoint (called once during registration).
+     */
+    synchronized void setStaticFields(String depName, DependencyType depType, String host,
+                                       String port, boolean critical,
+                                       Map<String, String> labels) {
+        this.depName = depName;
+        this.depType = depType;
+        this.host = host;
+        this.port = port;
+        this.critical = critical;
+        this.labels = labels == null ? Map.of() : Map.copyOf(labels);
+        // Set UNKNOWN defaults for dynamic fields.
+        this.lastStatus = StatusCategory.UNKNOWN;
+        this.lastDetail = StatusCategory.UNKNOWN;
+        this.lastLatency = Duration.ZERO;
+        this.lastCheckedAt = null;
+    }
+
+    /**
+     * Stores the classification results from a health check.
+     */
+    synchronized void storeCheckResult(String status, String detail, Duration latency) {
+        this.lastStatus = status;
+        this.lastDetail = detail;
+        this.lastLatency = latency;
+        this.lastCheckedAt = Instant.now();
+    }
+
+    /**
+     * Creates an {@link EndpointStatus} snapshot of the current state.
+     */
+    synchronized EndpointStatus toEndpointStatus() {
+        return new EndpointStatus(
+                healthy,
+                lastStatus,
+                lastDetail,
+                lastLatency,
+                depType,
+                depName,
+                host,
+                port,
+                critical,
+                lastCheckedAt,
+                labels
+        );
     }
 }

@@ -126,6 +126,52 @@ class DepHealthTest {
     }
 
     @Test
+    void healthDetailsFacade() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
+
+        HealthChecker mockChecker = new HealthChecker() {
+            @Override
+            public void check(Endpoint endpoint, Duration timeout) {
+                latch.countDown();
+            }
+
+            @Override
+            public DependencyType type() {
+                return DependencyType.HTTP;
+            }
+        };
+
+        DepHealth dh = DepHealth.builder("test-app", registry)
+                .checkInterval(Duration.ofSeconds(1))
+                .dependency("test", DependencyType.HTTP, mockChecker, d -> d
+                        .host("localhost")
+                        .port("8080")
+                        .critical(true))
+                .build();
+
+        // Before start — endpoints exist but with UNKNOWN status.
+        Map<String, EndpointStatus> detailsBefore = dh.healthDetails();
+        assertFalse(detailsBefore.isEmpty());
+        EndpointStatus unknown = detailsBefore.get("test:localhost:8080");
+        assertNotNull(unknown);
+        assertNull(unknown.healthy());
+        assertEquals(StatusCategory.UNKNOWN, unknown.status());
+
+        dh.start();
+        assertTrue(latch.await(3, TimeUnit.SECONDS));
+        Thread.sleep(200);
+
+        Map<String, EndpointStatus> details = dh.healthDetails();
+        assertFalse(details.isEmpty());
+        EndpointStatus es = details.get("test:localhost:8080");
+        assertNotNull(es);
+        assertEquals(Boolean.TRUE, es.healthy());
+        assertEquals(StatusCategory.OK, es.status());
+
+        dh.stop();
+    }
+
+    @Test
     void globalIntervalUsed() {
         DepHealth dh = DepHealth.builder("test-app", registry)
                 .checkInterval(Duration.ofSeconds(30))

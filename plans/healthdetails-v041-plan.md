@@ -94,49 +94,54 @@ update documentation, and release v0.4.1.
 
 ---
 
-## Phase 3: Java SDK Implementation
+## Phase 3: Java SDK Implementation ✅
 
 > Scope: `sdk-java/dephealth-core/`
 > Estimated effort: Medium
+> **Status: COMPLETED**
 
 ### Tasks
 
-1. **Add `StatusCategory` enum** (new file or in existing package):
+1. ✅ **Add `StatusCategory.UNKNOWN` constant** (`StatusCategory.java`):
    - Values: OK, TIMEOUT, CONNECTION_ERROR, DNS_ERROR, AUTH_ERROR,
      TLS_ERROR, UNHEALTHY, ERROR, UNKNOWN
    - `String value()` method returning lowercase string
 
-2. **Add `EndpointStatus` record/class**:
+2. ✅ **Add `EndpointStatus` class** (new file `EndpointStatus.java`):
    - 11 fields matching Go struct
    - Java types: `Boolean` healthy, `Duration` latency, `Instant` lastCheckedAt,
      `Map<String, String>` labels
-   - Immutable (record or final class with builder)
+   - Immutable final class with public constructor, `latencyMillis()` helper
 
-3. **Extend `EndpointState`**:
+3. ✅ **Extend `EndpointState`**:
    - Add synchronized fields: `lastStatus`, `lastDetail`, `lastLatency`, `lastCheckedAt`
    - Add static fields: `depName`, `depType`, `host`, `port`, `critical`, `labels`
-   - Add `toEndpointStatus()` method
+   - Add `toEndpointStatus()` method, `setStaticFields()`, `storeCheckResult()`
 
-4. **Store results in `runCheck()`** (`CheckScheduler.java`):
-   - After `ErrorClassifier.classify()`: store category, detail, duration, Instant.now()
+4. ✅ **Store results in `runCheck()`** (`CheckScheduler.java`):
+   - After `ErrorClassifier.classify()`: `state.storeCheckResult(category, detail, duration)`
 
-5. **Set static fields** when creating EndpointState in scheduler
+5. ✅ **Set static fields** in `addDependency()` via `state.setStaticFields()`
 
-6. **Add `CheckScheduler.healthDetails()`**:
-   - Return `Map<String, EndpointStatus>`
+6. ✅ **Add `CheckScheduler.healthDetails()`**:
+   - Return `Map<String, EndpointStatus>` (LinkedHashMap)
    - Include UNKNOWN endpoints
 
-7. **Add `DepHealth.healthDetails()`**:
+7. ✅ **Add `DepHealth.healthDetails()`**:
    - Delegate to scheduler
 
-8. **Unit tests**
+8. ✅ **Unit tests** (`HealthDetailsTest.java` — 10 tests + 1 in `DepHealthTest`):
+   - emptyBeforeAddingDependencies, unknownStateBeforeFirstCheck, healthyEndpoint
+   - unhealthyEndpoint, keysMatchHealth, concurrentAccess, afterStop
+   - labelsEmptyWhenNotSet, resultMapIsIndependent, latencyMillis
+   - DepHealth.healthDetailsFacade
 
-9. **Lint**: `make lint` in `sdk-java/`
+9. ✅ **Lint**: Checkstyle 0 violations, SpotBugs 0 bugs
 
 ### Acceptance criteria
-- [ ] Same behavior as Go SDK
-- [ ] All tests pass
-- [ ] Checkstyle + SpotBugs clean
+- [x] Same behavior as Go SDK
+- [x] All tests pass (176 total, 0 failures)
+- [x] Checkstyle + SpotBugs clean (0 violations, 0 bugs)
 
 ---
 
