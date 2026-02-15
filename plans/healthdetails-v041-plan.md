@@ -207,41 +207,58 @@ update documentation, and release v0.4.1.
 
 ---
 
-## Phase 5: C# SDK Implementation
+## Phase 5: C# SDK Implementation ✅
 
 > Scope: `sdk-csharp/DepHealth.Core/`
 > Estimated effort: Medium
+> **Status: COMPLETED**
 
 ### Tasks
 
-1. **Add `StatusCategory` type** (enum or static class with constants):
-   - Values matching Go/Java
+1. ✅ **Add `StatusCategory.Unknown` constant** (`StatusCategory.cs`):
+   - Added `Unknown = "unknown"` (not in `All` array, matching Go/Java/Python)
 
-2. **Add `EndpointStatus` record/class**:
-   - 11 fields: `bool?` Healthy, `TimeSpan` Latency, `DateTimeOffset?` LastCheckedAt,
-     `Dictionary<string, string>` Labels
+2. ✅ **Add `EndpointStatus` sealed class** (new file `EndpointStatus.cs`):
+   - 11 fields with C# types: `bool?` Healthy, `TimeSpan` Latency, `DateTimeOffset?` LastCheckedAt,
+     `IReadOnlyDictionary<string, string>` Labels
+   - `LatencyMillis` computed property for JSON serialization
+   - `System.Text.Json` attributes for snake_case JSON output
 
-3. **Extend `EndpointState`**:
-   - Add locked fields: LastStatus, LastDetail, LastLatency, LastCheckedAt
-   - Add static fields: DepName, DepType, Host, Port, Critical, Labels
+3. ✅ **Extend `EndpointState`** (`EndpointState.cs`):
+   - Dynamic fields under lock: `_lastStatus`, `_lastDetail`, `_lastLatency`, `_lastCheckedAt`
+   - Static fields: `_depName`, `_depType`, `_host`, `_port`, `_critical`, `_labels`
+   - `SetStaticFields()`, `StoreCheckResult()`, `ToEndpointStatus()` methods
 
-4. **Store results in `RunCheck()`** (`CheckScheduler.cs`):
-   - After `ErrorClassifier.Classify()`: store results
+4. ✅ **Store results in `RunCheck()`** (`CheckScheduler.cs`):
+   - After `ErrorClassifier.Classify()`: `state.StoreCheckResult(result.Category, result.Detail, duration)`
 
-5. **Set static fields** when creating EndpointState
+5. ✅ **Set static fields** in `AddDependency()` via `state.SetStaticFields()`
 
-6. **Add `CheckScheduler.HealthDetails()`**
+6. ✅ **Add `CheckScheduler.HealthDetails()`**:
+   - Returns `Dictionary<string, EndpointStatus>` — all endpoints including UNKNOWN
 
-7. **Add `DepHealthMonitor.HealthDetails()`**
+7. ✅ **Add `DepHealthMonitor.HealthDetails()`**:
+   - Delegates to scheduler
 
-8. **Unit tests**
+8. ✅ **Unit tests** (`HealthDetailsTests.cs` — 12 tests):
+   - EmptyBeforeAddingDependencies, UnknownStateBeforeFirstCheck, HealthyEndpoint
+   - UnhealthyEndpoint, KeysMatchHealth, ConcurrentAccess, AfterStop
+   - LabelsEmpty, ResultMapIndependent, LatencyMillisProperty
+   - FacadeDelegates, JsonSerializationHealthy, JsonSerializationUnknown
 
-9. **Lint**: `make lint` in `sdk-csharp/`
+9. ✅ **Lint**: dotnet format (IDE0055) clean; IDE1006 pre-existing (TODO)
+
+### Key Design Decisions
+1. **EndpointStatus as sealed class** — immutable, public constructor, `IReadOnlyDictionary` for labels
+2. **System.Text.Json attributes** — `JsonPropertyName` for snake_case, `JsonIgnore` on `Latency`, computed `LatencyMillis`
+3. **`bool?` for Healthy** — null = UNKNOWN, matching Go's `*bool` pattern
+4. **Labels deep copy** — in SetStaticFields() and ToEndpointStatus()
+5. **StatusCategory.Unknown not in All** — matches Go/Java/Python (only for HealthDetails API)
 
 ### Acceptance criteria
-- [ ] Same behavior as Go SDK
-- [ ] All tests pass
-- [ ] dotnet format clean
+- [x] Same behavior as Go SDK
+- [x] All tests pass (139 total, 12 new)
+- [x] dotnet format clean (IDE1006 pre-existing)
 
 ---
 

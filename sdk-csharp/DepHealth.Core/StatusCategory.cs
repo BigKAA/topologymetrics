@@ -13,8 +13,9 @@ public static class StatusCategory
     public const string TlsError = "tls_error";
     public const string Unhealthy = "unhealthy";
     public const string Error = "error";
+    public const string Unknown = "unknown";
 
-    /// <summary>All status category values in specification order.</summary>
+    /// <summary>All status category values in specification order (excludes Unknown).</summary>
     public static readonly string[] All =
         [Ok, Timeout, ConnectionError, DnsError, AuthError, TlsError, Unhealthy, Error];
 }

@@ -45,6 +45,9 @@ public sealed partial class DepHealthMonitor : IDisposable
     /// <summary>Returns current health status. Key: "name:host:port", value: healthy.</summary>
     public Dictionary<string, bool> Health() => _scheduler.Health();
 
+    /// <summary>Returns detailed health status for all endpoints. Key: "name:host:port".</summary>
+    public Dictionary<string, EndpointStatus> HealthDetails() => _scheduler.HealthDetails();
+
     public void Dispose() => _scheduler.Dispose();
 
     /// <summary>Creates a new builder with a required application name.</summary>

@@ -39,7 +39,15 @@ public sealed class CheckScheduler : IDisposable
         foreach (var ep in dependency.Endpoints)
         {
             var key = StateKey(dependency.Name, ep);
-            _states[key] = new EndpointState();
+            var state = new EndpointState();
+            state.SetStaticFields(
+                dependency.Name,
+                dependency.Type.Label(),
+                ep.Host,
+                ep.Port,
+                dependency.Critical,
+                ep.Labels);
+            _states[key] = state;
         }
     }
 
@@ -95,6 +103,20 @@ public sealed class CheckScheduler : IDisposable
 
         _cancellations.Clear();
         _logger.LogInformation("dephealth: scheduler stopped");
+    }
+
+    /// <summary>
+    /// Returns detailed health status for all endpoints, including UNKNOWN ones.
+    /// </summary>
+    public Dictionary<string, EndpointStatus> HealthDetails()
+    {
+        var result = new Dictionary<string, EndpointStatus>();
+        foreach (var (key, state) in _states)
+        {
+            result[key] = state.ToEndpointStatus();
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -170,6 +192,7 @@ public sealed class CheckScheduler : IDisposable
             state.RecordSuccess(config.SuccessThreshold);
 
             var result = ErrorClassifier.Classify(null);
+            state.StoreCheckResult(result.Category, result.Detail, duration);
             _metrics.SetHealth(dep, ep, 1.0);
             _metrics.ObserveLatency(dep, ep, duration);
             _metrics.SetStatus(dep, ep, result.Category);
@@ -189,6 +212,7 @@ public sealed class CheckScheduler : IDisposable
             state.RecordFailure(config.FailureThreshold);
 
             var result = ErrorClassifier.Classify(e);
+            state.StoreCheckResult(result.Category, result.Detail, duration);
             _metrics.SetHealth(dep, ep, 0.0);
             _metrics.ObserveLatency(dep, ep, duration);
             _metrics.SetStatus(dep, ep, result.Category);
