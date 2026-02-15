@@ -2,6 +2,45 @@ name: "health-details"
 description: "HealthDetails() API returns correct endpoint data for all 7 dependencies"
 
 checks:
+  # Wait for all dependencies to be healthy before checking /health-details
+  - type: expected_dependencies
+    dependencies:
+      - dependency: postgres-primary
+        type: postgres
+        host: postgres-primary.dephealth-conformance.svc
+        port: 5432
+        value: 1
+      - dependency: postgres-replica
+        type: postgres
+        host: postgres-replica.dephealth-conformance.svc
+        port: 5432
+        value: 1
+      - dependency: redis-cache
+        type: redis
+        host: redis.dephealth-conformance.svc
+        port: 6379
+        value: 1
+      - dependency: rabbitmq
+        type: amqp
+        host: rabbitmq.dephealth-conformance.svc
+        port: 5672
+        value: 1
+      - dependency: kafka-main
+        type: kafka
+        host: kafka.dephealth-conformance.svc
+        port: 9092
+        value: 1
+      - dependency: http-service
+        type: http
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        value: 1
+      - dependency: grpc-service
+        type: grpc
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        value: 1
+
   - type: health_details_endpoint_exists
 
   - type: health_details_structure
