@@ -7,10 +7,12 @@ import logging
 import threading
 import time
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 
-from dephealth.check_result import classify_error
+from dephealth.check_result import STATUS_UNKNOWN, classify_error
 from dephealth.checker import CheckError, HealthChecker
 from dephealth.dependency import Dependency, Endpoint
+from dephealth.endpoint_status import EndpointStatus
 from dephealth.metrics import MetricsExporter
 
 logger = logging.getLogger("dephealth.scheduler")
@@ -20,9 +22,23 @@ logger = logging.getLogger("dephealth.scheduler")
 class _EndpointState:
     """Health check state of a single endpoint."""
 
-    healthy: bool = False
+    healthy: bool | None = None
     consecutive_failures: int = 0
     consecutive_successes: int = 0
+
+    # Dynamic fields updated after each check (for HealthDetails API).
+    last_status: str = STATUS_UNKNOWN
+    last_detail: str = "unknown"
+    last_latency: float = 0.0
+    last_checked_at: datetime | None = None
+
+    # Static fields set at creation time.
+    dep_name: str = ""
+    dep_type: str = ""
+    host: str = ""
+    port: str = ""
+    critical: bool = False
+    labels: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -59,7 +75,14 @@ class CheckScheduler:
         entry = _SchedulerEntry(dep=dep, checker=checker)
         for ep in dep.endpoints:
             key = f"{ep.host}:{ep.port}"
-            entry.states[key] = _EndpointState()
+            entry.states[key] = _EndpointState(
+                dep_name=dep.name,
+                dep_type=str(dep.type),
+                host=ep.host,
+                port=ep.port,
+                critical=dep.critical,
+                labels=dict(ep.labels),
+            )
         self._entries.append(entry)
 
     async def start(self) -> None:
@@ -110,6 +133,34 @@ class CheckScheduler:
             # A dependency is healthy if at least one endpoint is healthy.
             healthy = any(s.healthy for s in entry.states.values())
             result[entry.dep.name] = healthy
+        return result
+
+    def health_details(self) -> dict[str, EndpointStatus]:
+        """Return detailed health status of all endpoints.
+
+        Key format: ``"dependency:host:port"``.
+        Includes UNKNOWN endpoints (before first check) with status="unknown"
+        and healthy=None.
+        """
+        result: dict[str, EndpointStatus] = {}
+        for entry in self._entries:
+            for ep in entry.dep.endpoints:
+                hp_key = f"{ep.host}:{ep.port}"
+                state = entry.states[hp_key]
+                key = f"{entry.dep.name}:{ep.host}:{ep.port}"
+                result[key] = EndpointStatus(
+                    healthy=state.healthy,
+                    status=state.last_status,
+                    detail=state.last_detail,
+                    latency=state.last_latency,
+                    type=state.dep_type,
+                    name=state.dep_name,
+                    host=state.host,
+                    port=state.port,
+                    critical=state.critical,
+                    last_checked_at=state.last_checked_at,
+                    labels=dict(state.labels),
+                )
         return result
 
     async def _run_loop(self, entry: _SchedulerEntry, ep: Endpoint) -> None:
@@ -163,6 +214,12 @@ class CheckScheduler:
         result = classify_error(check_err)
         self._metrics.set_status(entry.dep, ep, result.category)
         self._metrics.set_status_detail(entry.dep, ep, result.detail)
+
+        # Store classification results for health_details() API.
+        state.last_status = result.category
+        state.last_detail = result.detail
+        state.last_latency = duration
+        state.last_checked_at = datetime.now(UTC)
 
         if success:
             state.consecutive_successes += 1

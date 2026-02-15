@@ -12,6 +12,7 @@ from dephealth.check_result import (
     STATUS_TIMEOUT,
     STATUS_TLS_ERROR,
     STATUS_UNHEALTHY,
+    STATUS_UNKNOWN,
     CheckResult,
     classify_error,
 )
@@ -37,6 +38,7 @@ from dephealth.dependency import (
     validate_label_name,
     validate_labels,
 )
+from dephealth.endpoint_status import EndpointStatus
 from dephealth.parser import ParsedConnection, parse_jdbc, parse_params, parse_url
 
 __all__ = [
@@ -52,6 +54,7 @@ __all__ = [
     "Dependency",
     "DependencyType",
     "Endpoint",
+    "EndpointStatus",
     "HealthChecker",
     "LABEL_NAME_PATTERN",
     "ParsedConnection",
@@ -64,6 +67,7 @@ __all__ = [
     "STATUS_TIMEOUT",
     "STATUS_TLS_ERROR",
     "STATUS_UNHEALTHY",
+    "STATUS_UNKNOWN",
     "UnhealthyError",
     "bool_to_yes_no",
     "classify_error",

@@ -26,6 +26,7 @@ from dephealth.dependency import (
     Endpoint,
     validate_labels,
 )
+from dephealth.endpoint_status import EndpointStatus
 from dephealth.metrics import MetricsExporter
 from dephealth.parser import parse_params, parse_url
 from dephealth.scheduler import CheckScheduler
@@ -190,6 +191,10 @@ class DependencyHealth:
     def health(self) -> dict[str, bool]:
         """Return current health status of all dependencies."""
         return self._scheduler.health()
+
+    def health_details(self) -> dict[str, EndpointStatus]:
+        """Return detailed health status of all endpoints."""
+        return self._scheduler.health_details()
 
 
 # --- Dependency factory functions ---

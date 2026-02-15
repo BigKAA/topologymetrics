@@ -15,6 +15,7 @@ STATUS_AUTH_ERROR = "auth_error"
 STATUS_TLS_ERROR = "tls_error"
 STATUS_UNHEALTHY = "unhealthy"
 STATUS_ERROR = "error"
+STATUS_UNKNOWN = "unknown"
 
 ALL_STATUS_CATEGORIES = (
     STATUS_OK,
@@ -119,6 +120,7 @@ __all__ = [
     "STATUS_TIMEOUT",
     "STATUS_TLS_ERROR",
     "STATUS_UNHEALTHY",
+    "STATUS_UNKNOWN",
     "CheckResult",
     "classify_error",
 ]

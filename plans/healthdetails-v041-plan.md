@@ -145,50 +145,65 @@ update documentation, and release v0.4.1.
 
 ---
 
-## Phase 4: Python SDK Implementation
+## Phase 4: Python SDK Implementation ✅
 
 > Scope: `sdk-python/dephealth/`
 > Estimated effort: Medium
+> **Status: COMPLETED**
 
 ### Tasks
 
-1. **Add `StatusCategory` type** (str enum or Literal type):
-   - In `check_result.py` or new `endpoint_status.py`
+1. ✅ **Add `STATUS_UNKNOWN` constant** (`check_result.py`):
+   - Added `STATUS_UNKNOWN = "unknown"` (not in `ALL_STATUS_CATEGORIES`)
 
-2. **Add `EndpointStatus` frozen dataclass**:
+2. ✅ **Add `EndpointStatus` frozen dataclass** (new file `endpoint_status.py`):
    - 11 fields with Python types: `bool | None`, `float` (seconds),
      `datetime | None`, `dict[str, str]`
+   - `latency_millis()` helper, `to_dict()` JSON serialization
 
-3. **Extend `_EndpointState`** (`scheduler.py`):
-   - Add fields: `last_status`, `last_detail`, `last_latency`, `last_checked_at`
-   - Add static fields: `dep_name`, `dep_type`, `host`, `port`, `critical`, `labels`
+3. ✅ **Extend `_EndpointState`** (`scheduler.py`):
+   - Dynamic fields: `last_status`, `last_detail`, `last_latency`, `last_checked_at`
+   - Static fields: `dep_name`, `dep_type`, `host`, `port`, `critical`, `labels`
+   - Changed `healthy: bool = False` → `healthy: bool | None = None` (UNKNOWN state)
 
-4. **Store results in `_check_once()`**:
-   - After `classify_error()`: store category, detail, duration, datetime.now(UTC)
+4. ✅ **Store results in `_check_once()`**:
+   - After `classify_error()`: store category, detail, duration, `datetime.now(UTC)`
 
-5. **Set static fields** when creating `_EndpointState`
+5. ✅ **Set static fields** when creating `_EndpointState` in `add()`
 
-6. **Add `CheckScheduler.health_details()`**:
+6. ✅ **Add `CheckScheduler.health_details()`**:
    - Return `dict[str, EndpointStatus]`
    - Key format: `"dependency:host:port"` (aligned with Go/Java/C#)
    - Include UNKNOWN endpoints
 
-7. **Add `DependencyHealth.health_details()`**:
+7. ✅ **Add `DependencyHealth.health_details()`** (`api.py`):
    - Delegate to scheduler
 
-8. **Export in `__all__`** (`__init__.py`):
-   - `EndpointStatus`, `StatusCategory`
+8. ✅ **Export in `__all__`** (`__init__.py`):
+   - `EndpointStatus`, `STATUS_UNKNOWN`
 
-9. **Unit tests**
+9. ✅ **Unit tests** (`tests/test_health_details.py` — 17 tests):
+   - EmptyBeforeAdd, UnknownStateBeforeStart, HealthyEndpoint, UnhealthyEndpoint
+   - KeysCorrespondToHealth, AfterStop, LabelsEmpty, LabelsPresent
+   - ResultMapIndependent, MultipleEndpoints
+   - FacadeDelegates, FacadeEmptyBeforeAdd
+   - LatencyMillis, Frozen, ToDictHealthy, ToDictUnknown, ToDictRoundtrip
 
-10. **Lint**: `make lint` in `sdk-python/` (ruff + mypy --strict)
+10. ✅ **Lint**: ruff check 0 errors, ruff format clean, mypy --strict 0 issues
+
+### Key Design Decisions
+1. **STATUS_UNKNOWN as string constant** — matches existing pattern (not StrEnum), not in ALL_STATUS_CATEGORIES
+2. **EndpointStatus as frozen dataclass** — follows project convention for value objects
+3. **`healthy: bool | None = None`** — `None` = unknown (before first check), `any()` treats None as falsy → no behavior change in `health()`
+4. **`to_dict()` method for JSON** — `latency_ms` float, `last_checked_at` ISO 8601 or None
+5. **Labels deep copy** in `add()` and `health_details()` — caller isolation
 
 ### Acceptance criteria
-- [ ] Same behavior as Go SDK
-- [ ] Key format `"dep:host:port"` (not aggregated like `health()`)
-- [ ] Frozen dataclass with type hints
-- [ ] All tests pass
-- [ ] ruff + mypy clean
+- [x] Same behavior as Go SDK
+- [x] Key format `"dep:host:port"` (not aggregated like `health()`)
+- [x] Frozen dataclass with type hints
+- [x] All tests pass (144 total, 17 new)
+- [x] ruff + mypy clean
 
 ---
 
