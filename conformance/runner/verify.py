@@ -16,6 +16,7 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
+from urllib.parse import urlparse, urlunparse
 
 import requests
 import yaml
@@ -704,6 +705,310 @@ def check_expected_detail(
     return results
 
 
+# --- HealthDetails API checks ---
+
+HEALTH_DETAILS_REQUIRED_FIELDS = {
+    "healthy", "status", "detail", "latency_ms", "type",
+    "name", "host", "port", "critical", "last_checked_at", "labels",
+}
+VALID_STATUS_CATEGORIES = {"ok", "timeout", "connection_error", "dns_error",
+                           "auth_error", "tls_error", "unhealthy", "error", "unknown"}
+
+
+def derive_service_url(metrics_url: str) -> str:
+    """Derive service base URL from metrics URL (strip path)."""
+    parsed = urlparse(metrics_url)
+    return urlunparse((parsed.scheme, parsed.netloc, "", "", "", ""))
+
+
+def fetch_health_details(metrics_url: str, timeout: int = 10) -> dict:
+    """Fetch /health-details JSON from the test service."""
+    base_url = derive_service_url(metrics_url)
+    url = f"{base_url}/health-details"
+    resp = requests.get(url, timeout=timeout)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def check_health_details_endpoint_exists(metrics_url: str) -> CheckResult:
+    """Check that /health-details returns HTTP 200 with valid JSON."""
+    try:
+        data = fetch_health_details(metrics_url)
+        if not isinstance(data, dict):
+            return CheckResult(
+                "health_details_endpoint_exists", False,
+                f"response is not a JSON object: {type(data).__name__}",
+            )
+        return CheckResult(
+            "health_details_endpoint_exists", True,
+            f"/health-details returned {len(data)} endpoints",
+        )
+    except Exception as e:
+        return CheckResult("health_details_endpoint_exists", False, f"error: {e}")
+
+
+def check_health_details_structure(data: dict) -> list[CheckResult]:
+    """Check that each entry has all 11 required fields."""
+    results = []
+    for key, entry in data.items():
+        if not isinstance(entry, dict):
+            results.append(CheckResult(
+                f"structure_{key}", False,
+                f"entry is not an object: {type(entry).__name__}",
+            ))
+            continue
+        missing = HEALTH_DETAILS_REQUIRED_FIELDS - set(entry.keys())
+        if missing:
+            results.append(CheckResult(
+                f"structure_{key}", False,
+                f"missing fields: {missing}",
+            ))
+        else:
+            results.append(CheckResult(
+                f"structure_{key}", True,
+                "all 11 fields present",
+            ))
+    if not results:
+        results.append(CheckResult("health_details_structure", False,
+                                   "no endpoints in response"))
+    return results
+
+
+def check_health_details_types(data: dict) -> list[CheckResult]:
+    """Check that field types are correct for each entry."""
+    results = []
+    for key, entry in data.items():
+        if not isinstance(entry, dict):
+            continue
+        errors = []
+        # healthy: bool or null
+        h = entry.get("healthy")
+        if h is not None and not isinstance(h, bool):
+            errors.append(f"healthy: expected bool|null, got {type(h).__name__}")
+        # status: string
+        if not isinstance(entry.get("status"), str):
+            errors.append(f"status: expected string, got {type(entry.get('status')).__name__}")
+        # detail: string
+        if not isinstance(entry.get("detail"), str):
+            errors.append(f"detail: expected string, got {type(entry.get('detail')).__name__}")
+        # latency_ms: number
+        lat = entry.get("latency_ms")
+        if not isinstance(lat, (int, float)):
+            errors.append(f"latency_ms: expected number, got {type(lat).__name__}")
+        # type: string
+        if not isinstance(entry.get("type"), str):
+            errors.append(f"type: expected string, got {type(entry.get('type')).__name__}")
+        # name: string
+        if not isinstance(entry.get("name"), str):
+            errors.append(f"name: expected string, got {type(entry.get('name')).__name__}")
+        # host: string
+        if not isinstance(entry.get("host"), str):
+            errors.append(f"host: expected string, got {type(entry.get('host')).__name__}")
+        # port: string
+        if not isinstance(entry.get("port"), str):
+            errors.append(f"port: expected string, got {type(entry.get('port')).__name__}")
+        # critical: bool
+        if not isinstance(entry.get("critical"), bool):
+            errors.append(f"critical: expected bool, got {type(entry.get('critical')).__name__}")
+        # last_checked_at: string or null
+        lca = entry.get("last_checked_at")
+        if lca is not None and not isinstance(lca, str):
+            errors.append(f"last_checked_at: expected string|null, got {type(lca).__name__}")
+        # labels: object
+        if not isinstance(entry.get("labels"), dict):
+            errors.append(f"labels: expected object, got {type(entry.get('labels')).__name__}")
+
+        if errors:
+            results.append(CheckResult(
+                f"types_{key}", False,
+                "; ".join(errors),
+            ))
+        else:
+            results.append(CheckResult(f"types_{key}", True, "all field types correct"))
+
+    if not results:
+        results.append(CheckResult("health_details_types", False,
+                                   "no endpoints in response"))
+    return results
+
+
+def check_health_details_consistency(
+    data: dict, metrics: dict,
+) -> list[CheckResult]:
+    """Check that HealthDetails keys match metrics endpoints."""
+    results = []
+
+    # Build set of (dependency, host, port) from health metric
+    metrics_keys = set()
+    if HEALTH_METRIC in metrics:
+        for sample in metrics[HEALTH_METRIC]["samples"]:
+            if sample["name"] != HEALTH_METRIC:
+                continue
+            metrics_keys.add((
+                sample["labels"].get("dependency", ""),
+                sample["labels"].get("host", ""),
+                sample["labels"].get("port", ""),
+            ))
+
+    # Build set from health-details keys ("dep:host:port")
+    details_keys = set()
+    for key in data:
+        parts = key.rsplit(":", 2)
+        if len(parts) == 3:
+            details_keys.add(tuple(parts))
+        else:
+            results.append(CheckResult(
+                f"consistency_key_{key}", False,
+                f"invalid key format (expected dependency:host:port): '{key}'",
+            ))
+
+    # Compare
+    missing_in_details = metrics_keys - details_keys
+    extra_in_details = details_keys - metrics_keys
+
+    if missing_in_details:
+        for mk in missing_in_details:
+            results.append(CheckResult(
+                f"consistency_{mk[0]}", False,
+                f"endpoint {mk} present in metrics but missing in /health-details",
+            ))
+    if extra_in_details:
+        for dk in extra_in_details:
+            results.append(CheckResult(
+                f"consistency_{dk[0]}", False,
+                f"endpoint {dk} present in /health-details but missing in metrics",
+            ))
+
+    if not missing_in_details and not extra_in_details and not results:
+        results.append(CheckResult(
+            "health_details_consistency", True,
+            f"all {len(metrics_keys)} endpoints match between metrics and /health-details",
+        ))
+
+    # Also check field consistency: health value ↔ healthy bool, status ↔ active status
+    if HEALTH_METRIC in metrics:
+        health_map: dict[tuple, float] = {}
+        for sample in metrics[HEALTH_METRIC]["samples"]:
+            if sample["name"] != HEALTH_METRIC:
+                continue
+            key = _endpoint_key(sample["labels"])
+            health_map[key] = sample["value"]
+
+        for hd_key, entry in data.items():
+            parts = hd_key.rsplit(":", 2)
+            if len(parts) != 3:
+                continue
+            mk = tuple(parts)
+            if mk not in health_map:
+                continue
+            metric_health = health_map[mk]
+            api_healthy = entry.get("healthy")
+            if metric_health == 1.0 and api_healthy is not True:
+                results.append(CheckResult(
+                    f"consistency_health_{mk[0]}", False,
+                    f"metric health=1 but /health-details healthy={api_healthy}",
+                ))
+            elif metric_health == 0.0 and api_healthy is not False:
+                results.append(CheckResult(
+                    f"consistency_health_{mk[0]}", False,
+                    f"metric health=0 but /health-details healthy={api_healthy}",
+                ))
+
+    return results
+
+
+def check_health_details_status_values(data: dict) -> list[CheckResult]:
+    """Check that status values match allowed StatusCategory values."""
+    results = []
+    for key, entry in data.items():
+        if not isinstance(entry, dict):
+            continue
+        status = entry.get("status", "")
+        if status not in VALID_STATUS_CATEGORIES:
+            results.append(CheckResult(
+                f"status_value_{key}", False,
+                f"invalid status '{status}' (expected one of {VALID_STATUS_CATEGORIES})",
+            ))
+        else:
+            results.append(CheckResult(
+                f"status_value_{key}", True,
+                f"status='{status}' OK",
+            ))
+    if not results:
+        results.append(CheckResult("health_details_status_values", False,
+                                   "no endpoints in response"))
+    return results
+
+
+def check_health_details_expected(
+    data: dict, expected: list[dict],
+) -> list[CheckResult]:
+    """Check that specific endpoints have expected values."""
+    results = []
+
+    for exp in expected:
+        dep = exp["dependency"]
+        host = exp["host"]
+        port = str(exp["port"])
+        hd_key = f"{dep}:{host}:{port}"
+
+        if hd_key not in data:
+            results.append(CheckResult(
+                f"expected_hd_{dep}", False,
+                f"endpoint '{hd_key}' not found in /health-details",
+            ))
+            continue
+
+        entry = data[hd_key]
+        entry_errors = []
+
+        # Check each expected field
+        if "healthy" in exp:
+            exp_healthy = exp["healthy"]
+            actual_healthy = entry.get("healthy")
+            if actual_healthy != exp_healthy:
+                entry_errors.append(
+                    f"healthy: {actual_healthy}, expected {exp_healthy}")
+
+        if "status" in exp:
+            if entry.get("status") != exp["status"]:
+                entry_errors.append(
+                    f"status: '{entry.get('status')}', expected '{exp['status']}'")
+
+        if "detail" in exp:
+            if entry.get("detail") != exp["detail"]:
+                entry_errors.append(
+                    f"detail: '{entry.get('detail')}', expected '{exp['detail']}'")
+
+        if "type" in exp:
+            if entry.get("type") != exp["type"]:
+                entry_errors.append(
+                    f"type: '{entry.get('type')}', expected '{exp['type']}'")
+
+        if "critical" in exp:
+            if entry.get("critical") != exp["critical"]:
+                entry_errors.append(
+                    f"critical: {entry.get('critical')}, expected {exp['critical']}")
+
+        if "name" in exp:
+            if entry.get("name") != exp["name"]:
+                entry_errors.append(
+                    f"name: '{entry.get('name')}', expected '{exp['name']}'")
+
+        if entry_errors:
+            results.append(CheckResult(
+                f"expected_hd_{dep}", False,
+                "; ".join(entry_errors),
+            ))
+        else:
+            results.append(CheckResult(
+                f"expected_hd_{dep}", True,
+                f"{dep} OK",
+            ))
+
+    return results
+
+
 def execute_action(
     action: dict,
     namespace: str = "dephealth-conformance",
@@ -865,6 +1170,31 @@ def run_scenario(
 
         elif check_type == "expected_detail":
             results.extend(check_expected_detail(metrics, check["endpoints"]))
+
+        # --- HealthDetails API checks ---
+
+        elif check_type == "health_details_endpoint_exists":
+            results.append(check_health_details_endpoint_exists(metrics_url))
+
+        elif check_type == "health_details_structure":
+            hd_data = fetch_health_details(metrics_url)
+            results.extend(check_health_details_structure(hd_data))
+
+        elif check_type == "health_details_types":
+            hd_data = fetch_health_details(metrics_url)
+            results.extend(check_health_details_types(hd_data))
+
+        elif check_type == "health_details_consistency":
+            hd_data = fetch_health_details(metrics_url)
+            results.extend(check_health_details_consistency(hd_data, metrics))
+
+        elif check_type == "health_details_status_values":
+            hd_data = fetch_health_details(metrics_url)
+            results.extend(check_health_details_status_values(hd_data))
+
+        elif check_type == "health_details_expected":
+            hd_data = fetch_health_details(metrics_url)
+            results.extend(check_health_details_expected(hd_data, check["endpoints"]))
 
         else:
             results.append(CheckResult(

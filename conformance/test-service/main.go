@@ -215,6 +215,14 @@ func handleDependencies(dh *dephealth.DepHealth) http.HandlerFunc {
 	}
 }
 
+func handleHealthDetails(dh *dephealth.DepHealth) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		details := dh.HealthDetails()
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(details)
+	}
+}
+
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
@@ -277,6 +285,7 @@ func main() {
 	mux.Handle("/metrics", promhttp.Handler())
 	mux.HandleFunc("/health", handleHealth())
 	mux.HandleFunc("/health/dependencies", handleDependencies(dh))
+	mux.HandleFunc("/health-details", handleHealthDetails(dh))
 
 	server := &http.Server{
 		Addr:         ":" + cfg.Port,

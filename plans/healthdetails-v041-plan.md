@@ -262,10 +262,11 @@ update documentation, and release v0.4.1.
 
 ---
 
-## Phase 6: Conformance Tests
+## Phase 6: Conformance Tests ✅
 
 > Scope: `conformance/`
 > Estimated effort: Medium-Large
+> **Status: COMPLETED**
 >
 > HealthDetails() is a programmatic API, not a metrics endpoint.
 > To test cross-SDK consistency, each test service exposes a
@@ -339,10 +340,10 @@ checks:
 - Push to `harbor.kryukov.lan/library`
 
 ### Acceptance criteria
-- [ ] All 4 test services expose `/health-details`
-- [ ] JSON format consistent across all 4 SDKs
-- [ ] New scenario passes for all 4 SDKs
-- [ ] Existing scenarios still pass (regression)
+- [x] All 4 test services expose `/health-details`
+- [x] JSON format consistent across all 4 SDKs
+- [x] New scenario passes for all 4 SDKs
+- [x] Existing scenarios still pass (regression)
 
 ---
 

@@ -21,7 +21,7 @@ import logging
 import os
 from datetime import timedelta
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 from dephealth.api import (
@@ -109,3 +109,14 @@ async def index() -> JSONResponse:
 async def health() -> PlainTextResponse:
     """Health check для Kubernetes probes."""
     return PlainTextResponse("OK")
+
+
+@app.get("/health-details")
+async def health_details(request: Request) -> JSONResponse:
+    """Detailed health status for each endpoint (HealthDetails API)."""
+    dh = getattr(request.app.state, "dephealth", None)
+    if dh is None:
+        return JSONResponse(content={}, status_code=503)
+    details = dh.health_details()
+    result = {key: es.to_dict() for key, es in details.items()}
+    return JSONResponse(content=result)

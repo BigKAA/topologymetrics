@@ -53,6 +53,12 @@ app.MapGet("/", () => Results.Json(new
 
 app.MapGet("/health", () => Results.Text("OK"));
 
+app.MapGet("/health-details", (DepHealthMonitor monitor) =>
+{
+    var details = monitor.HealthDetails();
+    return Results.Json(details);
+});
+
 app.MapDepHealthEndpoints();
 
 // Prometheus /metrics

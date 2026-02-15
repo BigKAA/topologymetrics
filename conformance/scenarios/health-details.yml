@@ -1,0 +1,79 @@
+name: "health-details"
+description: "HealthDetails() API returns correct endpoint data for all 7 dependencies"
+
+checks:
+  - type: health_details_endpoint_exists
+
+  - type: health_details_structure
+
+  - type: health_details_types
+
+  - type: health_details_status_values
+
+  - type: health_details_consistency
+
+  - type: health_details_expected
+    endpoints:
+      - dependency: postgres-primary
+        host: postgres-primary.dephealth-conformance.svc
+        port: 5432
+        healthy: true
+        status: ok
+        detail: ok
+        type: postgres
+        name: postgres-primary
+        critical: true
+      - dependency: postgres-replica
+        host: postgres-replica.dephealth-conformance.svc
+        port: 5432
+        healthy: true
+        status: ok
+        detail: ok
+        type: postgres
+        name: postgres-replica
+        critical: false
+      - dependency: redis-cache
+        host: redis.dephealth-conformance.svc
+        port: 6379
+        healthy: true
+        status: ok
+        detail: ok
+        type: redis
+        name: redis-cache
+        critical: true
+      - dependency: rabbitmq
+        host: rabbitmq.dephealth-conformance.svc
+        port: 5672
+        healthy: true
+        status: ok
+        detail: ok
+        type: amqp
+        name: rabbitmq
+        critical: false
+      - dependency: kafka-main
+        host: kafka.dephealth-conformance.svc
+        port: 9092
+        healthy: true
+        status: ok
+        detail: ok
+        type: kafka
+        name: kafka-main
+        critical: false
+      - dependency: http-service
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        healthy: true
+        status: ok
+        detail: ok
+        type: http
+        name: http-service
+        critical: false
+      - dependency: grpc-service
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        healthy: true
+        status: ok
+        detail: ok
+        type: grpc
+        name: grpc-service
+        critical: false

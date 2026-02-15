@@ -13,6 +13,7 @@
 import argparse
 import json
 import sys
+from urllib.parse import urlparse, urlunparse
 
 import requests
 from prometheus_client.parser import text_string_to_metric_families
@@ -209,6 +210,136 @@ def compare_sdks(sdk_data: dict[str, dict]) -> list[str]:
     return errors
 
 
+HEALTH_DETAILS_REQUIRED_FIELDS = {
+    "healthy", "status", "detail", "latency_ms", "type",
+    "name", "host", "port", "critical", "last_checked_at", "labels",
+}
+
+
+def derive_service_url(metrics_url: str) -> str:
+    """Derive service base URL from metrics URL (strip path)."""
+    parsed = urlparse(metrics_url)
+    return urlunparse((parsed.scheme, parsed.netloc, "", "", "", ""))
+
+
+def fetch_health_details(metrics_url: str) -> dict:
+    """Fetch /health-details JSON from the test service."""
+    base_url = derive_service_url(metrics_url)
+    url = f"{base_url}/health-details"
+    resp = requests.get(url, timeout=10)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def extract_health_details_info(data: dict) -> dict:
+    """Extract structural information from HealthDetails response."""
+    keys = sorted(data.keys())
+    fields_per_entry = set()
+    types_per_entry: dict[str, set] = {}
+    statuses = set()
+    dep_names = set()
+    dep_types = set()
+
+    for key, entry in data.items():
+        if not isinstance(entry, dict):
+            continue
+        fields_per_entry.update(entry.keys())
+        for field, val in entry.items():
+            types_per_entry.setdefault(field, set()).add(type(val).__name__)
+        if "status" in entry:
+            statuses.add(entry["status"])
+        if "name" in entry:
+            dep_names.add(entry["name"])
+        if "type" in entry:
+            dep_types.add(entry["type"])
+
+    return {
+        "keys": keys,
+        "fields": sorted(fields_per_entry),
+        "statuses": sorted(statuses),
+        "dependencies": sorted(dep_names),
+        "dep_types": sorted(dep_types),
+        "endpoint_count": len(data),
+    }
+
+
+def compare_health_details(sdk_hd: dict[str, dict]) -> list[str]:
+    """Compare HealthDetails responses across SDKs."""
+    errors = []
+    langs = list(sdk_hd.keys())
+    if len(langs) < 2:
+        return errors
+
+    ref_lang = langs[0]
+    ref_info = extract_health_details_info(sdk_hd[ref_lang])
+
+    # Check each SDK has /health-details data
+    for lang in langs:
+        if not sdk_hd[lang]:
+            errors.append(f"[{lang}] /health-details returned empty or failed")
+
+    present = [l for l in langs if sdk_hd[l]]
+    if len(present) < 2:
+        return errors
+
+    ref_lang = present[0]
+    ref_data = sdk_hd[ref_lang]
+    ref_info = extract_health_details_info(ref_data)
+
+    # Keys must match
+    for lang in present[1:]:
+        lang_info = extract_health_details_info(sdk_hd[lang])
+        if lang_info["keys"] != ref_info["keys"]:
+            ref_keys = set(ref_info["keys"])
+            lang_keys = set(lang_info["keys"])
+            errors.append(
+                f"[{lang}] /health-details keys differ from {ref_lang}: "
+                f"extra={lang_keys - ref_keys}, missing={ref_keys - lang_keys}"
+            )
+
+    # Fields must match (all 11 required)
+    for lang in present:
+        lang_info = extract_health_details_info(sdk_hd[lang])
+        missing = HEALTH_DETAILS_REQUIRED_FIELDS - set(lang_info["fields"])
+        if missing:
+            errors.append(f"[{lang}] /health-details missing fields: {missing}")
+
+    # Dependencies and types must match
+    for lang in present[1:]:
+        lang_info = extract_health_details_info(sdk_hd[lang])
+        if lang_info["dependencies"] != ref_info["dependencies"]:
+            errors.append(
+                f"[{lang}] /health-details dependencies differ from {ref_lang}: "
+                f"{lang_info['dependencies']} != {ref_info['dependencies']}"
+            )
+        if lang_info["dep_types"] != ref_info["dep_types"]:
+            errors.append(
+                f"[{lang}] /health-details dep_types differ from {ref_lang}: "
+                f"{lang_info['dep_types']} != {ref_info['dep_types']}"
+            )
+
+    # For each common key, compare static fields (name, host, port, type, critical)
+    common_keys = set(ref_info["keys"])
+    for lang in present[1:]:
+        lang_keys = set(extract_health_details_info(sdk_hd[lang])["keys"])
+        common_keys &= lang_keys
+
+    for key in sorted(common_keys):
+        ref_entry = ref_data[key]
+        for lang in present[1:]:
+            lang_entry = sdk_hd[lang].get(key, {})
+            for field in ("name", "host", "port", "type", "critical"):
+                ref_val = ref_entry.get(field)
+                lang_val = lang_entry.get(field)
+                if ref_val != lang_val:
+                    errors.append(
+                        f"[{lang}] /health-details key='{key}' "
+                        f"field '{field}': '{lang_val}' != '{ref_val}' ({ref_lang})"
+                    )
+
+    return errors
+
+
 def main():
     parser = argparse.ArgumentParser(description="Кросс-языковая верификация метрик")
     parser.add_argument(
@@ -253,11 +384,36 @@ def main():
             print(f"  ОШИБКА: {e}")
             sdk_data[lang] = {}
 
+    # --- HealthDetails API cross-verification ---
+    print("\n" + "=" * 60)
+    print("HealthDetails API — кросс-языковая верификация")
+    print("=" * 60)
+
+    sdk_hd: dict[str, dict] = {}
+    for lang, url in sdk_urls.items():
+        print(f"\n[{lang}] Получение /health-details")
+        try:
+            hd_data = fetch_health_details(url)
+            sdk_hd[lang] = hd_data
+            hd_info = extract_health_details_info(hd_data)
+            print(f"  endpoints: {hd_info['endpoint_count']}")
+            print(f"  keys: {hd_info['keys']}")
+            print(f"  fields: {hd_info['fields']}")
+            print(f"  dependencies: {hd_info['dependencies']}")
+            print(f"  dep_types: {hd_info['dep_types']}")
+            print(f"  statuses: {hd_info['statuses']}")
+        except Exception as e:
+            print(f"  ОШИБКА: {e}")
+            sdk_hd[lang] = {}
+
+    # --- Comparison ---
     print("\n" + "=" * 60)
     print("Кросс-языковое сравнение")
     print("=" * 60)
 
     errors = compare_sdks(sdk_data)
+    hd_errors = compare_health_details(sdk_hd)
+    errors.extend(hd_errors)
 
     if errors:
         print(f"\nНайдено {len(errors)} расхождений:")
@@ -274,9 +430,13 @@ def main():
         print("  [+] Status enum полнота (8 серий)")
         print("  [+] Зависимости совпадают")
         print("  [+] Типы зависимостей совпадают")
+        print("  [+] HealthDetails JSON-структура идентична")
+        print("  [+] HealthDetails ключи совпадают")
+        print("  [+] HealthDetails статические поля совпадают")
 
     if args.json:
-        print("\n" + json.dumps(sdk_data, indent=2, default=str))
+        output = {"metrics": sdk_data, "health_details": sdk_hd}
+        print("\n" + json.dumps(output, indent=2, default=str))
 
 
 if __name__ == "__main__":
