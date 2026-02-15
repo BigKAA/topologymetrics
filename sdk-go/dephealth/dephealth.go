@@ -115,3 +115,10 @@ func (dh *DepHealth) Stop() {
 func (dh *DepHealth) Health() map[string]bool {
 	return dh.scheduler.Health()
 }
+
+// HealthDetails returns the detailed health state of all endpoints.
+// Key is "dependency:host:port", value is EndpointStatus with 11 fields.
+// Unlike Health(), UNKNOWN endpoints (before first check) are included.
+func (dh *DepHealth) HealthDetails() map[string]EndpointStatus {
+	return dh.scheduler.HealthDetails()
+}

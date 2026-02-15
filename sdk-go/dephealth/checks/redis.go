@@ -79,7 +79,7 @@ func (c *RedisChecker) checkStandalone(ctx context.Context, endpoint dephealth.E
 		Addr:         addr,
 		Password:     c.password,
 		DB:           c.db,
-		MaxRetries:   0,              // Single attempt; retries are handled by the check scheduler.
+		MaxRetries:   0,               // Single attempt; retries are handled by the check scheduler.
 		DialTimeout:  3 * time.Second, // Shorter than the check timeout to get a classifiable net error.
 		ReadTimeout:  3 * time.Second,
 		WriteTimeout: 3 * time.Second,

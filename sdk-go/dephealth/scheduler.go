@@ -21,6 +21,20 @@ type endpointState struct {
 	healthy              *bool // nil = UNKNOWN (before first check)
 	consecutiveFailures  int
 	consecutiveSuccesses int
+
+	// Fields for HealthDetails() API.
+	lastStatus    StatusCategory
+	lastDetail    string
+	lastLatency   time.Duration
+	lastCheckedAt time.Time
+
+	// Static fields set at state creation time.
+	depName  string
+	depType  DependencyType
+	host     string
+	port     string
+	critical bool
+	labels   map[string]string
 }
 
 // Scheduler manages periodic execution of health checks.
@@ -107,9 +121,23 @@ func (s *Scheduler) Start(ctx context.Context) error {
 
 	s.states = make(map[string]*endpointState)
 	for _, sd := range s.deps {
+		critical := sd.dep.Critical != nil && *sd.dep.Critical
 		for _, ep := range sd.dep.Endpoints {
 			key := sd.dep.Name + ":" + ep.Host + ":" + ep.Port
-			st := &endpointState{}
+			labels := make(map[string]string, len(ep.Labels))
+			for k, v := range ep.Labels {
+				labels[k] = v
+			}
+			st := &endpointState{
+				lastStatus: StatusUnknown,
+				lastDetail: "unknown",
+				depName:    sd.dep.Name,
+				depType:    sd.dep.Type,
+				host:       ep.Host,
+				port:       ep.Port,
+				critical:   critical,
+				labels:     labels,
+			}
 			s.states[key] = st
 			s.wg.Add(1)
 			go s.runEndpointLoop(ctx, sd.dep, ep, sd.checker, st)
@@ -156,6 +184,62 @@ func (s *Scheduler) Health() map[string]bool {
 		st.mu.Unlock()
 	}
 	return result
+}
+
+// HealthDetails returns the detailed health state of all endpoints.
+// Key is "dependency:host:port". Unlike Health(), UNKNOWN endpoints
+// (before first check) are included with Status="unknown" and Healthy=nil.
+// Returns nil before Start() is called.
+func (s *Scheduler) HealthDetails() map[string]EndpointStatus {
+	s.mu.Lock()
+	states := s.states
+	s.mu.Unlock()
+
+	if states == nil {
+		return nil
+	}
+
+	result := make(map[string]EndpointStatus, len(states))
+	for key, st := range states {
+		st.mu.Lock()
+		es := EndpointStatus{
+			Healthy:       copyBoolPtr(st.healthy),
+			Status:        st.lastStatus,
+			Detail:        st.lastDetail,
+			Latency:       st.lastLatency,
+			Type:          st.depType,
+			Name:          st.depName,
+			Host:          st.host,
+			Port:          st.port,
+			Critical:      st.critical,
+			LastCheckedAt: st.lastCheckedAt,
+			Labels:        copyStringMap(st.labels),
+		}
+		st.mu.Unlock()
+		result[key] = es
+	}
+	return result
+}
+
+// copyBoolPtr returns a copy of a *bool pointer.
+func copyBoolPtr(b *bool) *bool {
+	if b == nil {
+		return nil
+	}
+	v := *b
+	return &v
+}
+
+// copyStringMap returns a shallow copy of a string map.
+func copyStringMap(m map[string]string) map[string]string {
+	if m == nil {
+		return map[string]string{}
+	}
+	cp := make(map[string]string, len(m))
+	for k, v := range m {
+		cp[k] = v
+	}
+	return cp
 }
 
 // runEndpointLoop is the main check loop for a single endpoint.
@@ -228,6 +312,12 @@ func (s *Scheduler) executeCheck(
 
 	state.mu.Lock()
 	defer state.mu.Unlock()
+
+	// Store classification results for HealthDetails() API.
+	state.lastStatus = result.Category
+	state.lastDetail = result.Detail
+	state.lastLatency = duration
+	state.lastCheckedAt = time.Now()
 
 	if isFirst {
 		// First check: set state immediately without threshold logic.

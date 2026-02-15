@@ -1,20 +1,28 @@
 package dephealth
 
-// Status category constants used for app_dependency_status metric.
+// StatusCategory is a typed alias for status category string values.
+// It wraps the status constants used by the error classification system
+// and the app_dependency_status metric.
+type StatusCategory string
+
+// Status category constants used for app_dependency_status metric
+// and the HealthDetails() API.
 const (
-	StatusOK              = "ok"
-	StatusTimeout         = "timeout"
-	StatusConnectionError = "connection_error"
-	StatusDNSError        = "dns_error"
-	StatusAuthError       = "auth_error"
-	StatusTLSError        = "tls_error"
-	StatusUnhealthy       = "unhealthy"
-	StatusError           = "error"
+	StatusOK              StatusCategory = "ok"
+	StatusTimeout         StatusCategory = "timeout"
+	StatusConnectionError StatusCategory = "connection_error"
+	StatusDNSError        StatusCategory = "dns_error"
+	StatusAuthError       StatusCategory = "auth_error"
+	StatusTLSError        StatusCategory = "tls_error"
+	StatusUnhealthy       StatusCategory = "unhealthy"
+	StatusError           StatusCategory = "error"
+	StatusUnknown         StatusCategory = "unknown"
 )
 
-// AllStatusCategories contains all possible status category values.
+// AllStatusCategories contains all possible status category values
+// used for metrics (excludes StatusUnknown which is only for HealthDetails API).
 // Used to initialize all 8 series of the enum-pattern gauge.
-var AllStatusCategories = []string{
+var AllStatusCategories = []StatusCategory{
 	StatusOK,
 	StatusTimeout,
 	StatusConnectionError,
@@ -27,8 +35,8 @@ var AllStatusCategories = []string{
 
 // CheckResult holds the classification of a health check outcome.
 type CheckResult struct {
-	Category string // One of Status* constants.
-	Detail   string // Specific detail value (e.g. "http_503", "grpc_not_serving").
+	Category StatusCategory // One of Status* constants.
+	Detail   string         // Specific detail value (e.g. "http_503", "grpc_not_serving").
 }
 
 // ClassifiedError is an interface for errors that carry status classification.
@@ -36,14 +44,14 @@ type CheckResult struct {
 // precise status category and detail for the app_dependency_status metrics.
 type ClassifiedError interface {
 	error
-	StatusCategory() string
+	StatusCategory() StatusCategory
 	StatusDetail() string
 }
 
 // ClassifiedCheckError is a concrete error type that implements ClassifiedError.
 // Checkers use this to return classified errors.
 type ClassifiedCheckError struct {
-	Category string
+	Category StatusCategory
 	Detail   string
 	Cause    error
 }
@@ -60,7 +68,7 @@ func (e *ClassifiedCheckError) Unwrap() error {
 }
 
 // StatusCategory returns the status category for this error.
-func (e *ClassifiedCheckError) StatusCategory() string {
+func (e *ClassifiedCheckError) StatusCategory() StatusCategory {
 	return e.Category
 }
 

@@ -497,3 +497,230 @@ Check is considered failed, error is logged at `ERROR` level.
   (atomic / mutex / synchronized).
 - `Start()` and `Stop()` can be called only once. Repeated call to `Start()`
   returns an error. Repeated call to `Stop()` is a no-op.
+
+---
+
+## 8. Programmatic Health Details API
+
+The `HealthDetails()` method provides a programmatic API that exposes
+the detailed health check state for every registered endpoint. Unlike
+`Health()`, which returns a simple `healthy/unhealthy` boolean map,
+`HealthDetails()` returns a rich structure with classification, latency,
+metadata, and timestamps.
+
+This API enables consumers (status pages, reverse proxies, custom operators)
+to build enriched health endpoints without scraping Prometheus metrics.
+
+### 8.1. Public Method
+
+Each SDK's main facade exposes a `HealthDetails()` method:
+
+| SDK | Facade | Method | Return type |
+| --- | --- | --- | --- |
+| Go | `DepHealth` | `HealthDetails()` | `map[string]EndpointStatus` |
+| Java | `DepHealth` | `healthDetails()` | `Map<String, EndpointStatus>` |
+| Python | `DependencyHealth` | `health_details()` | `dict[str, EndpointStatus]` |
+| C# | `DepHealthMonitor` | `HealthDetails()` | `Dictionary<string, EndpointStatus>` |
+
+The method delegates to the scheduler using the same pattern as `Health()`.
+
+### 8.2. Key Format
+
+Map keys use the format `"dependency:host:port"`, consistent across all SDKs.
+Keys in `HealthDetails()` **must match** the keys in `Health()` for
+Go, Java, and C#.
+
+> **Note**: Python's existing `health()` aggregates by dependency name only.
+> The new `health_details()` intentionally uses per-endpoint keys
+> `"dependency:host:port"` for consistency with other SDKs and to provide
+> endpoint-level granularity. This is a documented difference.
+
+### 8.3. `EndpointStatus` Structure
+
+The `EndpointStatus` structure contains 11 fields. All fields are required
+in every SDK implementation.
+
+| # | Field | Go | Java | Python | C# | Description |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | Healthy | `*bool` | `Boolean` | `bool \| None` | `bool?` | `nil`/`null`/`None` = UNKNOWN |
+| 2 | Status | `StatusCategory` | `StatusCategory` | `StatusCategory` | `StatusCategory` | Classification category |
+| 3 | Detail | `string` | `String` | `str` | `string` | Specific failure reason |
+| 4 | Latency | `time.Duration` | `Duration` | `float` (seconds) | `TimeSpan` | Duration of last check |
+| 5 | Type | `DependencyType` | `DependencyType` | `DependencyType` | `DependencyType` | Dependency type |
+| 6 | Name | `string` | `String` | `str` | `string` | Dependency logical name |
+| 7 | Host | `string` | `String` | `str` | `string` | Endpoint host |
+| 8 | Port | `string` | `String` | `str` | `string` | Endpoint port |
+| 9 | Critical | `bool` | `boolean` | `bool` | `bool` | Whether dependency is critical |
+| 10 | LastCheckedAt | `time.Time` | `Instant` | `datetime \| None` | `DateTimeOffset?` | Timestamp of last check |
+| 11 | Labels | `map[string]string` | `Map<String, String>` | `dict[str, str]` | `Dictionary<string, string>` | Custom labels |
+
+**Field details**:
+
+- **Healthy**: tri-state — `true` (healthy), `false` (unhealthy),
+  `nil`/`null`/`None` (unknown, before first check).
+- **Status**: typed category from `StatusCategory` (see section 8.4).
+- **Detail**: specific reason string matching the detail values
+  from section 6.2.3. For unknown state: `"unknown"`.
+- **Latency**: duration of the last completed health check.
+  Zero before first check.
+- **Type**: the configured dependency type (`"http"`, `"postgres"`, etc.).
+- **Name**: the configured logical name of the dependency.
+- **Host**, **Port**: the endpoint's host and port.
+- **Critical**: whether the dependency was marked as critical.
+- **LastCheckedAt**: wall-clock timestamp of when the last check completed.
+  Zero value / `null` / `None` before first check.
+- **Labels**: custom labels configured on the endpoint.
+  Empty map (not null) if no labels are configured.
+
+### 8.4. `StatusCategory` Type
+
+`StatusCategory` is a typed alias for status category string values.
+It wraps the existing status constants used by the error classification
+system (section 6.2).
+
+**Values** (9 total):
+
+| Value | Description |
+| --- | --- |
+| `ok` | Check succeeded |
+| `timeout` | Check timed out |
+| `connection_error` | Connection failed (refused, reset, unreachable) |
+| `dns_error` | DNS resolution failed |
+| `auth_error` | Authentication failed |
+| `tls_error` | TLS handshake failed |
+| `unhealthy` | Dependency responded but reported unhealthy status |
+| `error` | Unclassified error |
+| `unknown` | No check performed yet (initial state) |
+
+**Language-specific implementation**:
+
+| SDK | Implementation |
+| --- | --- |
+| Go | `type StatusCategory string` with typed constants |
+| Java | `enum StatusCategory` with `String value()` method |
+| Python | `str` type alias with module-level constants |
+| C# | `static class StatusCategory` with `string` constants |
+
+The first 8 values (`ok` through `error`) are aliases for existing
+constants used in metrics. The `unknown` value is new, added specifically
+for the `HealthDetails()` API to represent the pre-first-check state.
+
+### 8.5. UNKNOWN State
+
+Endpoints that have not yet completed their first check are **included**
+in the `HealthDetails()` result with the following values:
+
+| Field | Value |
+| --- | --- |
+| Healthy | `nil` / `null` / `None` |
+| Status | `"unknown"` |
+| Detail | `"unknown"` |
+| Latency | zero |
+| LastCheckedAt | zero value / `null` / `None` |
+| Type, Name, Host, Port, Critical, Labels | Populated from configuration |
+
+> This differs from `Health()`, which **excludes** endpoints in UNKNOWN state.
+> Rationale: `HealthDetails()` provides a complete view for status pages;
+> excluding endpoints hides important information about startup state.
+
+### 8.6. Lifecycle Behavior
+
+| State | `HealthDetails()` returns |
+| --- | --- |
+| Before `Start()` | `nil` / `null` / empty (no endpoints registered) |
+| After `Start()`, before first check | All endpoints with UNKNOWN state (section 8.5) |
+| Running | Current state of all endpoints |
+| After `Stop()` | Last known state (frozen snapshot) |
+
+### 8.7. Data Sourcing
+
+All data comes from existing internal scheduler state. The following
+fields must be stored in the endpoint state during `executeCheck()`:
+
+| Field | Source | When stored |
+| --- | --- | --- |
+| Healthy | Existing `healthy` field | Already stored |
+| Status | `classifyError(err).Category` | After each check |
+| Detail | `classifyError(err).Detail` | After each check |
+| Latency | Check duration | After each check |
+| LastCheckedAt | `time.Now()` / `Instant.now()` / `datetime.now(UTC)` | After each check |
+| Type | `dependency.Type` | At state creation |
+| Name | `dependency.Name` | At state creation |
+| Host | `endpoint.Host` | At state creation |
+| Port | `endpoint.Port` | At state creation |
+| Critical | `dependency.Critical` | At state creation |
+| Labels | `endpoint.Labels` | At state creation |
+
+### 8.8. Thread Safety
+
+`HealthDetails()` **must be safe** to call concurrently from multiple
+goroutines / threads. Implementation follows the existing `Health()` pattern:
+
+1. Lock the scheduler mutex to access the states map.
+2. Iterate states, locking each endpoint state individually.
+3. Copy values into a result map under the lock.
+4. Return the result map (caller owns it; modifications do not affect
+   internal state).
+
+### 8.9. JSON Serialization
+
+`EndpointStatus` must be serializable to JSON without additional work.
+All SDKs must use **snake_case** field names in JSON output.
+
+**Canonical JSON format**:
+
+```json
+{
+  "postgres-main:pg.svc:5432": {
+    "healthy": true,
+    "status": "ok",
+    "detail": "ok",
+    "latency_ms": 2.3,
+    "type": "postgres",
+    "name": "postgres-main",
+    "host": "pg.svc",
+    "port": "5432",
+    "critical": true,
+    "last_checked_at": "2026-02-14T10:30:00Z",
+    "labels": {"role": "primary"}
+  },
+  "redis-cache:redis.svc:6379": {
+    "healthy": null,
+    "status": "unknown",
+    "detail": "unknown",
+    "latency_ms": 0,
+    "type": "redis",
+    "name": "redis-cache",
+    "host": "redis.svc",
+    "port": "6379",
+    "critical": false,
+    "last_checked_at": null,
+    "labels": {}
+  }
+}
+```
+
+**Field serialization rules**:
+
+| Field | JSON type | Notes |
+| --- | --- | --- |
+| `healthy` | `boolean` or `null` | `null` for UNKNOWN state |
+| `status` | `string` | One of 9 StatusCategory values |
+| `detail` | `string` | Detail value from error classification |
+| `latency_ms` | `number` | Milliseconds as float (e.g., `2.3`) |
+| `type` | `string` | Dependency type |
+| `name` | `string` | Dependency name |
+| `host` | `string` | Endpoint host |
+| `port` | `string` | Endpoint port (always string) |
+| `critical` | `boolean` | Never null |
+| `last_checked_at` | `string` or `null` | ISO 8601 UTC format; `null` before first check |
+| `labels` | `object` | Empty `{}` if no labels (never null) |
+
+### 8.10. Backward Compatibility
+
+- `Health()` remains unchanged in all SDKs.
+- `EndpointStatus` is a new exported type.
+- `StatusCategory` is a new exported type.
+- `HealthDetails()` is a new method on existing facades.
+- No changes to metrics behavior.
+- No changes to configuration.

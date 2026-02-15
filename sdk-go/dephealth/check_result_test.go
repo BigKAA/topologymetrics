@@ -12,10 +12,10 @@ func TestAllStatusCategories_Count(t *testing.T) {
 }
 
 func TestAllStatusCategories_Values(t *testing.T) {
-	expected := map[string]bool{
-		"ok": true, "timeout": true, "connection_error": true,
-		"dns_error": true, "auth_error": true, "tls_error": true,
-		"unhealthy": true, "error": true,
+	expected := map[StatusCategory]bool{
+		StatusOK: true, StatusTimeout: true, StatusConnectionError: true,
+		StatusDNSError: true, StatusAuthError: true, StatusTLSError: true,
+		StatusUnhealthy: true, StatusError: true,
 	}
 	for _, s := range AllStatusCategories {
 		if !expected[s] {

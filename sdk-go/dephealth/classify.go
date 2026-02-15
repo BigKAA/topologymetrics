@@ -17,7 +17,7 @@ import (
 // 4. Fallback → error/error
 func classifyError(err error) CheckResult {
 	if err == nil {
-		return CheckResult{Category: StatusOK, Detail: StatusOK}
+		return CheckResult{Category: StatusOK, Detail: "ok"}
 	}
 
 	// 1. ClassifiedError interface — highest priority.

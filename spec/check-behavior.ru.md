@@ -497,3 +497,236 @@ SDK обязан перехватывать panic (Go), unhandled exception (Jav
   (atomic / mutex / synchronized).
 - `Start()` и `Stop()` можно вызвать только один раз. Повторный вызов `Start()`
   возвращает ошибку. Повторный вызов `Stop()` — no-op.
+
+---
+
+## 8. Программный API HealthDetails
+
+Метод `HealthDetails()` предоставляет программный API, который раскрывает
+детальное состояние проверок здоровья для каждого зарегистрированного endpoint-а.
+В отличие от `Health()`, который возвращает простую карту `healthy/unhealthy`,
+`HealthDetails()` возвращает богатую структуру с классификацией, латентностью,
+метаданными и временными метками.
+
+Этот API позволяет потребителям (страницы статуса, реверс-прокси,
+кастомные операторы) строить обогащённые эндпоинты здоровья без
+парсинга Prometheus-метрик.
+
+### 8.1. Публичный метод
+
+Главный фасад каждого SDK предоставляет метод `HealthDetails()`:
+
+| SDK | Фасад | Метод | Тип возвращаемого значения |
+| --- | --- | --- | --- |
+| Go | `DepHealth` | `HealthDetails()` | `map[string]EndpointStatus` |
+| Java | `DepHealth` | `healthDetails()` | `Map<String, EndpointStatus>` |
+| Python | `DependencyHealth` | `health_details()` | `dict[str, EndpointStatus]` |
+| C# | `DepHealthMonitor` | `HealthDetails()` | `Dictionary<string, EndpointStatus>` |
+
+Метод делегирует вызов планировщику по тому же паттерну, что и `Health()`.
+
+### 8.2. Формат ключей
+
+Ключи карты используют формат `"dependency:host:port"`, единый для всех SDK.
+Ключи в `HealthDetails()` **должны совпадать** с ключами в `Health()`
+для Go, Java и C#.
+
+> **Примечание**: Python `health()` агрегирует только по имени зависимости.
+> Новый `health_details()` намеренно использует ключи вида
+> `"dependency:host:port"` для единообразия с другими SDK и обеспечения
+> гранулярности на уровне endpoint-ов. Это задокументированное отличие.
+
+### 8.3. Структура `EndpointStatus`
+
+Структура `EndpointStatus` содержит 11 полей. Все поля обязательны
+в реализации каждого SDK.
+
+| # | Поле | Go | Java | Python | C# | Описание |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | Healthy | `*bool` | `Boolean` | `bool \| None` | `bool?` | `nil`/`null`/`None` = UNKNOWN |
+| 2 | Status | `StatusCategory` | `StatusCategory` | `StatusCategory` | `StatusCategory` | Категория классификации |
+| 3 | Detail | `string` | `String` | `str` | `string` | Конкретная причина сбоя |
+| 4 | Latency | `time.Duration` | `Duration` | `float` (секунды) | `TimeSpan` | Длительность последней проверки |
+| 5 | Type | `DependencyType` | `DependencyType` | `DependencyType` | `DependencyType` | Тип зависимости |
+| 6 | Name | `string` | `String` | `str` | `string` | Логическое имя зависимости |
+| 7 | Host | `string` | `String` | `str` | `string` | Хост endpoint-а |
+| 8 | Port | `string` | `String` | `str` | `string` | Порт endpoint-а |
+| 9 | Critical | `bool` | `boolean` | `bool` | `bool` | Является ли зависимость критической |
+| 10 | LastCheckedAt | `time.Time` | `Instant` | `datetime \| None` | `DateTimeOffset?` | Временная метка последней проверки |
+| 11 | Labels | `map[string]string` | `Map<String, String>` | `dict[str, str]` | `Dictionary<string, string>` | Пользовательские метки |
+
+**Детали полей**:
+
+- **Healthy**: три состояния — `true` (здоров), `false` (нездоров),
+  `nil`/`null`/`None` (неизвестно, до первой проверки).
+- **Status**: типизированная категория из `StatusCategory` (см. раздел 8.4).
+- **Detail**: строка конкретной причины, соответствующая значениям detail
+  из раздела 6.2.3. Для неизвестного состояния: `"unknown"`.
+- **Latency**: длительность последней завершённой проверки здоровья.
+  Нулевое значение до первой проверки.
+- **Type**: настроенный тип зависимости (`"http"`, `"postgres"` и т.д.).
+- **Name**: настроенное логическое имя зависимости.
+- **Host**, **Port**: хост и порт endpoint-а.
+- **Critical**: была ли зависимость отмечена как критическая.
+- **LastCheckedAt**: wall-clock временная метка завершения последней проверки.
+  Нулевое значение / `null` / `None` до первой проверки.
+- **Labels**: пользовательские метки, настроенные на endpoint-е.
+  Пустая карта (не null) если метки не настроены.
+
+### 8.4. Тип `StatusCategory`
+
+`StatusCategory` — это типизированный алиас для строковых значений
+категорий статуса. Он оборачивает существующие константы статуса,
+используемые системой классификации ошибок (раздел 6.2).
+
+**Значения** (всего 9):
+
+| Значение | Описание |
+| --- | --- |
+| `ok` | Проверка успешна |
+| `timeout` | Проверка превысила таймаут |
+| `connection_error` | Ошибка соединения (отказано, сброс, недоступен) |
+| `dns_error` | Ошибка DNS-резолвинга |
+| `auth_error` | Ошибка аутентификации |
+| `tls_error` | Ошибка TLS-рукопожатия |
+| `unhealthy` | Зависимость ответила, но сообщила о нездоровом статусе |
+| `error` | Неклассифицированная ошибка |
+| `unknown` | Проверка ещё не выполнялась (начальное состояние) |
+
+**Реализация по языкам**:
+
+| SDK | Реализация |
+| --- | --- |
+| Go | `type StatusCategory string` с типизированными константами |
+| Java | `enum StatusCategory` с методом `String value()` |
+| Python | Алиас типа `str` с константами на уровне модуля |
+| C# | `static class StatusCategory` с константами `string` |
+
+Первые 8 значений (`ok` — `error`) являются алиасами существующих
+констант, используемых в метриках. Значение `unknown` — новое, добавлено
+специально для API `HealthDetails()` для представления состояния
+до первой проверки.
+
+### 8.5. Состояние UNKNOWN
+
+Endpoint-ы, ещё не завершившие первую проверку, **включаются**
+в результат `HealthDetails()` со следующими значениями:
+
+| Поле | Значение |
+| --- | --- |
+| Healthy | `nil` / `null` / `None` |
+| Status | `"unknown"` |
+| Detail | `"unknown"` |
+| Latency | ноль |
+| LastCheckedAt | нулевое значение / `null` / `None` |
+| Type, Name, Host, Port, Critical, Labels | Заполняются из конфигурации |
+
+> Это отличается от `Health()`, который **исключает** endpoint-ы
+> в состоянии UNKNOWN.
+> Обоснование: `HealthDetails()` предоставляет полное представление
+> для страниц статуса; исключение endpoint-ов скрывает важную информацию
+> о состоянии запуска.
+
+### 8.6. Поведение жизненного цикла
+
+| Состояние | `HealthDetails()` возвращает |
+| --- | --- |
+| До `Start()` | `nil` / `null` / empty (endpoint-ы не зарегистрированы) |
+| После `Start()`, до первой проверки | Все endpoint-ы в состоянии UNKNOWN (раздел 8.5) |
+| Работа | Текущее состояние всех endpoint-ов |
+| После `Stop()` | Последнее известное состояние (замороженный снимок) |
+
+### 8.7. Источники данных
+
+Все данные берутся из существующего внутреннего состояния планировщика.
+Следующие поля должны сохраняться в состоянии endpoint-а
+во время `executeCheck()`:
+
+| Поле | Источник | Когда сохраняется |
+| --- | --- | --- |
+| Healthy | Существующее поле `healthy` | Уже сохраняется |
+| Status | `classifyError(err).Category` | После каждой проверки |
+| Detail | `classifyError(err).Detail` | После каждой проверки |
+| Latency | Длительность проверки | После каждой проверки |
+| LastCheckedAt | `time.Now()` / `Instant.now()` / `datetime.now(UTC)` | После каждой проверки |
+| Type | `dependency.Type` | При создании состояния |
+| Name | `dependency.Name` | При создании состояния |
+| Host | `endpoint.Host` | При создании состояния |
+| Port | `endpoint.Port` | При создании состояния |
+| Critical | `dependency.Critical` | При создании состояния |
+| Labels | `endpoint.Labels` | При создании состояния |
+
+### 8.8. Потокобезопасность
+
+`HealthDetails()` **должен быть безопасен** для конкурентного вызова
+из нескольких горутин / потоков. Реализация следует существующему паттерну
+`Health()`:
+
+1. Захватить мьютекс планировщика для доступа к карте состояний.
+2. Итерировать состояния, блокируя каждое состояние endpoint-а индивидуально.
+3. Скопировать значения в результирующую карту под блокировкой.
+4. Вернуть результирующую карту (вызывающий владеет ей; модификации
+   не влияют на внутреннее состояние).
+
+### 8.9. JSON-сериализация
+
+`EndpointStatus` должен сериализоваться в JSON без дополнительной работы.
+Все SDK должны использовать имена полей в **snake_case** в JSON-выводе.
+
+**Каноническй формат JSON**:
+
+```json
+{
+  "postgres-main:pg.svc:5432": {
+    "healthy": true,
+    "status": "ok",
+    "detail": "ok",
+    "latency_ms": 2.3,
+    "type": "postgres",
+    "name": "postgres-main",
+    "host": "pg.svc",
+    "port": "5432",
+    "critical": true,
+    "last_checked_at": "2026-02-14T10:30:00Z",
+    "labels": {"role": "primary"}
+  },
+  "redis-cache:redis.svc:6379": {
+    "healthy": null,
+    "status": "unknown",
+    "detail": "unknown",
+    "latency_ms": 0,
+    "type": "redis",
+    "name": "redis-cache",
+    "host": "redis.svc",
+    "port": "6379",
+    "critical": false,
+    "last_checked_at": null,
+    "labels": {}
+  }
+}
+```
+
+**Правила сериализации полей**:
+
+| Поле | Тип JSON | Примечания |
+| --- | --- | --- |
+| `healthy` | `boolean` или `null` | `null` для состояния UNKNOWN |
+| `status` | `string` | Одно из 9 значений StatusCategory |
+| `detail` | `string` | Значение detail из классификации ошибок |
+| `latency_ms` | `number` | Миллисекунды как float (например, `2.3`) |
+| `type` | `string` | Тип зависимости |
+| `name` | `string` | Имя зависимости |
+| `host` | `string` | Хост endpoint-а |
+| `port` | `string` | Порт endpoint-а (всегда строка) |
+| `critical` | `boolean` | Никогда не null |
+| `last_checked_at` | `string` или `null` | Формат ISO 8601 UTC; `null` до первой проверки |
+| `labels` | `object` | Пустой `{}` если нет меток (никогда не null) |
+
+### 8.10. Обратная совместимость
+
+- `Health()` остаётся без изменений во всех SDK.
+- `EndpointStatus` — новый экспортируемый тип.
+- `StatusCategory` — новый экспортируемый тип.
+- `HealthDetails()` — новый метод на существующих фасадах.
+- Поведение метрик не меняется.
+- Конфигурация не меняется.

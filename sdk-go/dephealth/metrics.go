@@ -156,11 +156,11 @@ func (m *MetricsExporter) ObserveLatency(dep Dependency, ep Endpoint, duration t
 
 // SetStatus updates the app_dependency_status enum gauge.
 // Exactly one of the 8 status values is set to 1, the rest to 0.
-func (m *MetricsExporter) SetStatus(dep Dependency, ep Endpoint, category string) {
+func (m *MetricsExporter) SetStatus(dep Dependency, ep Endpoint, category StatusCategory) {
 	base := m.labels(dep, ep)
 	for _, s := range AllStatusCategories {
 		labels := copyLabels(base)
-		labels["status"] = s
+		labels["status"] = string(s)
 		if s == category {
 			m.status.With(labels).Set(1)
 		} else {
@@ -202,7 +202,7 @@ func (m *MetricsExporter) DeleteMetrics(dep Dependency, ep Endpoint) {
 	// Delete all 8 status series.
 	for _, s := range AllStatusCategories {
 		labels := copyLabels(base)
-		labels["status"] = s
+		labels["status"] = string(s)
 		m.status.Delete(labels)
 	}
 
