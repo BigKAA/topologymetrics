@@ -33,7 +33,7 @@
         <connection>scm:git:git://github.com/BigKAA/topologymetrics.git</connection>
         <developerConnection>scm:git:ssh://github.com/BigKAA/topologymetrics.git</developerConnection>
         <url>https://github.com/BigKAA/topologymetrics</url>
-        <tag>sdk-java/v0.4.0</tag>
+        <tag>sdk-java/v0.4.2</tag>
     </scm>
 
     <issueManagement>
