@@ -108,9 +108,21 @@ public final class DepHealth {
         private Boolean httpTls;
         private Boolean httpTlsSkipVerify;
 
+        // HTTP auth
+        private Map<String, String> httpHeaders;
+        private String httpBearerToken;
+        private String httpBasicUsername;
+        private String httpBasicPassword;
+
         // gRPC
         private String grpcServiceName;
         private Boolean grpcTls;
+
+        // gRPC auth
+        private Map<String, String> grpcMetadata;
+        private String grpcBearerToken;
+        private String grpcBasicUsername;
+        private String grpcBasicPassword;
 
         // DB
         private String dbUsername;
@@ -200,6 +212,22 @@ public final class DepHealth {
             return this;
         }
 
+        public DependencyBuilder httpHeaders(Map<String, String> headers) {
+            this.httpHeaders = headers;
+            return this;
+        }
+
+        public DependencyBuilder httpBearerToken(String token) {
+            this.httpBearerToken = token;
+            return this;
+        }
+
+        public DependencyBuilder httpBasicAuth(String username, String password) {
+            this.httpBasicUsername = username;
+            this.httpBasicPassword = password;
+            return this;
+        }
+
         public DependencyBuilder grpcServiceName(String serviceName) {
             this.grpcServiceName = serviceName;
             return this;
@@ -207,6 +235,22 @@ public final class DepHealth {
 
         public DependencyBuilder grpcTls(boolean tls) {
             this.grpcTls = tls;
+            return this;
+        }
+
+        public DependencyBuilder grpcMetadata(Map<String, String> metadata) {
+            this.grpcMetadata = metadata;
+            return this;
+        }
+
+        public DependencyBuilder grpcBearerToken(String token) {
+            this.grpcBearerToken = token;
+            return this;
+        }
+
+        public DependencyBuilder grpcBasicAuth(String username, String password) {
+            this.grpcBasicUsername = username;
+            this.grpcBasicPassword = password;
             return this;
         }
 
@@ -585,6 +629,15 @@ public final class DepHealth {
                     if (db.httpTlsSkipVerify != null) {
                         b.tlsSkipVerify(db.httpTlsSkipVerify);
                     }
+                    if (db.httpHeaders != null) {
+                        b.headers(db.httpHeaders);
+                    }
+                    if (db.httpBearerToken != null) {
+                        b.bearerToken(db.httpBearerToken);
+                    }
+                    if (db.httpBasicUsername != null) {
+                        b.basicAuth(db.httpBasicUsername, db.httpBasicPassword);
+                    }
                     yield b.build();
                 }
                 case GRPC -> {
@@ -594,6 +647,15 @@ public final class DepHealth {
                     }
                     if (db.grpcTls != null) {
                         b.tlsEnabled(db.grpcTls);
+                    }
+                    if (db.grpcMetadata != null) {
+                        b.metadata(db.grpcMetadata);
+                    }
+                    if (db.grpcBearerToken != null) {
+                        b.bearerToken(db.grpcBearerToken);
+                    }
+                    if (db.grpcBasicUsername != null) {
+                        b.basicAuth(db.grpcBasicUsername, db.grpcBasicPassword);
                     }
                     yield b.build();
                 }

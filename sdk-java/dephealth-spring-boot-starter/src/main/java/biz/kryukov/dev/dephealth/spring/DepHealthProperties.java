@@ -78,8 +78,20 @@ public class DepHealthProperties {
         private Boolean tls;
         private Boolean tlsSkipVerify;
 
+        // HTTP auth
+        private Map<String, String> httpHeaders;
+        private String httpBearerToken;
+        private String httpBasicUsername;
+        private String httpBasicPassword;
+
         // gRPC
         private String serviceName;
+
+        // gRPC auth
+        private Map<String, String> grpcMetadata;
+        private String grpcBearerToken;
+        private String grpcBasicUsername;
+        private String grpcBasicPassword;
 
         // DB
         private String username;
@@ -185,12 +197,76 @@ public class DepHealthProperties {
             this.tlsSkipVerify = tlsSkipVerify;
         }
 
+        public Map<String, String> getHttpHeaders() {
+            return httpHeaders;
+        }
+
+        public void setHttpHeaders(Map<String, String> httpHeaders) {
+            this.httpHeaders = httpHeaders;
+        }
+
+        public String getHttpBearerToken() {
+            return httpBearerToken;
+        }
+
+        public void setHttpBearerToken(String httpBearerToken) {
+            this.httpBearerToken = httpBearerToken;
+        }
+
+        public String getHttpBasicUsername() {
+            return httpBasicUsername;
+        }
+
+        public void setHttpBasicUsername(String httpBasicUsername) {
+            this.httpBasicUsername = httpBasicUsername;
+        }
+
+        public String getHttpBasicPassword() {
+            return httpBasicPassword;
+        }
+
+        public void setHttpBasicPassword(String httpBasicPassword) {
+            this.httpBasicPassword = httpBasicPassword;
+        }
+
         public String getServiceName() {
             return serviceName;
         }
 
         public void setServiceName(String serviceName) {
             this.serviceName = serviceName;
+        }
+
+        public Map<String, String> getGrpcMetadata() {
+            return grpcMetadata;
+        }
+
+        public void setGrpcMetadata(Map<String, String> grpcMetadata) {
+            this.grpcMetadata = grpcMetadata;
+        }
+
+        public String getGrpcBearerToken() {
+            return grpcBearerToken;
+        }
+
+        public void setGrpcBearerToken(String grpcBearerToken) {
+            this.grpcBearerToken = grpcBearerToken;
+        }
+
+        public String getGrpcBasicUsername() {
+            return grpcBasicUsername;
+        }
+
+        public void setGrpcBasicUsername(String grpcBasicUsername) {
+            this.grpcBasicUsername = grpcBasicUsername;
+        }
+
+        public String getGrpcBasicPassword() {
+            return grpcBasicPassword;
+        }
+
+        public void setGrpcBasicPassword(String grpcBasicPassword) {
+            this.grpcBasicPassword = grpcBasicPassword;
         }
 
         public String getUsername() {

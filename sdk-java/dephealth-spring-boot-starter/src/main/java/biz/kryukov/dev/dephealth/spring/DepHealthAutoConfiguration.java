@@ -97,12 +97,34 @@ public class DepHealthAutoConfiguration {
             d.httpTlsSkipVerify(props.getTlsSkipVerify());
         }
 
+        // HTTP auth
+        if (props.getHttpHeaders() != null) {
+            d.httpHeaders(props.getHttpHeaders());
+        }
+        if (props.getHttpBearerToken() != null) {
+            d.httpBearerToken(props.getHttpBearerToken());
+        }
+        if (props.getHttpBasicUsername() != null) {
+            d.httpBasicAuth(props.getHttpBasicUsername(), props.getHttpBasicPassword());
+        }
+
         // gRPC
         if (props.getServiceName() != null) {
             d.grpcServiceName(props.getServiceName());
         }
         if (props.getTls() != null) {
             d.grpcTls(props.getTls());
+        }
+
+        // gRPC auth
+        if (props.getGrpcMetadata() != null) {
+            d.grpcMetadata(props.getGrpcMetadata());
+        }
+        if (props.getGrpcBearerToken() != null) {
+            d.grpcBearerToken(props.getGrpcBearerToken());
+        }
+        if (props.getGrpcBasicUsername() != null) {
+            d.grpcBasicAuth(props.getGrpcBasicUsername(), props.getGrpcBasicPassword());
         }
 
         // DB

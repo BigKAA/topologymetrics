@@ -306,12 +306,12 @@ dephealth:
 
 ### Deliverables
 
-- [ ] Updated `HttpHealthChecker.java` with auth support
-- [ ] Updated `GrpcHealthChecker.java` with auth support
-- [ ] Updated `DependencyProperties.java` with auth config fields
-- [ ] Updated `DepHealthAutoConfiguration.java` to wire auth
-- [ ] Unit tests for auth, validation, conflicts
-- [ ] `make test` and `make lint` pass
+- [x] Updated `HttpHealthChecker.java` with auth support
+- [x] Updated `GrpcHealthChecker.java` with auth support
+- [x] Updated `DependencyProperties.java` with auth config fields
+- [x] Updated `DepHealthAutoConfiguration.java` to wire auth
+- [x] Unit tests for auth, validation, conflicts
+- [x] `make test` and `make lint` pass
 
 ---
 
