@@ -433,10 +433,10 @@ In `CheckAsync()` method:
 
 ### Deliverables
 
-- [ ] Updated `HttpChecker.cs` with auth support
-- [ ] Updated `GrpcChecker.cs` with auth support
-- [ ] Unit tests for auth, validation, conflicts
-- [ ] `make test` and `make lint` pass
+- [x] Updated `HttpChecker.cs` with auth support
+- [x] Updated `GrpcChecker.cs` with auth support
+- [x] Unit tests for auth, validation, conflicts
+- [x] `make test` and `make lint` pass
 
 ---
 

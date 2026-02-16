@@ -118,22 +118,39 @@ public sealed partial class DepHealthMonitor : IDisposable
 
         public Builder AddHttp(string name, string url,
             string healthPath = "/health", bool? critical = null,
-            Dictionary<string, string>? labels = null)
+            Dictionary<string, string>? labels = null,
+            Dictionary<string, string>? headers = null,
+            string? bearerToken = null,
+            string? basicAuthUsername = null,
+            string? basicAuthPassword = null)
         {
             var parsed = ConfigParser.ParseUrl(url);
             var checker = new HttpChecker(
                 healthPath: healthPath,
-                tlsEnabled: url.StartsWith("https://", StringComparison.OrdinalIgnoreCase));
+                tlsEnabled: url.StartsWith("https://", StringComparison.OrdinalIgnoreCase),
+                headers: headers,
+                bearerToken: bearerToken,
+                basicAuthUsername: basicAuthUsername,
+                basicAuthPassword: basicAuthPassword);
 
             return AddDependency(name, DependencyType.Http, parsed, checker, critical, labels);
         }
 
         public Builder AddGrpc(string name, string host, string port,
             bool tlsEnabled = false, bool? critical = null,
-            Dictionary<string, string>? labels = null)
+            Dictionary<string, string>? labels = null,
+            Dictionary<string, string>? metadata = null,
+            string? bearerToken = null,
+            string? basicAuthUsername = null,
+            string? basicAuthPassword = null)
         {
             var ep = ConfigParser.ParseParams(host, port);
-            var checker = new GrpcChecker(tlsEnabled: tlsEnabled);
+            var checker = new GrpcChecker(
+                tlsEnabled: tlsEnabled,
+                metadata: metadata,
+                bearerToken: bearerToken,
+                basicAuthUsername: basicAuthUsername,
+                basicAuthPassword: basicAuthPassword);
 
             return AddDependency(name, DependencyType.Grpc,
                 [new ParsedConnection(ep.Host, ep.Port, DependencyType.Grpc)],
