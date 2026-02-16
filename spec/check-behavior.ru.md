@@ -181,20 +181,38 @@ successThreshold = 2
 | `method` | HTTP-метод | `GET` |
 | `expectedStatuses` | Ожидаемые HTTP-статусы | `200-299` (любой 2xx) |
 | `tlsSkipVerify` | Пропуск проверки TLS-сертификата | `false` |
+| `headers` | Произвольные HTTP-заголовки, добавляемые к каждому запросу | `{}` (пусто) |
+| `bearerToken` | Добавляет заголовок `Authorization: Bearer <token>` | `""` (отключено) |
+| `basicAuth` | Добавляет заголовок `Authorization: Basic <base64(user:pass)>` | не задано |
 
 **Алгоритм**:
 
 1. Отправить `GET` (или настроенный метод) на `http(s)://{host}:{port}{healthPath}`.
-2. Ожидать ответ в пределах `timeout`.
-3. Если статус ответа в диапазоне `expectedStatuses` — **успех**.
-4. Иначе — **неудача**.
+2. Добавить настроенные заголовки (custom headers, bearer token или basic auth) к запросу.
+3. Ожидать ответ в пределах `timeout`.
+4. Если статус ответа в диапазоне `expectedStatuses` — **успех**.
+5. Иначе — **неудача**.
+
+**Аутентификация**:
+
+- `headers` — произвольные пары ключ-значение, добавляемые как HTTP-заголовки
+  к каждому запросу проверки здоровья.
+- `bearerToken` — вспомогательный параметр; добавляет заголовок `Authorization: Bearer <token>`.
+- `basicAuth` — вспомогательный параметр с полями `username` и `password`;
+  добавляет заголовок `Authorization: Basic <base64(username:password)>`.
+- Допускается только один метод аутентификации одновременно. Если указано более одного
+  из следующих, SDK должен вернуть **ошибку валидации** при инициализации:
+  - `bearerToken` задан И `headers` содержит ключ `Authorization`
+  - `basicAuth` задан И `headers` содержит ключ `Authorization`
+  - `bearerToken` задан И `basicAuth` задан
 
 **Особенности**:
 
 - Тело ответа не анализируется (только статус-код).
 - Редиректы (3xx) следуются автоматически; проверяется статус финального ответа.
 - При `https://` используется TLS; если сертификат невалиден и `tlsSkipVerify = false` — неудача.
-- Заголовок `User-Agent: dephealth/<version>`.
+- Заголовок `User-Agent: dephealth/<version>`. Пользовательский `User-Agent` в `headers` переопределяет его.
+- HTTP-ответы 401 и 403 классифицируются как `auth_error` (см. раздел 6.2.3).
 
 ### 4.2. gRPC (`type: grpc`)
 
@@ -206,13 +224,30 @@ successThreshold = 2
 | `serviceName` | Имя сервиса для Health Check | `""` (пустая строка — общий статус) |
 | `tlsEnabled` | Использовать TLS | `false` |
 | `tlsSkipVerify` | Пропуск проверки TLS-сертификата | `false` |
+| `metadata` | Произвольные gRPC-метаданные, добавляемые к каждому вызову Health/Check | `{}` (пусто) |
+| `bearerToken` | Добавляет метаданные `authorization: Bearer <token>` | `""` (отключено) |
+| `basicAuth` | Добавляет метаданные `authorization: Basic <base64(user:pass)>` | не задано |
 
 **Алгоритм**:
 
 1. Установить gRPC-соединение с `{host}:{port}`.
-2. Вызвать `grpc.health.v1.Health/Check` с указанным `serviceName`.
-3. Если ответ `SERVING` — **успех**.
-4. Иные статусы (`NOT_SERVING`, `UNKNOWN`, `SERVICE_UNKNOWN`) — **неудача**.
+2. Добавить настроенные метаданные (custom metadata, bearer token или basic auth) к вызову.
+3. Вызвать `grpc.health.v1.Health/Check` с указанным `serviceName`.
+4. Если ответ `SERVING` — **успех**.
+5. Иные статусы (`NOT_SERVING`, `UNKNOWN`, `SERVICE_UNKNOWN`) — **неудача**.
+
+**Аутентификация**:
+
+- `metadata` — произвольные пары ключ-значение, добавляемые как gRPC-метаданные
+  к каждому вызову Health/Check.
+- `bearerToken` — вспомогательный параметр; добавляет метаданные `authorization: Bearer <token>`.
+- `basicAuth` — вспомогательный параметр с полями `username` и `password`;
+  добавляет метаданные `authorization: Basic <base64(username:password)>`.
+- Те же правила валидации, что и для HTTP (раздел 4.1): допускается только один метод
+  аутентификации. Конфликт между `bearerToken`, `basicAuth` и пользовательским ключом
+  `authorization` в metadata приводит к **ошибке валидации**.
+- gRPC-статусы `UNAUTHENTICATED` и `PERMISSION_DENIED` классифицируются как `auth_error`
+  (см. раздел 6.2.3).
 
 **Особенности**:
 
@@ -451,8 +486,8 @@ INFO dephealth: dependency recovered dependency=postgres-main host=pg.svc port=5
 
 | Тип чекера | Возможные значения detail |
 | --- | --- |
-| HTTP | `ok`, `timeout`, `connection_refused`, `dns_error`, `tls_error`, `http_NNN` (например, `http_404`, `http_503`), `error` |
-| gRPC | `ok`, `timeout`, `connection_refused`, `dns_error`, `tls_error`, `grpc_not_serving`, `grpc_unknown`, `error` |
+| HTTP | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `http_NNN` (например, `http_404`, `http_503`), `error` |
+| gRPC | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `grpc_not_serving`, `grpc_unknown`, `error` |
 | TCP | `ok`, `timeout`, `connection_refused`, `dns_error`, `error` |
 | PostgreSQL | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `error` |
 | MySQL | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `error` |

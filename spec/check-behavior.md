@@ -181,20 +181,38 @@ Metric:  1    0     1    0     1
 | `method` | HTTP method | `GET` |
 | `expectedStatuses` | Expected HTTP status codes | `200-299` (any 2xx) |
 | `tlsSkipVerify` | Skip TLS certificate verification | `false` |
+| `headers` | Custom HTTP headers added to every request | `{}` (empty) |
+| `bearerToken` | Adds `Authorization: Bearer <token>` header | `""` (disabled) |
+| `basicAuth` | Adds `Authorization: Basic <base64(user:pass)>` header | not set |
 
 **Algorithm**:
 
 1. Send `GET` (or configured method) to `http(s)://{host}:{port}{healthPath}`.
-2. Wait for response within `timeout`.
-3. If response status is in the `expectedStatuses` range — **success**.
-4. Otherwise — **failure**.
+2. Add configured headers (custom headers, bearer token, or basic auth) to the request.
+3. Wait for response within `timeout`.
+4. If response status is in the `expectedStatuses` range — **success**.
+5. Otherwise — **failure**.
+
+**Authentication**:
+
+- `headers` — arbitrary key-value pairs added as HTTP headers to every health-check request.
+- `bearerToken` — convenience parameter; adds `Authorization: Bearer <token>` header.
+- `basicAuth` — convenience parameter with `username` and `password` fields;
+  adds `Authorization: Basic <base64(username:password)>` header.
+- Only one authentication method is allowed at a time. If more than one of the
+  following is specified, the SDK must return a **validation error** during
+  initialization:
+  - `bearerToken` is set AND `headers` contains an `Authorization` key
+  - `basicAuth` is set AND `headers` contains an `Authorization` key
+  - `bearerToken` is set AND `basicAuth` is set
 
 **Specifics**:
 
 - Response body is not analyzed (only status code).
 - Redirects (3xx) are followed automatically; final response status is checked.
 - For `https://`, TLS is used; if certificate is invalid and `tlsSkipVerify = false` — failure.
-- `User-Agent: dephealth/<version>` header is set.
+- `User-Agent: dephealth/<version>` header is set. A custom `User-Agent` in `headers` overrides it.
+- HTTP 401 and 403 responses are classified as `auth_error` (see section 6.2.3).
 
 ### 4.2. gRPC (`type: grpc`)
 
@@ -206,13 +224,29 @@ Metric:  1    0     1    0     1
 | `serviceName` | Service name for Health Check | `""` (empty string — overall status) |
 | `tlsEnabled` | Use TLS | `false` |
 | `tlsSkipVerify` | Skip TLS certificate verification | `false` |
+| `metadata` | Custom gRPC metadata added to every Health/Check call | `{}` (empty) |
+| `bearerToken` | Adds `authorization: Bearer <token>` metadata | `""` (disabled) |
+| `basicAuth` | Adds `authorization: Basic <base64(user:pass)>` metadata | not set |
 
 **Algorithm**:
 
 1. Establish gRPC connection to `{host}:{port}`.
-2. Call `grpc.health.v1.Health/Check` with the specified `serviceName`.
-3. If response is `SERVING` — **success**.
-4. Other statuses (`NOT_SERVING`, `UNKNOWN`, `SERVICE_UNKNOWN`) — **failure**.
+2. Add configured metadata (custom metadata, bearer token, or basic auth) to the call.
+3. Call `grpc.health.v1.Health/Check` with the specified `serviceName`.
+4. If response is `SERVING` — **success**.
+5. Other statuses (`NOT_SERVING`, `UNKNOWN`, `SERVICE_UNKNOWN`) — **failure**.
+
+**Authentication**:
+
+- `metadata` — arbitrary key-value pairs added as gRPC metadata to every Health/Check call.
+- `bearerToken` — convenience parameter; adds `authorization: Bearer <token>` metadata.
+- `basicAuth` — convenience parameter with `username` and `password` fields;
+  adds `authorization: Basic <base64(username:password)>` metadata.
+- Same validation rules as HTTP (section 4.1): only one authentication method allowed.
+  Conflict between `bearerToken`, `basicAuth`, and custom `authorization` metadata key
+  results in a **validation error**.
+- gRPC status `UNAUTHENTICATED` and `PERMISSION_DENIED` are classified as `auth_error`
+  (see section 6.2.3).
 
 **Specifics**:
 
@@ -451,8 +485,8 @@ A successful check (no error) always produces:
 
 | Checker Type | Possible detail values |
 | --- | --- |
-| HTTP | `ok`, `timeout`, `connection_refused`, `dns_error`, `tls_error`, `http_NNN` (e.g., `http_404`, `http_503`), `error` |
-| gRPC | `ok`, `timeout`, `connection_refused`, `dns_error`, `tls_error`, `grpc_not_serving`, `grpc_unknown`, `error` |
+| HTTP | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `http_NNN` (e.g., `http_404`, `http_503`), `error` |
+| gRPC | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `grpc_not_serving`, `grpc_unknown`, `error` |
 | TCP | `ok`, `timeout`, `connection_refused`, `dns_error`, `error` |
 | PostgreSQL | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `error` |
 | MySQL | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `error` |

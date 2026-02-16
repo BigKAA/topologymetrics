@@ -299,6 +299,16 @@ dephealth.WithSuccessThreshold(2)
 dephealth.WithHealthPath("/ready")
 dephealth.WithTLSSkipVerify(true)
 
+// HTTP authentication (mutually exclusive)
+dephealth.WithHTTPHeaders(map[string]string{"X-API-Key": "my-key"})
+dephealth.WithHTTPBearerToken("eyJhbG...")
+dephealth.WithHTTPBasicAuth("admin", "secret")
+
+// gRPC authentication (mutually exclusive)
+dephealth.WithGRPCMetadata(map[string]string{"x-custom": "value"})
+dephealth.WithGRPCBearerToken("eyJhbG...")
+dephealth.WithGRPCBasicAuth("admin", "secret")
+
 // Custom labels
 dephealth.WithLabel("role", "primary")
 dephealth.WithLabel("shard", "shard-01")
@@ -347,6 +357,7 @@ SDK validates configuration on `New()` call and returns error for:
 | Unknown type | `unknown dependency type: "..."` |
 | Invalid label name | `invalid label name: "..."` |
 | Reserved label | `reserved label: "..."` |
+| Multiple auth methods | `conflicting auth methods for dependency "..."` |
 
 ### 7.6. Valid Configurations
 
@@ -408,6 +419,9 @@ For example: `CHECK_INTERVAL=30`, `TIMEOUT=5`. SDK converts the number to native
 | `DEPHEALTH_<NAME>_TIMEOUT` | Timeout (seconds) | `DEPHEALTH_POSTGRES_MAIN_TIMEOUT=10` |
 | `DEPHEALTH_<NAME>_CRITICAL` | Criticality (`yes` / `no`) | `DEPHEALTH_POSTGRES_MAIN_CRITICAL=yes` |
 | `DEPHEALTH_<NAME>_HEALTH_PATH` | HTTP health path | `DEPHEALTH_PAYMENT_SERVICE_HEALTH_PATH=/ready` |
+| `DEPHEALTH_<NAME>_BEARER_TOKEN` | Bearer token (HTTP/gRPC) | `DEPHEALTH_PAYMENT_SERVICE_BEARER_TOKEN=eyJhbG...` |
+| `DEPHEALTH_<NAME>_BASIC_USERNAME` | Basic Auth username (HTTP/gRPC) | `DEPHEALTH_PAYMENT_SERVICE_BASIC_USERNAME=admin` |
+| `DEPHEALTH_<NAME>_BASIC_PASSWORD` | Basic Auth password (HTTP/gRPC) | `DEPHEALTH_PAYMENT_SERVICE_BASIC_PASSWORD=secret` |
 
 #### Custom Labels
 
