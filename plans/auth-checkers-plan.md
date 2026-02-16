@@ -369,11 +369,11 @@ Already exists in `checker.py` with `status_category="auth_error"`. Verify it ha
 
 ### Deliverables
 
-- [ ] Updated `checks/http.py` with auth support
-- [ ] Updated `checks/grpc.py` with auth support
-- [ ] Verify/update `CheckAuthError` classification
-- [ ] Unit tests for auth, validation, conflicts
-- [ ] `make test` and `make lint` pass
+- [x] Updated `checks/http.py` with auth support
+- [x] Updated `checks/grpc.py` with auth support
+- [x] Verify/update `CheckAuthError` classification
+- [x] Unit tests for auth, validation, conflicts
+- [x] `make test` and `make lint` pass
 
 ---
 

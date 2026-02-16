@@ -215,6 +215,9 @@ def http_check(
     health_path: str = "/health",
     tls: bool = False,
     tls_skip_verify: bool = False,
+    headers: dict[str, str] | None = None,
+    bearer_token: str | None = None,
+    basic_auth: tuple[str, str] | None = None,
     critical: bool,
     timeout: timedelta | None = None,
     interval: timedelta | None = None,
@@ -226,6 +229,9 @@ def http_check(
         health_path=health_path,
         tls=tls,
         tls_skip_verify=tls_skip_verify,
+        headers=headers,
+        bearer_token=bearer_token,
+        basic_auth=basic_auth,
         timeout=timeout.total_seconds() if timeout else 5.0,
     )
     return _DependencySpec(
@@ -249,6 +255,9 @@ def grpc_check(
     service_name: str = "",
     tls: bool = False,
     tls_skip_verify: bool = False,
+    metadata: dict[str, str] | None = None,
+    bearer_token: str | None = None,
+    basic_auth: tuple[str, str] | None = None,
     critical: bool,
     timeout: timedelta | None = None,
     interval: timedelta | None = None,
@@ -264,6 +273,9 @@ def grpc_check(
         service_name=service_name,
         tls=tls,
         tls_skip_verify=tls_skip_verify,
+        metadata=metadata,
+        bearer_token=bearer_token,
+        basic_auth=basic_auth,
         timeout=timeout.total_seconds() if timeout else 5.0,
     )
     return _DependencySpec(
