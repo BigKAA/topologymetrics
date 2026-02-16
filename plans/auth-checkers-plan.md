@@ -217,12 +217,12 @@ In checker constructors, validate:
 
 ### Deliverables
 
-- [ ] Updated `options.go` with auth DependencyConfig fields and option functions
-- [ ] Updated `checks/http.go` with headers support, bearer/basic helpers, 401/403 classification
-- [ ] Updated `checks/grpc.go` with metadata support, bearer/basic helpers, UNAUTHENTICATED classification
-- [ ] Updated `checks/factories.go` to wire auth params
-- [ ] Unit tests for auth options, validation, conflict detection
-- [ ] `make test` and `make lint` pass
+- [x] Updated `options.go` with auth DependencyConfig fields and option functions
+- [x] Updated `checks/http.go` with headers support, bearer/basic helpers, 401/403 classification
+- [x] Updated `checks/grpc.go` with metadata support, bearer/basic helpers, UNAUTHENTICATED classification
+- [x] Updated `checks/factories.go` to wire auth params
+- [x] Unit tests for auth options, validation, conflict detection
+- [x] `make test` and `make lint` pass
 
 ---
 

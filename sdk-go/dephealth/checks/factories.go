@@ -30,6 +30,15 @@ func newHTTPFromConfig(dc *dephealth.DependencyConfig) dephealth.HealthChecker {
 	if dc.HTTPTLSSkipVerify != nil {
 		opts = append(opts, WithHTTPTLSSkipVerify(*dc.HTTPTLSSkipVerify))
 	}
+	if len(dc.HTTPHeaders) > 0 {
+		opts = append(opts, WithHeaders(dc.HTTPHeaders))
+	}
+	if dc.HTTPBearerToken != "" {
+		opts = append(opts, WithBearerToken(dc.HTTPBearerToken))
+	}
+	if dc.HTTPBasicUser != "" {
+		opts = append(opts, WithBasicAuth(dc.HTTPBasicUser, dc.HTTPBasicPass))
+	}
 	return NewHTTPChecker(opts...)
 }
 
@@ -43,6 +52,15 @@ func newGRPCFromConfig(dc *dephealth.DependencyConfig) dephealth.HealthChecker {
 	}
 	if dc.GRPCTLSSkipVerify != nil {
 		opts = append(opts, WithGRPCTLSSkipVerify(*dc.GRPCTLSSkipVerify))
+	}
+	if len(dc.GRPCMetadata) > 0 {
+		opts = append(opts, WithMetadata(dc.GRPCMetadata))
+	}
+	if dc.GRPCBearerToken != "" {
+		opts = append(opts, WithGRPCBearerToken(dc.GRPCBearerToken))
+	}
+	if dc.GRPCBasicUser != "" {
+		opts = append(opts, WithGRPCBasicAuth(dc.GRPCBasicUser, dc.GRPCBasicPass))
 	}
 	return NewGRPCChecker(opts...)
 }

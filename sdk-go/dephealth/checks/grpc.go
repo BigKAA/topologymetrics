@@ -3,13 +3,18 @@ package checks
 import (
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"fmt"
+	"maps"
 	"net"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 )
@@ -24,6 +29,7 @@ type GRPCChecker struct {
 	serviceName   string
 	tlsEnabled    bool
 	tlsSkipVerify bool
+	metadata      map[string]string
 }
 
 // WithServiceName sets the gRPC service name for health checks.
@@ -48,9 +54,35 @@ func WithGRPCTLSSkipVerify(skip bool) GRPCOption {
 	}
 }
 
+// WithMetadata sets custom gRPC metadata for health check calls.
+func WithMetadata(md map[string]string) GRPCOption {
+	return func(c *GRPCChecker) {
+		maps.Copy(c.metadata, md)
+	}
+}
+
+// WithGRPCBearerToken sets a Bearer token for gRPC health check calls.
+// Adds authorization: Bearer <token> metadata.
+func WithGRPCBearerToken(token string) GRPCOption {
+	return func(c *GRPCChecker) {
+		c.metadata["authorization"] = "Bearer " + token
+	}
+}
+
+// WithGRPCBasicAuth sets Basic Auth credentials for gRPC health check calls.
+// Adds authorization: Basic <base64(username:password)> metadata.
+func WithGRPCBasicAuth(username, password string) GRPCOption {
+	return func(c *GRPCChecker) {
+		encoded := base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
+		c.metadata["authorization"] = "Basic " + encoded
+	}
+}
+
 // NewGRPCChecker creates a new gRPC health checker with the given options.
 func NewGRPCChecker(opts ...GRPCOption) *GRPCChecker {
-	c := &GRPCChecker{}
+	c := &GRPCChecker{
+		metadata: make(map[string]string),
+	}
 	for _, opt := range opts {
 		opt(c)
 	}
@@ -79,11 +111,31 @@ func (c *GRPCChecker) Check(ctx context.Context, endpoint dephealth.Endpoint) er
 	}
 	defer func() { _ = conn.Close() }()
 
+	// Attach metadata if configured.
+	callCtx := ctx
+	if len(c.metadata) > 0 {
+		md := metadata.New(nil)
+		for k, v := range c.metadata {
+			md.Set(k, v)
+		}
+		callCtx = metadata.NewOutgoingContext(ctx, md)
+	}
+
 	client := healthpb.NewHealthClient(conn)
-	resp, err := client.Check(ctx, &healthpb.HealthCheckRequest{
+	resp, err := client.Check(callCtx, &healthpb.HealthCheckRequest{
 		Service: c.serviceName,
 	})
 	if err != nil {
+		// Classify UNAUTHENTICATED and PERMISSION_DENIED as auth_error.
+		if s, ok := status.FromError(err); ok {
+			if s.Code() == codes.Unauthenticated || s.Code() == codes.PermissionDenied {
+				return &dephealth.ClassifiedCheckError{
+					Category: dephealth.StatusAuthError,
+					Detail:   "auth_error",
+					Cause:    fmt.Errorf("grpc health check %s: %w", addr, err),
+				}
+			}
+		}
 		return fmt.Errorf("grpc health check %s: %w", addr, err)
 	}
 

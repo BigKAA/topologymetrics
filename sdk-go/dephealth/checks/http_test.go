@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -229,5 +230,153 @@ func TestHTTPChecker_DefaultHealthPath(t *testing.T) {
 
 	if gotPath != "/health" {
 		t.Errorf("path = %q, expected %q (default)", gotPath, "/health")
+	}
+}
+
+func TestHTTPChecker_Check_BearerToken(t *testing.T) {
+	var gotAuth string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = r.Header.Get("Authorization")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
+	ep := dephealth.Endpoint{Host: host, Port: port}
+
+	checker := NewHTTPChecker(WithHealthPath("/"), WithBearerToken("test-token-123"))
+	if err := checker.Check(context.Background(), ep); err != nil {
+		t.Fatalf("expected success, got error: %v", err)
+	}
+	if gotAuth != "Bearer test-token-123" {
+		t.Errorf("Authorization = %q, expected %q", gotAuth, "Bearer test-token-123")
+	}
+}
+
+func TestHTTPChecker_Check_BasicAuth(t *testing.T) {
+	var gotAuth string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = r.Header.Get("Authorization")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
+	ep := dephealth.Endpoint{Host: host, Port: port}
+
+	checker := NewHTTPChecker(WithHealthPath("/"), WithBasicAuth("admin", "secret"))
+	if err := checker.Check(context.Background(), ep); err != nil {
+		t.Fatalf("expected success, got error: %v", err)
+	}
+	if !strings.HasPrefix(gotAuth, "Basic ") {
+		t.Errorf("Authorization = %q, expected Basic prefix", gotAuth)
+	}
+}
+
+func TestHTTPChecker_Check_CustomHeaders(t *testing.T) {
+	var gotAPIKey, gotCustom string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAPIKey = r.Header.Get("X-API-Key")
+		gotCustom = r.Header.Get("X-Custom")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
+	ep := dephealth.Endpoint{Host: host, Port: port}
+
+	checker := NewHTTPChecker(
+		WithHealthPath("/"),
+		WithHeaders(map[string]string{
+			"X-API-Key": "my-key",
+			"X-Custom":  "value",
+		}),
+	)
+	if err := checker.Check(context.Background(), ep); err != nil {
+		t.Fatalf("expected success, got error: %v", err)
+	}
+	if gotAPIKey != "my-key" {
+		t.Errorf("X-API-Key = %q, expected %q", gotAPIKey, "my-key")
+	}
+	if gotCustom != "value" {
+		t.Errorf("X-Custom = %q, expected %q", gotCustom, "value")
+	}
+}
+
+func TestHTTPChecker_Check_401_AuthError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	defer srv.Close()
+
+	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
+	ep := dephealth.Endpoint{Host: host, Port: port}
+
+	checker := NewHTTPChecker(WithHealthPath("/"))
+	err := checker.Check(context.Background(), ep)
+	if err == nil {
+		t.Fatal("expected error for 401, got nil")
+	}
+
+	var ce *dephealth.ClassifiedCheckError
+	if !errors.As(err, &ce) {
+		t.Fatalf("expected ClassifiedCheckError, got %T: %v", err, err)
+	}
+	if ce.Category != dephealth.StatusAuthError {
+		t.Errorf("Category = %q, expected %q", ce.Category, dephealth.StatusAuthError)
+	}
+	if ce.Detail != "auth_error" {
+		t.Errorf("Detail = %q, expected %q", ce.Detail, "auth_error")
+	}
+}
+
+func TestHTTPChecker_Check_403_AuthError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	defer srv.Close()
+
+	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
+	ep := dephealth.Endpoint{Host: host, Port: port}
+
+	checker := NewHTTPChecker(WithHealthPath("/"))
+	err := checker.Check(context.Background(), ep)
+	if err == nil {
+		t.Fatal("expected error for 403, got nil")
+	}
+
+	var ce *dephealth.ClassifiedCheckError
+	if !errors.As(err, &ce) {
+		t.Fatalf("expected ClassifiedCheckError, got %T: %v", err, err)
+	}
+	if ce.Category != dephealth.StatusAuthError {
+		t.Errorf("Category = %q, expected %q", ce.Category, dephealth.StatusAuthError)
+	}
+}
+
+func TestHTTPChecker_Check_503_Unhealthy(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer srv.Close()
+
+	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
+	ep := dephealth.Endpoint{Host: host, Port: port}
+
+	checker := NewHTTPChecker(WithHealthPath("/"))
+	err := checker.Check(context.Background(), ep)
+	if err == nil {
+		t.Fatal("expected error for 503, got nil")
+	}
+
+	var ce *dephealth.ClassifiedCheckError
+	if !errors.As(err, &ce) {
+		t.Fatalf("expected ClassifiedCheckError, got %T: %v", err, err)
+	}
+	if ce.Category != dephealth.StatusUnhealthy {
+		t.Errorf("Category = %q, expected %q", ce.Category, dephealth.StatusUnhealthy)
+	}
+	if ce.Detail != "http_503" {
+		t.Errorf("Detail = %q, expected %q", ce.Detail, "http_503")
 	}
 }

@@ -2,6 +2,7 @@ package dephealth
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -458,6 +459,140 @@ func TestNew_NoFactoryRegistered(t *testing.T) {
 	)
 	if err == nil {
 		t.Fatal("expected error when no factory is registered")
+	}
+}
+
+func TestNew_HTTPAuthConflict_BearerAndBasic(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	registerMockFactory(t, TypeHTTP, &mockChecker{})
+
+	_, err := New("test-app",
+		WithRegisterer(reg),
+		HTTP("web-api",
+			FromURL("http://api.svc:8080"),
+			Critical(true),
+			WithHTTPBearerToken("token"),
+			WithHTTPBasicAuth("user", "pass"),
+		),
+	)
+	if err == nil {
+		t.Fatal("expected error for conflicting HTTP auth (bearer + basic)")
+	}
+	if !strings.Contains(err.Error(), "conflicting auth methods") {
+		t.Errorf("expected 'conflicting auth methods' in error, got: %v", err)
+	}
+}
+
+func TestNew_HTTPAuthConflict_BearerAndHeader(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	registerMockFactory(t, TypeHTTP, &mockChecker{})
+
+	_, err := New("test-app",
+		WithRegisterer(reg),
+		HTTP("web-api",
+			FromURL("http://api.svc:8080"),
+			Critical(true),
+			WithHTTPBearerToken("token"),
+			WithHTTPHeaders(map[string]string{"Authorization": "custom"}),
+		),
+	)
+	if err == nil {
+		t.Fatal("expected error for conflicting HTTP auth (bearer + header)")
+	}
+	if !strings.Contains(err.Error(), "conflicting auth methods") {
+		t.Errorf("expected 'conflicting auth methods' in error, got: %v", err)
+	}
+}
+
+func TestNew_HTTPAuthConflict_BasicAndHeader(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	registerMockFactory(t, TypeHTTP, &mockChecker{})
+
+	_, err := New("test-app",
+		WithRegisterer(reg),
+		HTTP("web-api",
+			FromURL("http://api.svc:8080"),
+			Critical(true),
+			WithHTTPBasicAuth("user", "pass"),
+			WithHTTPHeaders(map[string]string{"Authorization": "custom"}),
+		),
+	)
+	if err == nil {
+		t.Fatal("expected error for conflicting HTTP auth (basic + header)")
+	}
+}
+
+func TestNew_HTTPAuth_SingleMethod_OK(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	registerMockFactory(t, TypeHTTP, &mockChecker{})
+
+	// Bearer only — should succeed.
+	_, err := New("test-app",
+		WithRegisterer(reg),
+		HTTP("web-api",
+			FromURL("http://api.svc:8080"),
+			Critical(true),
+			WithHTTPBearerToken("token"),
+		),
+	)
+	if err != nil {
+		t.Fatalf("expected success with single auth method, got: %v", err)
+	}
+}
+
+func TestNew_GRPCAuthConflict_BearerAndBasic(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	registerMockFactory(t, TypeGRPC, &mockChecker{})
+
+	_, err := New("test-app",
+		WithRegisterer(reg),
+		GRPC("backend",
+			FromParams("backend.svc", "9090"),
+			Critical(true),
+			WithGRPCBearerToken("token"),
+			WithGRPCBasicAuth("user", "pass"),
+		),
+	)
+	if err == nil {
+		t.Fatal("expected error for conflicting gRPC auth (bearer + basic)")
+	}
+	if !strings.Contains(err.Error(), "conflicting auth methods") {
+		t.Errorf("expected 'conflicting auth methods' in error, got: %v", err)
+	}
+}
+
+func TestNew_GRPCAuthConflict_BearerAndMetadata(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	registerMockFactory(t, TypeGRPC, &mockChecker{})
+
+	_, err := New("test-app",
+		WithRegisterer(reg),
+		GRPC("backend",
+			FromParams("backend.svc", "9090"),
+			Critical(true),
+			WithGRPCBearerToken("token"),
+			WithGRPCMetadata(map[string]string{"authorization": "custom"}),
+		),
+	)
+	if err == nil {
+		t.Fatal("expected error for conflicting gRPC auth (bearer + metadata)")
+	}
+}
+
+func TestNew_GRPCAuth_SingleMethod_OK(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	registerMockFactory(t, TypeGRPC, &mockChecker{})
+
+	_, err := New("test-app",
+		WithRegisterer(reg),
+		GRPC("backend",
+			FromParams("backend.svc", "9090"),
+			Critical(true),
+			WithGRPCBearerToken("token"),
+		),
+	)
+	if err != nil {
+		t.Fatalf("expected success with single auth method, got: %v", err)
 	}
 }
 

@@ -40,10 +40,18 @@ type DependencyConfig struct {
 	HTTPHealthPath    string
 	HTTPTLS           *bool
 	HTTPTLSSkipVerify *bool
+	HTTPHeaders       map[string]string
+	HTTPBearerToken   string
+	HTTPBasicUser     string
+	HTTPBasicPass     string
 
 	GRPCServiceName   string
 	GRPCTLS           *bool
 	GRPCTLSSkipVerify *bool
+	GRPCMetadata      map[string]string
+	GRPCBearerToken   string
+	GRPCBasicUser     string
+	GRPCBasicPass     string
 
 	PostgresQuery string
 	MySQLQuery    string
@@ -201,6 +209,54 @@ func WithGRPCTLSSkipVerify(skip bool) DependencyOption {
 	}
 }
 
+// WithHTTPHeaders sets custom HTTP headers for health check requests.
+func WithHTTPHeaders(headers map[string]string) DependencyOption {
+	return func(dc *DependencyConfig) {
+		dc.HTTPHeaders = headers
+	}
+}
+
+// WithHTTPBearerToken sets a Bearer token for HTTP health check requests.
+// Adds Authorization: Bearer <token> header.
+func WithHTTPBearerToken(token string) DependencyOption {
+	return func(dc *DependencyConfig) {
+		dc.HTTPBearerToken = token
+	}
+}
+
+// WithHTTPBasicAuth sets Basic Auth credentials for HTTP health check requests.
+// Adds Authorization: Basic <base64(username:password)> header.
+func WithHTTPBasicAuth(username, password string) DependencyOption {
+	return func(dc *DependencyConfig) {
+		dc.HTTPBasicUser = username
+		dc.HTTPBasicPass = password
+	}
+}
+
+// WithGRPCMetadata sets custom gRPC metadata for health check calls.
+func WithGRPCMetadata(metadata map[string]string) DependencyOption {
+	return func(dc *DependencyConfig) {
+		dc.GRPCMetadata = metadata
+	}
+}
+
+// WithGRPCBearerToken sets a Bearer token for gRPC health check calls.
+// Adds authorization: Bearer <token> metadata.
+func WithGRPCBearerToken(token string) DependencyOption {
+	return func(dc *DependencyConfig) {
+		dc.GRPCBearerToken = token
+	}
+}
+
+// WithGRPCBasicAuth sets Basic Auth credentials for gRPC health check calls.
+// Adds authorization: Basic <base64(username:password)> metadata.
+func WithGRPCBasicAuth(username, password string) DependencyOption {
+	return func(dc *DependencyConfig) {
+		dc.GRPCBasicUser = username
+		dc.GRPCBasicPass = password
+	}
+}
+
 // WithPostgresQuery sets the SQL query for PostgreSQL health checks.
 func WithPostgresQuery(query string) DependencyOption {
 	return func(dc *DependencyConfig) {
@@ -248,6 +304,18 @@ func makeDepOption(name string, depType DependencyType, opts []DependencyOption)
 			if dc.HTTPTLS == nil {
 				enabled := true
 				dc.HTTPTLS = &enabled
+			}
+		}
+
+		// Validate auth configuration: at most one auth method allowed.
+		if depType == TypeHTTP {
+			if err := validateHTTPAuthConfig(dc); err != nil {
+				return fmt.Errorf("dependency %q: %w", name, err)
+			}
+		}
+		if depType == TypeGRPC {
+			if err := validateGRPCAuthConfig(dc); err != nil {
+				return fmt.Errorf("dependency %q: %w", name, err)
 			}
 		}
 
@@ -461,4 +529,46 @@ func buildDependency(name string, depType DependencyType, dc *DependencyConfig, 
 	}
 
 	return dep, nil
+}
+
+// validateHTTPAuthConfig checks that at most one HTTP auth method is configured.
+func validateHTTPAuthConfig(dc *DependencyConfig) error {
+	methods := 0
+	if dc.HTTPBearerToken != "" {
+		methods++
+	}
+	if dc.HTTPBasicUser != "" {
+		methods++
+	}
+	for k := range dc.HTTPHeaders {
+		if strings.EqualFold(k, "Authorization") {
+			methods++
+			break
+		}
+	}
+	if methods > 1 {
+		return fmt.Errorf("conflicting auth methods: specify only one of bearerToken, basicAuth, or Authorization header")
+	}
+	return nil
+}
+
+// validateGRPCAuthConfig checks that at most one gRPC auth method is configured.
+func validateGRPCAuthConfig(dc *DependencyConfig) error {
+	methods := 0
+	if dc.GRPCBearerToken != "" {
+		methods++
+	}
+	if dc.GRPCBasicUser != "" {
+		methods++
+	}
+	for k := range dc.GRPCMetadata {
+		if strings.EqualFold(k, "authorization") {
+			methods++
+			break
+		}
+	}
+	if methods > 1 {
+		return fmt.Errorf("conflicting auth methods: specify only one of bearerToken, basicAuth, or authorization metadata")
+	}
+	return nil
 }
