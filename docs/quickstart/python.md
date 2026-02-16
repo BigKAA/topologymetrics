@@ -319,6 +319,71 @@ http_check("slow-service",
 )
 ```
 
+## Authentication
+
+HTTP and gRPC checkers support authentication. Only one auth method
+per dependency is allowed — mixing methods causes a validation error.
+
+### HTTP Bearer Token
+
+```python
+http_check("secure-api",
+    url="http://api.svc:8080",
+    critical=True,
+    bearer_token="eyJhbG...",
+)
+```
+
+### HTTP Basic Auth
+
+```python
+http_check("secure-api",
+    url="http://api.svc:8080",
+    critical=True,
+    basic_auth=("admin", "secret"),
+)
+```
+
+### HTTP Custom Headers
+
+```python
+http_check("secure-api",
+    url="http://api.svc:8080",
+    critical=True,
+    headers={"X-API-Key": "my-key"},
+)
+```
+
+### gRPC Bearer Token
+
+```python
+grpc_check("grpc-backend",
+    host="backend.svc",
+    port=9090,
+    critical=True,
+    bearer_token="eyJhbG...",
+)
+```
+
+### gRPC Custom Metadata
+
+```python
+grpc_check("grpc-backend",
+    host="backend.svc",
+    port=9090,
+    critical=True,
+    metadata={"x-api-key": "my-key"},
+)
+```
+
+### Auth Error Classification
+
+When a server responds with an authentication error, the checker
+classifies it as `auth_error`:
+
+- HTTP 401/403 → `status="auth_error"`, `detail="auth_error"`
+- gRPC UNAUTHENTICATED/PERMISSION_DENIED → `status="auth_error"`, `detail="auth_error"`
+
 ## Configuration via Environment Variables
 
 | Variable | Description | Example |

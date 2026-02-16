@@ -504,32 +504,32 @@ In `CheckAsync()` method:
 
 ### Documentation
 
-- [ ] Update `spec/check-behavior.md` (done in Phase 1)
-- [ ] Update `spec/config-contract.md` (done in Phase 1)
-- [ ] Update SDK READMEs with auth examples
-- [ ] Update `docs/` guides with auth configuration examples
-- [ ] Add auth section to Spring Boot Starter docs
-- [ ] EN + RU versions
+- [x] Update `spec/check-behavior.md` (done in Phase 1)
+- [x] Update `spec/config-contract.md` (done in Phase 1)
+- [x] Update SDK READMEs with auth examples
+- [x] Update `docs/` guides with auth configuration examples
+- [x] Add auth section to Spring Boot Starter docs
+- [x] EN + RU versions
 
 ### Version bump
 
-- [ ] All SDKs → v0.5.0
-- [ ] Update version constants in code
-- [ ] Update CHANGELOG.md
+- [x] All SDKs → v0.4.2
+- [x] Update version constants in code
+- [x] Update CHANGELOG.md
 
 ### Release
 
 - [ ] Merge to master
-- [ ] Create per-SDK tags: sdk-go/v0.5.0, sdk-java/v0.5.0, sdk-python/v0.5.0, sdk-csharp/v0.5.0
+- [ ] Create per-SDK tags: sdk-go/v0.4.2, sdk-java/v0.4.2, sdk-python/v0.4.2, sdk-csharp/v0.4.2
 - [ ] GitHub Releases for each SDK
 - [ ] Publish: PyPI, Maven Central
 - [ ] NuGet: TODO (no make publish target)
 
 ### Deliverables
 
-- [ ] All documentation updated (EN + RU)
-- [ ] Version bumped to 0.5.0
-- [ ] All SDKs tagged and released
+- [x] All documentation updated (EN + RU)
+- [x] Version bumped to 0.4.2
+- [ ] All SDKs tagged and released (pending: commit + tags + publish)
 
 ---
 

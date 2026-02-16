@@ -15,4 +15,4 @@
 package checks
 
 // Version is the SDK version used in User-Agent headers and diagnostics.
-const Version = "0.4.0"
+const Version = "0.4.2"

@@ -233,6 +233,73 @@ dephealth.HTTP("slow-service",
 )
 ```
 
+## Аутентификация
+
+HTTP и gRPC чекеры поддерживают аутентификацию. Для каждой зависимости
+допускается только один метод — смешивание вызывает ошибку валидации.
+
+### HTTP Bearer Token
+
+```go
+dephealth.HTTP("secure-api",
+    dephealth.FromURL("http://api.svc:8080"),
+    dephealth.Critical(true),
+    dephealth.WithHTTPBearerToken("eyJhbG..."),
+)
+```
+
+### HTTP Basic Auth
+
+```go
+dephealth.HTTP("secure-api",
+    dephealth.FromURL("http://api.svc:8080"),
+    dephealth.Critical(true),
+    dephealth.WithHTTPBasicAuth("admin", "secret"),
+)
+```
+
+### HTTP произвольные заголовки
+
+```go
+dephealth.HTTP("secure-api",
+    dephealth.FromURL("http://api.svc:8080"),
+    dephealth.Critical(true),
+    dephealth.WithHTTPHeaders(map[string]string{
+        "X-API-Key": "my-key",
+    }),
+)
+```
+
+### gRPC Bearer Token
+
+```go
+dephealth.GRPC("grpc-backend",
+    dephealth.FromParams("backend.svc", 9090),
+    dephealth.Critical(true),
+    dephealth.WithGRPCBearerToken("eyJhbG..."),
+)
+```
+
+### gRPC произвольные метаданные
+
+```go
+dephealth.GRPC("grpc-backend",
+    dephealth.FromParams("backend.svc", 9090),
+    dephealth.Critical(true),
+    dephealth.WithGRPCMetadata(map[string]string{
+        "x-api-key": "my-key",
+    }),
+)
+```
+
+### Классификация ошибок аутентификации
+
+Когда сервер возвращает ошибку аутентификации, чекер классифицирует
+её как `auth_error`:
+
+- HTTP 401/403 → `status="auth_error"`, `detail="auth_error"`
+- gRPC UNAUTHENTICATED/PERMISSION_DENIED → `status="auth_error"`, `detail="auth_error"`
+
 ## Конфигурация через переменные окружения
 
 | Переменная | Описание | Пример |

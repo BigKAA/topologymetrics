@@ -233,6 +233,73 @@ dephealth.HTTP("slow-service",
 )
 ```
 
+## Authentication
+
+HTTP and gRPC checkers support authentication. Only one auth method
+per dependency is allowed — mixing methods causes a validation error.
+
+### HTTP Bearer Token
+
+```go
+dephealth.HTTP("secure-api",
+    dephealth.FromURL("http://api.svc:8080"),
+    dephealth.Critical(true),
+    dephealth.WithHTTPBearerToken("eyJhbG..."),
+)
+```
+
+### HTTP Basic Auth
+
+```go
+dephealth.HTTP("secure-api",
+    dephealth.FromURL("http://api.svc:8080"),
+    dephealth.Critical(true),
+    dephealth.WithHTTPBasicAuth("admin", "secret"),
+)
+```
+
+### HTTP Custom Headers
+
+```go
+dephealth.HTTP("secure-api",
+    dephealth.FromURL("http://api.svc:8080"),
+    dephealth.Critical(true),
+    dephealth.WithHTTPHeaders(map[string]string{
+        "X-API-Key": "my-key",
+    }),
+)
+```
+
+### gRPC Bearer Token
+
+```go
+dephealth.GRPC("grpc-backend",
+    dephealth.FromParams("backend.svc", 9090),
+    dephealth.Critical(true),
+    dephealth.WithGRPCBearerToken("eyJhbG..."),
+)
+```
+
+### gRPC Custom Metadata
+
+```go
+dephealth.GRPC("grpc-backend",
+    dephealth.FromParams("backend.svc", 9090),
+    dephealth.Critical(true),
+    dephealth.WithGRPCMetadata(map[string]string{
+        "x-api-key": "my-key",
+    }),
+)
+```
+
+### Auth Error Classification
+
+When a server responds with an authentication error, the checker
+classifies it as `auth_error`:
+
+- HTTP 401/403 → `status="auth_error"`, `detail="auth_error"`
+- gRPC UNAUTHENTICATED/PERMISSION_DENIED → `status="auth_error"`, `detail="auth_error"`
+
 ## Configuration via Environment Variables
 
 | Variable | Description | Example |

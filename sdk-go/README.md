@@ -92,6 +92,26 @@ dh, _ := dephealth.New(
 )
 ```
 
+## Authentication
+
+HTTP and gRPC checkers support Bearer token, Basic Auth, and custom headers/metadata:
+
+```go
+dephealth.HTTP("secure-api",
+    dephealth.FromURL("http://api.svc:8080"),
+    dephealth.Critical(true),
+    dephealth.WithHTTPBearerToken("eyJhbG..."),
+)
+
+dephealth.GRPC("grpc-backend",
+    dephealth.FromParams("backend.svc", 9090),
+    dephealth.Critical(true),
+    dephealth.WithGRPCBearerToken("eyJhbG..."),
+)
+```
+
+See [quickstart guide](../docs/quickstart/go.md#authentication) for all options.
+
 ## License
 
 Apache License 2.0 — see [LICENSE](../LICENSE).

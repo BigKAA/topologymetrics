@@ -226,6 +226,72 @@ builder.Services.AddDepHealth("my-service", dh => dh
     .Critical(true))                             // критическая зависимость
 ```
 
+## Аутентификация
+
+HTTP и gRPC чекеры поддерживают аутентификацию. Для каждой зависимости
+допускается только один метод — смешивание вызывает ошибку валидации.
+
+### HTTP Bearer Token
+
+```csharp
+.AddDependency("secure-api", DependencyType.Http, d => d
+    .Url("http://api.svc:8080")
+    .Critical(true)
+    .HttpBearerToken("eyJhbG..."))
+```
+
+### HTTP Basic Auth
+
+```csharp
+.AddDependency("secure-api", DependencyType.Http, d => d
+    .Url("http://api.svc:8080")
+    .Critical(true)
+    .HttpBasicAuth("admin", "secret"))
+```
+
+### HTTP произвольные заголовки
+
+```csharp
+.AddDependency("secure-api", DependencyType.Http, d => d
+    .Url("http://api.svc:8080")
+    .Critical(true)
+    .HttpHeaders(new Dictionary<string, string>
+    {
+        ["X-API-Key"] = "my-key",
+    }))
+```
+
+### gRPC Bearer Token
+
+```csharp
+.AddDependency("grpc-backend", DependencyType.Grpc, d => d
+    .Host("backend.svc")
+    .Port(9090)
+    .Critical(true)
+    .GrpcBearerToken("eyJhbG..."))
+```
+
+### gRPC произвольные метаданные
+
+```csharp
+.AddDependency("grpc-backend", DependencyType.Grpc, d => d
+    .Host("backend.svc")
+    .Port(9090)
+    .Critical(true)
+    .GrpcMetadata(new Dictionary<string, string>
+    {
+        ["x-api-key"] = "my-key",
+    }))
+```
+
+### Классификация ошибок аутентификации
+
+Когда сервер возвращает ошибку аутентификации, чекер классифицирует
+её как `auth_error`:
+
+- HTTP 401/403 → `status="auth_error"`, `detail="auth_error"`
+- gRPC UNAUTHENTICATED/PERMISSION_DENIED → `status="auth_error"`, `detail="auth_error"`
+
 ## Конфигурация через переменные окружения
 
 | Переменная | Описание | Пример |

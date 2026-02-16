@@ -319,6 +319,71 @@ http_check("slow-service",
 )
 ```
 
+## Аутентификация
+
+HTTP и gRPC чекеры поддерживают аутентификацию. Для каждой зависимости
+допускается только один метод — смешивание вызывает ошибку валидации.
+
+### HTTP Bearer Token
+
+```python
+http_check("secure-api",
+    url="http://api.svc:8080",
+    critical=True,
+    bearer_token="eyJhbG...",
+)
+```
+
+### HTTP Basic Auth
+
+```python
+http_check("secure-api",
+    url="http://api.svc:8080",
+    critical=True,
+    basic_auth=("admin", "secret"),
+)
+```
+
+### HTTP произвольные заголовки
+
+```python
+http_check("secure-api",
+    url="http://api.svc:8080",
+    critical=True,
+    headers={"X-API-Key": "my-key"},
+)
+```
+
+### gRPC Bearer Token
+
+```python
+grpc_check("grpc-backend",
+    host="backend.svc",
+    port=9090,
+    critical=True,
+    bearer_token="eyJhbG...",
+)
+```
+
+### gRPC произвольные метаданные
+
+```python
+grpc_check("grpc-backend",
+    host="backend.svc",
+    port=9090,
+    critical=True,
+    metadata={"x-api-key": "my-key"},
+)
+```
+
+### Классификация ошибок аутентификации
+
+Когда сервер возвращает ошибку аутентификации, чекер классифицирует
+её как `auth_error`:
+
+- HTTP 401/403 → `status="auth_error"`, `detail="auth_error"`
+- gRPC UNAUTHENTICATED/PERMISSION_DENIED → `status="auth_error"`, `detail="auth_error"`
+
 ## Конфигурация через переменные окружения
 
 | Переменная | Описание | Пример |

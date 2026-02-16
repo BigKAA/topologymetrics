@@ -225,6 +225,72 @@ Each dependency can override global settings:
     .Critical(true))                             // critical dependency
 ```
 
+## Authentication
+
+HTTP and gRPC checkers support authentication. Only one auth method
+per dependency is allowed — mixing methods causes a validation error.
+
+### HTTP Bearer Token
+
+```csharp
+.AddDependency("secure-api", DependencyType.Http, d => d
+    .Url("http://api.svc:8080")
+    .Critical(true)
+    .HttpBearerToken("eyJhbG..."))
+```
+
+### HTTP Basic Auth
+
+```csharp
+.AddDependency("secure-api", DependencyType.Http, d => d
+    .Url("http://api.svc:8080")
+    .Critical(true)
+    .HttpBasicAuth("admin", "secret"))
+```
+
+### HTTP Custom Headers
+
+```csharp
+.AddDependency("secure-api", DependencyType.Http, d => d
+    .Url("http://api.svc:8080")
+    .Critical(true)
+    .HttpHeaders(new Dictionary<string, string>
+    {
+        ["X-API-Key"] = "my-key",
+    }))
+```
+
+### gRPC Bearer Token
+
+```csharp
+.AddDependency("grpc-backend", DependencyType.Grpc, d => d
+    .Host("backend.svc")
+    .Port(9090)
+    .Critical(true)
+    .GrpcBearerToken("eyJhbG..."))
+```
+
+### gRPC Custom Metadata
+
+```csharp
+.AddDependency("grpc-backend", DependencyType.Grpc, d => d
+    .Host("backend.svc")
+    .Port(9090)
+    .Critical(true)
+    .GrpcMetadata(new Dictionary<string, string>
+    {
+        ["x-api-key"] = "my-key",
+    }))
+```
+
+### Auth Error Classification
+
+When a server responds with an authentication error, the checker
+classifies it as `auth_error`:
+
+- HTTP 401/403 → `status="auth_error"`, `detail="auth_error"`
+- gRPC UNAUTHENTICATED/PERMISSION_DENIED → `status="auth_error"`, `detail="auth_error"`
+
 ## Configuration via Environment Variables
 
 | Variable | Description | Example |

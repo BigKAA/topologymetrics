@@ -285,6 +285,94 @@ Each dependency can override global settings:
     .critical(true))                    // critical dependency
 ```
 
+## Authentication
+
+HTTP and gRPC checkers support authentication. Only one auth method
+per dependency is allowed — mixing methods causes a validation error.
+
+### HTTP Bearer Token
+
+```java
+.dependency("secure-api", DependencyType.HTTP, d -> d
+    .url("http://api.svc:8080")
+    .critical(true)
+    .httpBearerToken("eyJhbG..."))
+```
+
+### HTTP Basic Auth
+
+```java
+.dependency("secure-api", DependencyType.HTTP, d -> d
+    .url("http://api.svc:8080")
+    .critical(true)
+    .httpBasicAuth("admin", "secret"))
+```
+
+### HTTP Custom Headers
+
+```java
+.dependency("secure-api", DependencyType.HTTP, d -> d
+    .url("http://api.svc:8080")
+    .critical(true)
+    .httpHeaders(Map.of("X-API-Key", "my-key")))
+```
+
+### gRPC Bearer Token
+
+```java
+.dependency("grpc-backend", DependencyType.GRPC, d -> d
+    .host("backend.svc")
+    .port(9090)
+    .critical(true)
+    .grpcBearerToken("eyJhbG..."))
+```
+
+### gRPC Custom Metadata
+
+```java
+.dependency("grpc-backend", DependencyType.GRPC, d -> d
+    .host("backend.svc")
+    .port(9090)
+    .critical(true)
+    .grpcMetadata(Map.of("x-api-key", "my-key")))
+```
+
+### Spring Boot YAML
+
+```yaml
+dephealth:
+  dependencies:
+    secure-api:
+      type: http
+      url: http://api.svc:8080
+      critical: true
+      http-bearer-token: ${API_TOKEN}
+      # OR
+      # http-basic-username: ${API_USER}
+      # http-basic-password: ${API_PASS}
+      # OR
+      # http-headers:
+      #   X-API-Key: ${API_KEY}
+
+    grpc-backend:
+      type: grpc
+      host: backend.svc
+      port: "9090"
+      critical: true
+      grpc-bearer-token: ${GRPC_TOKEN}
+      # OR
+      # grpc-metadata:
+      #   x-api-key: ${GRPC_KEY}
+```
+
+### Auth Error Classification
+
+When a server responds with an authentication error, the checker
+classifies it as `auth_error`:
+
+- HTTP 401/403 → `status="auth_error"`, `detail="auth_error"`
+- gRPC UNAUTHENTICATED/PERMISSION_DENIED → `status="auth_error"`, `detail="auth_error"`
+
 ## Configuration via Environment Variables
 
 | Variable | Description | Example |

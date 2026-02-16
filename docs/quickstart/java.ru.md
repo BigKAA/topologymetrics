@@ -285,6 +285,94 @@ DepHealth depHealth = DepHealth.builder("my-service", meterRegistry)
     .critical(true))                    // критическая зависимость
 ```
 
+## Аутентификация
+
+HTTP и gRPC чекеры поддерживают аутентификацию. Для каждой зависимости
+допускается только один метод — смешивание вызывает ошибку валидации.
+
+### HTTP Bearer Token
+
+```java
+.dependency("secure-api", DependencyType.HTTP, d -> d
+    .url("http://api.svc:8080")
+    .critical(true)
+    .httpBearerToken("eyJhbG..."))
+```
+
+### HTTP Basic Auth
+
+```java
+.dependency("secure-api", DependencyType.HTTP, d -> d
+    .url("http://api.svc:8080")
+    .critical(true)
+    .httpBasicAuth("admin", "secret"))
+```
+
+### HTTP произвольные заголовки
+
+```java
+.dependency("secure-api", DependencyType.HTTP, d -> d
+    .url("http://api.svc:8080")
+    .critical(true)
+    .httpHeaders(Map.of("X-API-Key", "my-key")))
+```
+
+### gRPC Bearer Token
+
+```java
+.dependency("grpc-backend", DependencyType.GRPC, d -> d
+    .host("backend.svc")
+    .port(9090)
+    .critical(true)
+    .grpcBearerToken("eyJhbG..."))
+```
+
+### gRPC произвольные метаданные
+
+```java
+.dependency("grpc-backend", DependencyType.GRPC, d -> d
+    .host("backend.svc")
+    .port(9090)
+    .critical(true)
+    .grpcMetadata(Map.of("x-api-key", "my-key")))
+```
+
+### Spring Boot YAML
+
+```yaml
+dephealth:
+  dependencies:
+    secure-api:
+      type: http
+      url: http://api.svc:8080
+      critical: true
+      http-bearer-token: ${API_TOKEN}
+      # ИЛИ
+      # http-basic-username: ${API_USER}
+      # http-basic-password: ${API_PASS}
+      # ИЛИ
+      # http-headers:
+      #   X-API-Key: ${API_KEY}
+
+    grpc-backend:
+      type: grpc
+      host: backend.svc
+      port: "9090"
+      critical: true
+      grpc-bearer-token: ${GRPC_TOKEN}
+      # ИЛИ
+      # grpc-metadata:
+      #   x-api-key: ${GRPC_KEY}
+```
+
+### Классификация ошибок аутентификации
+
+Когда сервер возвращает ошибку аутентификации, чекер классифицирует
+её как `auth_error`:
+
+- HTTP 401/403 → `status="auth_error"`, `detail="auth_error"`
+- gRPC UNAUTHENTICATED/PERMISSION_DENIED → `status="auth_error"`, `detail="auth_error"`
+
 ## Конфигурация через переменные окружения
 
 | Переменная | Описание | Пример |

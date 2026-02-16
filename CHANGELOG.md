@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] - 2026-02-16
+
+Authentication support for HTTP and gRPC health checkers across all SDKs.
+Per-dependency auth configuration with Bearer token, Basic Auth, and
+custom headers/metadata.
+
+### Added
+
+#### All SDKs
+
+- HTTP checker: Bearer token (`WithHTTPBearerToken` / `http_bearer_token` /
+  `HttpBearerToken`), Basic Auth (`WithHTTPBasicAuth` / `http_basic_auth` /
+  `HttpBasicAuth`), custom headers (`WithHTTPHeaders` / `headers` /
+  `HttpHeaders`).
+- gRPC checker: Bearer token (`WithGRPCBearerToken` / `grpc_bearer_token` /
+  `GrpcBearerToken`), custom metadata (`WithGRPCMetadata` / `metadata` /
+  `GrpcMetadata`).
+- Conflict validation: only one auth method per dependency (Bearer OR
+  Basic Auth OR custom Authorization header). Error at creation time.
+- Auth error classification: HTTP 401/403 and gRPC UNAUTHENTICATED/
+  PERMISSION_DENIED mapped to `status="auth_error"`, `detail="auth_error"`.
+
+#### Java Spring Boot Starter
+
+- YAML properties: `http-bearer-token`, `http-basic-username`,
+  `http-basic-password`, `http-headers`, `grpc-bearer-token`,
+  `grpc-metadata` for per-dependency auth configuration.
+
+#### Specification
+
+- `spec/check-behavior.md` sections 4.1 and 4.2: auth parameters,
+  validation rules, error classification for HTTP and gRPC checkers.
+- `spec/config-contract.md`: auth configuration examples.
+
+#### Conformance
+
+- 4 new auth scenarios: `auth-http-bearer`, `auth-http-basic`,
+  `auth-http-header`, `auth-grpc` (total: 13 scenarios).
+- HTTP and gRPC test stubs with dynamic auth configuration via admin API.
+- All 4 SDKs pass 13/13 scenarios (325 checks each).
+
 ## [0.4.1] - 2026-02-15
 
 Programmatic health details: new `HealthDetails()` API across all SDKs,

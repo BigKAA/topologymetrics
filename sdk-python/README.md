@@ -79,6 +79,27 @@ for key, ep in details.items():
 | gRPC | `grpc` | `host:50051` (via `FromParams`) |
 | TCP | — | `tcp://host:port` |
 
+## Authentication
+
+HTTP and gRPC checkers support Bearer token, Basic Auth, and custom headers/metadata:
+
+```python
+http_check("secure-api",
+    url="http://api.svc:8080",
+    critical=True,
+    bearer_token="eyJhbG...",
+)
+
+grpc_check("grpc-backend",
+    host="backend.svc",
+    port=9090,
+    critical=True,
+    bearer_token="eyJhbG...",
+)
+```
+
+See [quickstart guide](../docs/quickstart/python.md#authentication) for all options.
+
 ## License
 
 Apache License 2.0 — see [LICENSE](https://github.com/BigKAA/topologymetrics/blob/master/LICENSE).
