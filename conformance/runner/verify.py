@@ -52,8 +52,8 @@ DETAIL_TO_STATUS = {
 }
 
 VALID_DETAILS_BY_TYPE = {
-    "http": {"ok", "timeout", "connection_refused", "dns_error", "tls_error", "error"},
-    "grpc": {"ok", "timeout", "connection_refused", "dns_error", "tls_error",
+    "http": {"ok", "timeout", "connection_refused", "dns_error", "auth_error", "tls_error", "error"},
+    "grpc": {"ok", "timeout", "connection_refused", "dns_error", "auth_error", "tls_error",
              "grpc_not_serving", "grpc_unknown", "error"},
     "tcp": {"ok", "timeout", "connection_refused", "dns_error", "error"},
     "postgres": {"ok", "timeout", "connection_refused", "dns_error", "auth_error", "tls_error", "error"},

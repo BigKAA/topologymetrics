@@ -27,7 +27,7 @@ var intervalStr = Environment.GetEnvironmentVariable("CHECK_INTERVAL") ?? "10";
 
 var checkInterval = TimeSpan.FromSeconds(int.Parse(intervalStr));
 
-// --- Регистрация DepHealth с 7 зависимостями ---
+// --- Регистрация DepHealth с 12 зависимостями ---
 builder.Services.AddDepHealth("conformance-service", dh =>
 {
     dh.AddPostgres("postgres-primary", primaryDbUrl, critical: true);
@@ -36,7 +36,18 @@ builder.Services.AddDepHealth("conformance-service", dh =>
     dh.AddAmqp("rabbitmq", rabbitmqUrl, critical: false);
     dh.AddKafka("kafka-main", $"kafka://{kafkaHost}:{kafkaPort}", critical: false);
     dh.AddHttp("http-service", httpStubUrl, healthPath: "/health", critical: false);
+    dh.AddHttp("http-auth-bearer", httpStubUrl, healthPath: "/health",
+        bearerToken: "test-token-123", critical: false);
+    dh.AddHttp("http-auth-basic", httpStubUrl, healthPath: "/health",
+        basicAuthUsername: "admin", basicAuthPassword: "password", critical: false);
+    dh.AddHttp("http-auth-header", httpStubUrl, healthPath: "/health",
+        headers: new Dictionary<string, string> { ["X-API-Key"] = "my-secret-key" },
+        critical: false);
+    dh.AddHttp("http-auth-wrong", httpStubUrl, healthPath: "/health",
+        bearerToken: "wrong-token", critical: false);
     dh.AddGrpc("grpc-service", grpcStubHost, grpcStubPort, critical: false);
+    dh.AddGrpc("grpc-auth-bearer", grpcStubHost, grpcStubPort,
+        bearerToken: "test-token-123", critical: false);
     dh.WithCheckInterval(checkInterval);
 });
 

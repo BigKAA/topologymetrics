@@ -1,23 +1,42 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
+
+// authMode defines the authentication mode for the gRPC service.
+type authMode int
+
+const (
+	authNone   authMode = iota
+	authBearer          // Require "authorization: Bearer <token>" metadata
+)
+
+type authConfig struct {
+	mode  authMode
+	token string // bearer token
+}
 
 type stubState struct {
 	mu           sync.RWMutex
 	healthy      bool
 	healthServer *health.Server
+	auth         authConfig
 }
 
 func (s *stubState) setHealthy(v bool) {
@@ -35,6 +54,57 @@ func (s *stubState) isHealthy() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.healthy
+}
+
+func (s *stubState) setAuth(cfg authConfig) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.auth = cfg
+}
+
+func (s *stubState) getAuth() authConfig {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.auth
+}
+
+// authInterceptor creates a unary server interceptor that checks metadata
+// for authentication before forwarding to the handler.
+func authInterceptor(state *stubState) grpc.UnaryServerInterceptor {
+	return func(
+		ctx context.Context,
+		req any,
+		info *grpc.UnaryServerInfo,
+		handler grpc.UnaryHandler,
+	) (any, error) {
+		auth := state.getAuth()
+
+		if auth.mode == authNone {
+			return handler(ctx, req)
+		}
+
+		md, ok := metadata.FromIncomingContext(ctx)
+		if !ok {
+			return nil, status.Error(codes.Unauthenticated, "missing metadata")
+		}
+
+		switch auth.mode {
+		case authBearer:
+			values := md.Get("authorization")
+			if len(values) == 0 {
+				return nil, status.Error(codes.Unauthenticated, "missing authorization metadata")
+			}
+			authVal := values[0]
+			if !strings.HasPrefix(authVal, "Bearer ") {
+				return nil, status.Error(codes.PermissionDenied, "invalid authorization format")
+			}
+			if strings.TrimPrefix(authVal, "Bearer ") != auth.token {
+				return nil, status.Error(codes.PermissionDenied, "invalid token")
+			}
+		}
+
+		return handler(ctx, req)
+	}
 }
 
 func main() {
@@ -58,10 +128,12 @@ func main() {
 		healthServer: healthServer,
 	}
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(authInterceptor(state)),
+	)
 	healthpb.RegisterHealthServer(grpcServer, healthServer)
 
-	// Запуск gRPC сервера
+	// Start gRPC server
 	go func() {
 		lis, err := net.Listen("tcp", ":"+grpcPort)
 		if err != nil {
@@ -102,9 +174,40 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]bool{"healthy": req.Healthy})
 	})
 
-	mux.HandleFunc("GET /admin/status", func(w http.ResponseWriter, r *http.Request) {
+	// Admin: configure bearer token auth for gRPC
+	mux.HandleFunc("PUT /admin/auth/bearer", func(w http.ResponseWriter, r *http.Request) {
+		token := r.URL.Query().Get("token")
+		if token == "" {
+			http.Error(w, "token parameter required", http.StatusBadRequest)
+			return
+		}
+		state.setAuth(authConfig{mode: authBearer, token: token})
+		logger.Info("set auth mode", "mode", "bearer")
+
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]bool{"healthy": state.isHealthy()})
+		json.NewEncoder(w).Encode(map[string]string{"auth": "bearer"})
+	})
+
+	// Admin: disable auth
+	mux.HandleFunc("DELETE /admin/auth", func(w http.ResponseWriter, r *http.Request) {
+		state.setAuth(authConfig{mode: authNone})
+		logger.Info("disabled auth")
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"auth": "none"})
+	})
+
+	mux.HandleFunc("GET /admin/status", func(w http.ResponseWriter, r *http.Request) {
+		auth := state.getAuth()
+		authModeStr := "none"
+		if auth.mode == authBearer {
+			authModeStr = "bearer"
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"healthy": state.isHealthy(),
+			"auth":    authModeStr,
+		})
 	})
 
 	adminAddr := ":" + adminPort

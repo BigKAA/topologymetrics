@@ -1,0 +1,72 @@
+name: "auth-grpc"
+description: >
+  gRPC Bearer token authentication via metadata.
+  Covers plan scenarios 6 (gRPC bearer success), 7 (UNAUTHENTICATED error).
+  Enables bearer auth on gRPC stub, verifies:
+  - grpc-auth-bearer (correct token in metadata) is healthy
+  - grpc-service (no auth metadata) gets UNAUTHENTICATED → auth_error
+
+pre_actions:
+  - type: http_request
+    method: PUT
+    url: "http://grpc-stub.dephealth-conformance.svc:8080/admin/auth/bearer?token=test-token-123"
+  - type: wait
+    seconds: 30
+
+checks:
+  - type: status_health_consistency
+
+  # Correct bearer token in metadata → healthy
+  - type: expected_dependencies
+    dependencies:
+      - dependency: grpc-auth-bearer
+        type: grpc
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        name: conformance-service
+        critical: "no"
+        value: 1
+
+  - type: expected_status
+    endpoints:
+      - dependency: grpc-auth-bearer
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        status: ok
+
+  - type: expected_detail
+    endpoints:
+      - dependency: grpc-auth-bearer
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        detail: ok
+
+  # No auth metadata → UNAUTHENTICATED → auth_error
+  - type: expected_dependencies
+    dependencies:
+      - dependency: grpc-service
+        type: grpc
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        name: conformance-service
+        critical: "no"
+        value: 0
+
+  - type: expected_status
+    endpoints:
+      - dependency: grpc-service
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        status: auth_error
+
+  - type: expected_detail
+    endpoints:
+      - dependency: grpc-service
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        detail: auth_error
+
+post_actions:
+  - type: http_request
+    method: DELETE
+    url: "http://grpc-stub.dephealth-conformance.svc:8080/admin/auth"

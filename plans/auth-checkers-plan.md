@@ -490,11 +490,11 @@ In `CheckAsync()` method:
 
 ### Deliverables
 
-- [ ] Test HTTP server with auth support (in conformance test infra)
-- [ ] Test gRPC server with auth support (in conformance test infra)
-- [ ] YAML scenarios for all 7 test cases
-- [ ] All 4 SDKs pass conformance tests
-- [ ] `make test` in conformance/ passes
+- [x] Test HTTP server with auth support (in conformance test infra)
+- [x] Test gRPC server with auth support (in conformance test infra)
+- [x] YAML scenarios for all 7 test cases (4 files: auth-http-bearer, auth-http-basic, auth-http-header, auth-grpc)
+- [x] All 4 SDKs pass conformance tests (13/13 scenarios, 325 checks each, 0 failures)
+- [x] `make test` in conformance/ passes
 
 ---
 

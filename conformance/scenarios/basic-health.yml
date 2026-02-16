@@ -84,7 +84,27 @@ checks:
         host: http-stub.dephealth-conformance.svc
         port: 8080
         status: ok
+      - dependency: http-auth-bearer
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        status: ok
+      - dependency: http-auth-basic
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        status: ok
+      - dependency: http-auth-header
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        status: ok
+      - dependency: http-auth-wrong
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        status: ok
       - dependency: grpc-service
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        status: ok
+      - dependency: grpc-auth-bearer
         host: grpc-stub.dephealth-conformance.svc
         port: 9090
         status: ok
@@ -115,7 +135,27 @@ checks:
         host: http-stub.dephealth-conformance.svc
         port: 8080
         detail: ok
+      - dependency: http-auth-bearer
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        detail: ok
+      - dependency: http-auth-basic
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        detail: ok
+      - dependency: http-auth-header
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        detail: ok
+      - dependency: http-auth-wrong
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        detail: ok
       - dependency: grpc-service
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        detail: ok
+      - dependency: grpc-auth-bearer
         host: grpc-stub.dephealth-conformance.svc
         port: 9090
         detail: ok
@@ -166,7 +206,42 @@ checks:
         name: conformance-service
         critical: "no"
         value: 1
+      - dependency: http-auth-bearer
+        type: http
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        name: conformance-service
+        critical: "no"
+        value: 1
+      - dependency: http-auth-basic
+        type: http
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        name: conformance-service
+        critical: "no"
+        value: 1
+      - dependency: http-auth-header
+        type: http
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        name: conformance-service
+        critical: "no"
+        value: 1
+      - dependency: http-auth-wrong
+        type: http
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        name: conformance-service
+        critical: "no"
+        value: 1
       - dependency: grpc-service
+        type: grpc
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        name: conformance-service
+        critical: "no"
+        value: 1
+      - dependency: grpc-auth-bearer
         type: grpc
         host: grpc-stub.dephealth-conformance.svc
         port: 9090

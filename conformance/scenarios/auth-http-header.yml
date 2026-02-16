@@ -1,0 +1,72 @@
+name: "auth-http-header"
+description: >
+  HTTP custom header authentication.
+  Covers plan scenario 3 (custom headers success).
+  Enables required header on HTTP stub, verifies:
+  - http-auth-header (correct header) is healthy
+  - http-service (no header) gets 401 → auth_error
+
+pre_actions:
+  - type: http_request
+    method: PUT
+    url: "http://http-stub.dephealth-conformance.svc:8080/admin/auth/header?name=X-API-Key&value=my-secret-key"
+  - type: wait
+    seconds: 30
+
+checks:
+  - type: status_health_consistency
+
+  # Correct custom header → healthy
+  - type: expected_dependencies
+    dependencies:
+      - dependency: http-auth-header
+        type: http
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        name: conformance-service
+        critical: "no"
+        value: 1
+
+  - type: expected_status
+    endpoints:
+      - dependency: http-auth-header
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        status: ok
+
+  - type: expected_detail
+    endpoints:
+      - dependency: http-auth-header
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        detail: ok
+
+  # No header → 401 → auth_error
+  - type: expected_dependencies
+    dependencies:
+      - dependency: http-service
+        type: http
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        name: conformance-service
+        critical: "no"
+        value: 0
+
+  - type: expected_status
+    endpoints:
+      - dependency: http-service
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        status: auth_error
+
+  - type: expected_detail
+    endpoints:
+      - dependency: http-service
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        detail: auth_error
+
+post_actions:
+  - type: http_request
+    method: DELETE
+    url: "http://http-stub.dephealth-conformance.svc:8080/admin/auth"

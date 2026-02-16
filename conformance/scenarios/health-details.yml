@@ -1,5 +1,5 @@
 name: "health-details"
-description: "HealthDetails() API returns correct endpoint data for all 7 dependencies"
+description: "HealthDetails() API returns correct endpoint data for all 12 dependencies"
 
 checks:
   # Wait for all dependencies to be healthy before checking /health-details
@@ -35,7 +35,32 @@ checks:
         host: http-stub.dephealth-conformance.svc
         port: 8080
         value: 1
+      - dependency: http-auth-bearer
+        type: http
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        value: 1
+      - dependency: http-auth-basic
+        type: http
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        value: 1
+      - dependency: http-auth-header
+        type: http
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        value: 1
+      - dependency: http-auth-wrong
+        type: http
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        value: 1
       - dependency: grpc-service
+        type: grpc
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        value: 1
+      - dependency: grpc-auth-bearer
         type: grpc
         host: grpc-stub.dephealth-conformance.svc
         port: 9090
@@ -107,6 +132,42 @@ checks:
         type: http
         name: http-service
         critical: false
+      - dependency: http-auth-bearer
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        healthy: true
+        status: ok
+        detail: ok
+        type: http
+        name: http-auth-bearer
+        critical: false
+      - dependency: http-auth-basic
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        healthy: true
+        status: ok
+        detail: ok
+        type: http
+        name: http-auth-basic
+        critical: false
+      - dependency: http-auth-header
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        healthy: true
+        status: ok
+        detail: ok
+        type: http
+        name: http-auth-header
+        critical: false
+      - dependency: http-auth-wrong
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        healthy: true
+        status: ok
+        detail: ok
+        type: http
+        name: http-auth-wrong
+        critical: false
       - dependency: grpc-service
         host: grpc-stub.dephealth-conformance.svc
         port: 9090
@@ -115,4 +176,13 @@ checks:
         detail: ok
         type: grpc
         name: grpc-service
+        critical: false
+      - dependency: grpc-auth-bearer
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        healthy: true
+        status: ok
+        detail: ok
+        type: grpc
+        name: grpc-auth-bearer
         critical: false

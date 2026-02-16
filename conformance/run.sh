@@ -326,11 +326,20 @@ TOTAL_FAILED=0
 for lang in $LANGS; do
     log_info "========== Тестирование SDK: $lang =========="
 
-    # Reset http-stub delay to prevent cross-contamination between SDKs
+    # Reset http-stub delay and auth to prevent cross-contamination between SDKs
     reset_pod=$(kubectl -n "$NAMESPACE" get pods -l app=http-stub -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
     if [ -n "$reset_pod" ]; then
         kubectl -n "$NAMESPACE" exec "$reset_pod" -- \
             curl -s -X PUT "http://localhost:8080/admin/delay?ms=0" >/dev/null 2>&1 || true
+        kubectl -n "$NAMESPACE" exec "$reset_pod" -- \
+            curl -s -X DELETE "http://localhost:8080/admin/auth" >/dev/null 2>&1 || true
+    fi
+
+    # Reset grpc-stub auth
+    grpc_reset_pod=$(kubectl -n "$NAMESPACE" get pods -l app=grpc-stub -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+    if [ -n "$grpc_reset_pod" ]; then
+        kubectl -n "$NAMESPACE" exec "$grpc_reset_pod" -- \
+            curl -s -X DELETE "http://localhost:8080/admin/auth" >/dev/null 2>&1 || true
     fi
 
     if [ "$DEPLOY_MODE" = "kubectl" ]; then

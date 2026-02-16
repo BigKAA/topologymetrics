@@ -1,0 +1,72 @@
+name: "auth-http-basic"
+description: >
+  HTTP Basic Auth authentication.
+  Covers plan scenario 2 (basic auth success).
+  Enables basic auth on HTTP stub, verifies:
+  - http-auth-basic (correct credentials) is healthy
+  - http-service (no auth) gets 401 → auth_error
+
+pre_actions:
+  - type: http_request
+    method: PUT
+    url: "http://http-stub.dephealth-conformance.svc:8080/admin/auth/basic?username=admin&password=password"
+  - type: wait
+    seconds: 30
+
+checks:
+  - type: status_health_consistency
+
+  # Correct basic auth → healthy
+  - type: expected_dependencies
+    dependencies:
+      - dependency: http-auth-basic
+        type: http
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        name: conformance-service
+        critical: "no"
+        value: 1
+
+  - type: expected_status
+    endpoints:
+      - dependency: http-auth-basic
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        status: ok
+
+  - type: expected_detail
+    endpoints:
+      - dependency: http-auth-basic
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        detail: ok
+
+  # No auth → 401 → auth_error
+  - type: expected_dependencies
+    dependencies:
+      - dependency: http-service
+        type: http
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        name: conformance-service
+        critical: "no"
+        value: 0
+
+  - type: expected_status
+    endpoints:
+      - dependency: http-service
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        status: auth_error
+
+  - type: expected_detail
+    endpoints:
+      - dependency: http-service
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        detail: auth_error
+
+post_actions:
+  - type: http_request
+    method: DELETE
+    url: "http://http-stub.dephealth-conformance.svc:8080/admin/auth"

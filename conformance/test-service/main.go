@@ -162,9 +162,48 @@ func initDepHealth(cfg *Config, primaryDB, replicaDB *sql.DB, rdb *redis.Client,
 			dephealth.Critical(false),
 		),
 
+		// HTTP auth: bearer token
+		dephealth.HTTP("http-auth-bearer",
+			dephealth.FromURL(cfg.HTTPStubURL),
+			dephealth.WithHTTPHealthPath("/health"),
+			dephealth.WithHTTPBearerToken("test-token-123"),
+			dephealth.Critical(false),
+		),
+
+		// HTTP auth: basic auth
+		dephealth.HTTP("http-auth-basic",
+			dephealth.FromURL(cfg.HTTPStubURL),
+			dephealth.WithHTTPHealthPath("/health"),
+			dephealth.WithHTTPBasicAuth("admin", "password"),
+			dephealth.Critical(false),
+		),
+
+		// HTTP auth: custom header
+		dephealth.HTTP("http-auth-header",
+			dephealth.FromURL(cfg.HTTPStubURL),
+			dephealth.WithHTTPHealthPath("/health"),
+			dephealth.WithHTTPHeaders(map[string]string{"X-API-Key": "my-secret-key"}),
+			dephealth.Critical(false),
+		),
+
+		// HTTP auth: wrong token (for 403 testing)
+		dephealth.HTTP("http-auth-wrong",
+			dephealth.FromURL(cfg.HTTPStubURL),
+			dephealth.WithHTTPHealthPath("/health"),
+			dephealth.WithHTTPBearerToken("wrong-token"),
+			dephealth.Critical(false),
+		),
+
 		// gRPC stub — standalone
 		dephealth.GRPC("grpc-service",
 			dephealth.FromParams(cfg.GRPCStubHost, cfg.GRPCStubPort),
+			dephealth.Critical(false),
+		),
+
+		// gRPC auth: bearer token
+		dephealth.GRPC("grpc-auth-bearer",
+			dephealth.FromParams(cfg.GRPCStubHost, cfg.GRPCStubPort),
+			dephealth.WithGRPCBearerToken("test-token-123"),
 			dephealth.Critical(false),
 		),
 	)
@@ -277,7 +316,7 @@ func main() {
 		logger.Error("ошибка запуска dephealth", "error", err)
 		os.Exit(1)
 	}
-	logger.Info("dephealth запущен", "dependencies", 7, "check_interval", cfg.CheckInterval)
+	logger.Info("dephealth запущен", "dependencies", 12, "check_interval", cfg.CheckInterval)
 
 	// HTTP-сервер
 	mux := http.NewServeMux()

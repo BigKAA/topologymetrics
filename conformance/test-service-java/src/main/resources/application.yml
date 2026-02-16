@@ -46,8 +46,40 @@ dephealth:
       url: ${HTTP_STUB_URL:http://localhost:8081}
       health-path: /health
       critical: false
+    http-auth-bearer:
+      type: http
+      url: ${HTTP_STUB_URL:http://localhost:8081}
+      health-path: /health
+      http-bearer-token: test-token-123
+      critical: false
+    http-auth-basic:
+      type: http
+      url: ${HTTP_STUB_URL:http://localhost:8081}
+      health-path: /health
+      http-basic-username: admin
+      http-basic-password: password
+      critical: false
+    http-auth-header:
+      type: http
+      url: ${HTTP_STUB_URL:http://localhost:8081}
+      health-path: /health
+      http-headers:
+        X-API-Key: my-secret-key
+      critical: false
+    http-auth-wrong:
+      type: http
+      url: ${HTTP_STUB_URL:http://localhost:8081}
+      health-path: /health
+      http-bearer-token: wrong-token
+      critical: false
     grpc-service:
       type: grpc
       host: ${GRPC_STUB_HOST:localhost}
       port: ${GRPC_STUB_PORT:9090}
+      critical: false
+    grpc-auth-bearer:
+      type: grpc
+      host: ${GRPC_STUB_HOST:localhost}
+      port: ${GRPC_STUB_PORT:9090}
+      grpc-bearer-token: test-token-123
       critical: false

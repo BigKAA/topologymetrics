@@ -83,8 +83,33 @@ app = FastAPI(
         kafka_check("kafka-main", host=KAFKA_HOST, port=KAFKA_PORT, critical=False),
         # HTTP stub
         http_check("http-service", url=HTTP_STUB_URL, health_path="/health", critical=False),
+        # HTTP auth: bearer token
+        http_check(
+            "http-auth-bearer", url=HTTP_STUB_URL, health_path="/health",
+            bearer_token="test-token-123", critical=False,
+        ),
+        # HTTP auth: basic auth
+        http_check(
+            "http-auth-basic", url=HTTP_STUB_URL, health_path="/health",
+            basic_auth=("admin", "password"), critical=False,
+        ),
+        # HTTP auth: custom header
+        http_check(
+            "http-auth-header", url=HTTP_STUB_URL, health_path="/health",
+            headers={"X-API-Key": "my-secret-key"}, critical=False,
+        ),
+        # HTTP auth: wrong token (for 403 testing)
+        http_check(
+            "http-auth-wrong", url=HTTP_STUB_URL, health_path="/health",
+            bearer_token="wrong-token", critical=False,
+        ),
         # gRPC stub
         grpc_check("grpc-service", host=GRPC_STUB_HOST, port=GRPC_STUB_PORT, critical=False),
+        # gRPC auth: bearer token
+        grpc_check(
+            "grpc-auth-bearer", host=GRPC_STUB_HOST, port=GRPC_STUB_PORT,
+            bearer_token="test-token-123", critical=False,
+        ),
         check_interval=timedelta(seconds=CHECK_INTERVAL),
     ),
 )
