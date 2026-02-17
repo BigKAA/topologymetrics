@@ -394,12 +394,110 @@ classifies it as `auth_error`:
 
 `<DEP>` — dependency name in uppercase, hyphens replaced with `_`.
 
-Examples:
+### Full Example with Environment Variables
 
 ```bash
+# Connection URLs
+export DATABASE_URL=postgresql://user:pass@pg.svc:5432/mydb
+export REDIS_URL=redis://:password@redis.svc:6379/0
+
+# Authentication tokens
+export API_BEARER_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+export GRPC_BEARER_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Dependency configuration
 export DEPHEALTH_NAME=my-service
 export DEPHEALTH_POSTGRES_MAIN_CRITICAL=yes
 export DEPHEALTH_POSTGRES_MAIN_LABEL_ROLE=primary
+export DEPHEALTH_POSTGRES_MAIN_LABEL_SHARD=eu-west
+```
+
+### Using Environment Variables in Code
+
+```python
+import os
+from datetime import timedelta
+from dephealth.api import (
+    DependencyHealth,
+    http_check,
+    grpc_check,
+    postgres_check,
+    redis_check,
+)
+
+# Read configuration from environment
+db_url = os.getenv("DATABASE_URL")
+redis_url = os.getenv("REDIS_URL")
+api_token = os.getenv("API_BEARER_TOKEN")
+grpc_token = os.getenv("GRPC_BEARER_TOKEN")
+
+dh = DependencyHealth("my-service",
+    check_interval=timedelta(seconds=15),
+
+    # PostgreSQL from env var
+    postgres_check("postgres-main",
+        url=db_url,
+        critical=True,
+    ),
+
+    # Redis from env var
+    redis_check("redis-cache",
+        url=redis_url,
+        critical=False,
+    ),
+
+    # HTTP with Bearer token from env var
+    http_check("api-service",
+        url="http://api.svc:8080",
+        bearer_token=api_token,
+        critical=True,
+    ),
+
+    # gRPC with Bearer token from env var
+    grpc_check("grpc-backend",
+        host="backend.svc",
+        port="9090",
+        bearer_token=grpc_token,
+        critical=True,
+    ),
+)
+```
+
+### FastAPI with Environment Variables
+
+```python
+import os
+from datetime import timedelta
+from fastapi import FastAPI
+from dephealth.api import http_check, postgres_check, redis_check, grpc_check
+from dephealth_fastapi import dephealth_lifespan, DepHealthMiddleware
+
+# Read from environment
+db_url = os.getenv("DATABASE_URL")
+redis_url = os.getenv("REDIS_URL")
+api_token = os.getenv("API_BEARER_TOKEN")
+grpc_token = os.getenv("GRPC_BEARER_TOKEN")
+
+app = FastAPI(
+    lifespan=dephealth_lifespan("my-service",
+        postgres_check("database", url=db_url, critical=True),
+        redis_check("cache", url=redis_url, critical=False),
+        http_check("api-service",
+            url="http://api.svc:8080",
+            bearer_token=api_token,
+            critical=True,
+        ),
+        grpc_check("grpc-backend",
+            host="backend.svc",
+            port="9090",
+            bearer_token=grpc_token,
+            critical=True,
+        ),
+        check_interval=timedelta(seconds=15),
+    )
+)
+
+app.add_middleware(DepHealthMiddleware)
 ```
 
 Priority: API values > environment variables.

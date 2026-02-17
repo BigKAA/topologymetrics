@@ -394,12 +394,110 @@ grpc_check("grpc-backend",
 
 `<DEP>` — имя зависимости в верхнем регистре, дефисы заменены на `_`.
 
-Примеры:
+### Полный пример с переменными окружения
 
 ```bash
+# URL подключений
+export DATABASE_URL=postgresql://user:pass@pg.svc:5432/mydb
+export REDIS_URL=redis://:password@redis.svc:6379/0
+
+# Токены аутентификации
+export API_BEARER_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+export GRPC_BEARER_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Конфигурация зависимостей
 export DEPHEALTH_NAME=my-service
 export DEPHEALTH_POSTGRES_MAIN_CRITICAL=yes
 export DEPHEALTH_POSTGRES_MAIN_LABEL_ROLE=primary
+export DEPHEALTH_POSTGRES_MAIN_LABEL_SHARD=eu-west
+```
+
+### Использование переменных окружения в коде
+
+```python
+import os
+from datetime import timedelta
+from dephealth.api import (
+    DependencyHealth,
+    http_check,
+    grpc_check,
+    postgres_check,
+    redis_check,
+)
+
+# Чтение конфигурации из переменных окружения
+db_url = os.getenv("DATABASE_URL")
+redis_url = os.getenv("REDIS_URL")
+api_token = os.getenv("API_BEARER_TOKEN")
+grpc_token = os.getenv("GRPC_BEARER_TOKEN")
+
+dh = DependencyHealth("my-service",
+    check_interval=timedelta(seconds=15),
+
+    # PostgreSQL из переменной окружения
+    postgres_check("postgres-main",
+        url=db_url,
+        critical=True,
+    ),
+
+    # Redis из переменной окружения
+    redis_check("redis-cache",
+        url=redis_url,
+        critical=False,
+    ),
+
+    # HTTP с Bearer-токеном из переменной окружения
+    http_check("api-service",
+        url="http://api.svc:8080",
+        bearer_token=api_token,
+        critical=True,
+    ),
+
+    # gRPC с Bearer-токеном из переменной окружения
+    grpc_check("grpc-backend",
+        host="backend.svc",
+        port="9090",
+        bearer_token=grpc_token,
+        critical=True,
+    ),
+)
+```
+
+### FastAPI с переменными окружения
+
+```python
+import os
+from datetime import timedelta
+from fastapi import FastAPI
+from dephealth.api import http_check, postgres_check, redis_check, grpc_check
+from dephealth_fastapi import dephealth_lifespan, DepHealthMiddleware
+
+# Чтение из переменных окружения
+db_url = os.getenv("DATABASE_URL")
+redis_url = os.getenv("REDIS_URL")
+api_token = os.getenv("API_BEARER_TOKEN")
+grpc_token = os.getenv("GRPC_BEARER_TOKEN")
+
+app = FastAPI(
+    lifespan=dephealth_lifespan("my-service",
+        postgres_check("database", url=db_url, critical=True),
+        redis_check("cache", url=redis_url, critical=False),
+        http_check("api-service",
+            url="http://api.svc:8080",
+            bearer_token=api_token,
+            critical=True,
+        ),
+        grpc_check("grpc-backend",
+            host="backend.svc",
+            port="9090",
+            bearer_token=grpc_token,
+            critical=True,
+        ),
+        check_interval=timedelta(seconds=15),
+    )
+)
+
+app.add_middleware(DepHealthMiddleware)
 ```
 
 Приоритет: значения из API > переменные окружения.

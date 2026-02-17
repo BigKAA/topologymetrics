@@ -302,12 +302,111 @@ HTTP и gRPC чекеры поддерживают аутентификацию.
 
 `<DEP>` — имя зависимости в верхнем регистре, дефисы заменены на `_`.
 
-Примеры:
+### Полный пример с переменными окружения
 
 ```bash
+# URL подключений
+export DATABASE_URL=postgres://user:pass@pg.svc:5432/mydb
+export REDIS_URL=redis://:password@redis.svc:6379/0
+
+# Токены аутентификации
+export API_BEARER_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+export GRPC_BEARER_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Конфигурация зависимостей
 export DEPHEALTH_NAME=my-service
 export DEPHEALTH_POSTGRES_MAIN_CRITICAL=yes
 export DEPHEALTH_POSTGRES_MAIN_LABEL_ROLE=primary
+export DEPHEALTH_POSTGRES_MAIN_LABEL_SHARD=eu-west
+```
+
+### Использование переменных окружения в коде
+
+```csharp
+using DepHealth;
+using DepHealth.AspNetCore;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Чтение конфигурации из переменных окружения
+var dbUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+var redisUrl = Environment.GetEnvironmentVariable("REDIS_URL");
+var apiToken = Environment.GetEnvironmentVariable("API_BEARER_TOKEN");
+var grpcToken = Environment.GetEnvironmentVariable("GRPC_BEARER_TOKEN");
+
+builder.Services.AddDepHealth("my-service", dh => dh
+    .CheckInterval(TimeSpan.FromSeconds(15))
+
+    // PostgreSQL из переменной окружения
+    .AddDependency("postgres-main", DependencyType.Postgres, d => d
+        .Url(dbUrl!)
+        .Critical(true))
+
+    // Redis из переменной окружения
+    .AddDependency("redis-cache", DependencyType.Redis, d => d
+        .Url(redisUrl!)
+        .Critical(false))
+
+    // HTTP с Bearer-токеном из переменной окружения
+    .AddDependency("api-service", DependencyType.Http, d => d
+        .Url("http://api.svc:8080")
+        .HttpBearerToken(apiToken!)
+        .Critical(true))
+
+    // gRPC с Bearer-токеном из переменной окружения
+    .AddDependency("grpc-backend", DependencyType.Grpc, d => d
+        .Host("backend.svc")
+        .Port("9090")
+        .GrpcBearerToken(grpcToken!)
+        .Critical(true))
+);
+
+var app = builder.Build();
+app.UseDepHealth();
+app.Run();
+```
+
+### ASP.NET Core конфигурация через appsettings.json
+
+ASP.NET Core автоматически разрешает переменные окружения в конфигурации.
+Создайте `appsettings.json`:
+
+```json
+{
+  "DepHealth": {
+    "Name": "my-service",
+    "Dependencies": {
+      "postgres-main": {
+        "Type": "Postgres",
+        "Url": "placeholder-will-be-overridden",
+        "Critical": true
+      }
+    }
+  }
+}
+```
+
+Затем используйте Configuration:
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+
+var dbUrl = builder.Configuration["DATABASE_URL"];
+var redisUrl = builder.Configuration["REDIS_URL"];
+var apiToken = builder.Configuration["API_BEARER_TOKEN"];
+
+builder.Services.AddDepHealth("my-service", dh => dh
+    .AddDependency("postgres-main", DependencyType.Postgres, d => d
+        .Url(dbUrl!)
+        .Critical(true))
+    .AddDependency("redis-cache", DependencyType.Redis, d => d
+        .Url(redisUrl!)
+        .Critical(false))
+    .AddDependency("api-service", DependencyType.Http, d => d
+        .Url("http://api.svc:8080")
+        .HttpBearerToken(apiToken!)
+        .Critical(true))
+);
 ```
 
 Приоритет: значения из API > переменные окружения.

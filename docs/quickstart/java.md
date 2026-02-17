@@ -383,12 +383,105 @@ classifies it as `auth_error`:
 
 `<DEP>` — dependency name in uppercase, hyphens replaced with `_`.
 
-Examples:
+### Full Example with Environment Variables
 
 ```bash
+# Connection URLs
+export DATABASE_URL=postgres://user:pass@pg.svc:5432/mydb
+export REDIS_URL=redis://:password@redis.svc:6379/0
+
+# Authentication tokens
+export API_BEARER_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+export GRPC_BEARER_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Dependency configuration
 export DEPHEALTH_NAME=my-service
 export DEPHEALTH_POSTGRES_MAIN_CRITICAL=yes
 export DEPHEALTH_POSTGRES_MAIN_LABEL_ROLE=primary
+export DEPHEALTH_POSTGRES_MAIN_LABEL_SHARD=eu-west
+```
+
+### Using Environment Variables in Code
+
+```java
+import biz.kryukov.dev.dephealth.*;
+import io.micrometer.prometheus.PrometheusMeterRegistry;
+
+public class Main {
+    public static void main(String[] args) {
+        PrometheusMeterRegistry registry = new PrometheusMeterRegistry(
+            PrometheusConfig.DEFAULT);
+
+        String dbUrl = System.getenv("DATABASE_URL");
+        String redisUrl = System.getenv("REDIS_URL");
+        String apiToken = System.getenv("API_BEARER_TOKEN");
+        String grpcToken = System.getenv("GRPC_BEARER_TOKEN");
+
+        DepHealth depHealth = DepHealth.builder("my-service", registry)
+            // PostgreSQL from env var
+            .dependency("postgres-main", DependencyType.POSTGRES, d -> d
+                .url(dbUrl)
+                .critical(true))
+
+            // Redis from env var
+            .dependency("redis-cache", DependencyType.REDIS, d -> d
+                .url(redisUrl)
+                .critical(false))
+
+            // HTTP with Bearer token from env var
+            .dependency("api-service", DependencyType.HTTP, d -> d
+                .url("http://api.svc:8080")
+                .httpBearerToken(apiToken)
+                .critical(true))
+
+            // gRPC with Bearer token from env var
+            .dependency("grpc-backend", DependencyType.GRPC, d -> d
+                .host("backend.svc")
+                .port("9090")
+                .grpcBearerToken(grpcToken)
+                .critical(true))
+
+            .build();
+
+        depHealth.start();
+        // ...
+    }
+}
+```
+
+### Spring Boot with Environment Variables
+
+Spring Boot automatically resolves `${VAR_NAME}` placeholders in `application.yml`:
+
+```yaml
+dephealth:
+  name: ${DEPHEALTH_NAME:my-service}
+  dependencies:
+    postgres-main:
+      type: postgres
+      url: ${DATABASE_URL}
+      critical: ${DEPHEALTH_POSTGRES_MAIN_CRITICAL:yes}
+      labels:
+        role: ${DEPHEALTH_POSTGRES_MAIN_LABEL_ROLE:primary}
+        shard: ${DEPHEALTH_POSTGRES_MAIN_LABEL_SHARD:}
+
+    redis-cache:
+      type: redis
+      url: ${REDIS_URL}
+      critical: false
+
+    api-service:
+      type: http
+      url: http://api.svc:8080
+      http-bearer-token: ${API_BEARER_TOKEN}
+      critical: true
+
+    grpc-backend:
+      type: grpc
+      host: backend.svc
+      port: "9090"
+      grpc-bearer-token: ${GRPC_BEARER_TOKEN}
+      critical: true
 ```
 
 Priority: values from API/application.yml > environment variables.

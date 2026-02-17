@@ -383,12 +383,105 @@ dephealth:
 
 `<DEP>` — имя зависимости в верхнем регистре, дефисы заменены на `_`.
 
-Примеры:
+### Полный пример с переменными окружения
 
 ```bash
+# URL подключений
+export DATABASE_URL=postgres://user:pass@pg.svc:5432/mydb
+export REDIS_URL=redis://:password@redis.svc:6379/0
+
+# Токены аутентификации
+export API_BEARER_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+export GRPC_BEARER_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Конфигурация зависимостей
 export DEPHEALTH_NAME=my-service
 export DEPHEALTH_POSTGRES_MAIN_CRITICAL=yes
 export DEPHEALTH_POSTGRES_MAIN_LABEL_ROLE=primary
+export DEPHEALTH_POSTGRES_MAIN_LABEL_SHARD=eu-west
+```
+
+### Использование переменных окружения в коде
+
+```java
+import biz.kryukov.dev.dephealth.*;
+import io.micrometer.prometheus.PrometheusMeterRegistry;
+
+public class Main {
+    public static void main(String[] args) {
+        PrometheusMeterRegistry registry = new PrometheusMeterRegistry(
+            PrometheusConfig.DEFAULT);
+
+        String dbUrl = System.getenv("DATABASE_URL");
+        String redisUrl = System.getenv("REDIS_URL");
+        String apiToken = System.getenv("API_BEARER_TOKEN");
+        String grpcToken = System.getenv("GRPC_BEARER_TOKEN");
+
+        DepHealth depHealth = DepHealth.builder("my-service", registry)
+            // PostgreSQL из переменной окружения
+            .dependency("postgres-main", DependencyType.POSTGRES, d -> d
+                .url(dbUrl)
+                .critical(true))
+
+            // Redis из переменной окружения
+            .dependency("redis-cache", DependencyType.REDIS, d -> d
+                .url(redisUrl)
+                .critical(false))
+
+            // HTTP с Bearer-токеном из переменной окружения
+            .dependency("api-service", DependencyType.HTTP, d -> d
+                .url("http://api.svc:8080")
+                .httpBearerToken(apiToken)
+                .critical(true))
+
+            // gRPC с Bearer-токеном из переменной окружения
+            .dependency("grpc-backend", DependencyType.GRPC, d -> d
+                .host("backend.svc")
+                .port("9090")
+                .grpcBearerToken(grpcToken)
+                .critical(true))
+
+            .build();
+
+        depHealth.start();
+        // ...
+    }
+}
+```
+
+### Spring Boot с переменными окружения
+
+Spring Boot автоматически разрешает плейсхолдеры `${VAR_NAME}` в `application.yml`:
+
+```yaml
+dephealth:
+  name: ${DEPHEALTH_NAME:my-service}
+  dependencies:
+    postgres-main:
+      type: postgres
+      url: ${DATABASE_URL}
+      critical: ${DEPHEALTH_POSTGRES_MAIN_CRITICAL:yes}
+      labels:
+        role: ${DEPHEALTH_POSTGRES_MAIN_LABEL_ROLE:primary}
+        shard: ${DEPHEALTH_POSTGRES_MAIN_LABEL_SHARD:}
+
+    redis-cache:
+      type: redis
+      url: ${REDIS_URL}
+      critical: false
+
+    api-service:
+      type: http
+      url: http://api.svc:8080
+      http-bearer-token: ${API_BEARER_TOKEN}
+      critical: true
+
+    grpc-backend:
+      type: grpc
+      host: backend.svc
+      port: "9090"
+      grpc-bearer-token: ${GRPC_BEARER_TOKEN}
+      critical: true
 ```
 
 Приоритет: значения из API/application.yml > переменные окружения.

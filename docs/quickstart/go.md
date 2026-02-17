@@ -310,12 +310,87 @@ classifies it as `auth_error`:
 
 `<DEP>` — dependency name in uppercase, hyphens replaced with `_`.
 
-Examples:
+### Full Example with Environment Variables
 
 ```bash
+# Connection URLs
+export DATABASE_URL=postgres://user:pass@pg.svc:5432/mydb
+export REDIS_URL=redis://:password@redis.svc:6379/0
+
+# Authentication tokens
+export API_BEARER_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+export GRPC_BEARER_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Dependency configuration
 export DEPHEALTH_NAME=my-service
 export DEPHEALTH_POSTGRES_MAIN_CRITICAL=yes
 export DEPHEALTH_POSTGRES_MAIN_LABEL_ROLE=primary
+export DEPHEALTH_POSTGRES_MAIN_LABEL_SHARD=eu-west
+```
+
+### Using Environment Variables in Code
+
+```go
+package main
+
+import (
+    "context"
+    "log"
+    "net/http"
+    "os"
+
+    "github.com/BigKAA/topologymetrics/sdk-go/dephealth"
+    "github.com/prometheus/client_golang/prometheus/promhttp"
+    _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks"
+)
+
+func main() {
+    // Read configuration from environment
+    dbURL := os.Getenv("DATABASE_URL")
+    redisURL := os.Getenv("REDIS_URL")
+    apiToken := os.Getenv("API_BEARER_TOKEN")
+    grpcToken := os.Getenv("GRPC_BEARER_TOKEN")
+
+    dh, err := dephealth.New("my-service",
+        // PostgreSQL from env var
+        dephealth.Postgres("postgres-main",
+            dephealth.FromURL(dbURL),
+            dephealth.Critical(true),
+        ),
+
+        // Redis from env var
+        dephealth.Redis("redis-cache",
+            dephealth.FromURL(redisURL),
+            dephealth.Critical(false),
+        ),
+
+        // HTTP with Bearer token from env var
+        dephealth.HTTP("api-service",
+            dephealth.FromURL("http://api.svc:8080"),
+            dephealth.WithHTTPBearerToken(apiToken),
+            dephealth.Critical(true),
+        ),
+
+        // gRPC with Bearer token from env var
+        dephealth.GRPC("grpc-backend",
+            dephealth.FromParams("backend.svc", "9090"),
+            dephealth.WithGRPCBearerToken(grpcToken),
+            dephealth.Critical(true),
+        ),
+    )
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    ctx := context.Background()
+    if err := dh.Start(ctx); err != nil {
+        log.Fatal(err)
+    }
+    defer dh.Stop()
+
+    http.Handle("/metrics", promhttp.Handler())
+    http.ListenAndServe(":8080", nil)
+}
 ```
 
 Priority: API values > environment variables.

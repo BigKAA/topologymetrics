@@ -310,12 +310,87 @@ dephealth.GRPC("grpc-backend",
 
 `<DEP>` — имя зависимости в верхнем регистре, дефисы заменены на `_`.
 
-Примеры:
+### Полный пример с переменными окружения
 
 ```bash
+# URL подключений
+export DATABASE_URL=postgres://user:pass@pg.svc:5432/mydb
+export REDIS_URL=redis://:password@redis.svc:6379/0
+
+# Токены аутентификации
+export API_BEARER_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+export GRPC_BEARER_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Конфигурация зависимостей
 export DEPHEALTH_NAME=my-service
 export DEPHEALTH_POSTGRES_MAIN_CRITICAL=yes
 export DEPHEALTH_POSTGRES_MAIN_LABEL_ROLE=primary
+export DEPHEALTH_POSTGRES_MAIN_LABEL_SHARD=eu-west
+```
+
+### Использование переменных окружения в коде
+
+```go
+package main
+
+import (
+    "context"
+    "log"
+    "net/http"
+    "os"
+
+    "github.com/BigKAA/topologymetrics/sdk-go/dephealth"
+    "github.com/prometheus/client_golang/prometheus/promhttp"
+    _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks"
+)
+
+func main() {
+    // Чтение конфигурации из переменных окружения
+    dbURL := os.Getenv("DATABASE_URL")
+    redisURL := os.Getenv("REDIS_URL")
+    apiToken := os.Getenv("API_BEARER_TOKEN")
+    grpcToken := os.Getenv("GRPC_BEARER_TOKEN")
+
+    dh, err := dephealth.New("my-service",
+        // PostgreSQL из переменной окружения
+        dephealth.Postgres("postgres-main",
+            dephealth.FromURL(dbURL),
+            dephealth.Critical(true),
+        ),
+
+        // Redis из переменной окружения
+        dephealth.Redis("redis-cache",
+            dephealth.FromURL(redisURL),
+            dephealth.Critical(false),
+        ),
+
+        // HTTP с Bearer-токеном из переменной окружения
+        dephealth.HTTP("api-service",
+            dephealth.FromURL("http://api.svc:8080"),
+            dephealth.WithHTTPBearerToken(apiToken),
+            dephealth.Critical(true),
+        ),
+
+        // gRPC с Bearer-токеном из переменной окружения
+        dephealth.GRPC("grpc-backend",
+            dephealth.FromParams("backend.svc", "9090"),
+            dephealth.WithGRPCBearerToken(grpcToken),
+            dephealth.Critical(true),
+        ),
+    )
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    ctx := context.Background()
+    if err := dh.Start(ctx); err != nil {
+        log.Fatal(err)
+    }
+    defer dh.Stop()
+
+    http.Handle("/metrics", promhttp.Handler())
+    http.ListenAndServe(":8080", nil)
+}
 ```
 
 Приоритет: значения из API > переменные окружения.
