@@ -1,5 +1,4 @@
 using System.Net.Http.Headers;
-using System.Net.Security;
 
 namespace DepHealth.Checks;
 
@@ -9,7 +8,6 @@ namespace DepHealth.Checks;
 public sealed class HttpChecker : IHealthChecker
 {
     private const string DefaultHealthPath = "/health";
-    private const string UserAgentValue = "dephealth/0.4.0";
 
     private readonly string _healthPath;
     private readonly bool _tlsEnabled;
@@ -50,7 +48,7 @@ public sealed class HttpChecker : IHealthChecker
         using var client = new HttpClient(handler);
         client.Timeout = Timeout.InfiniteTimeSpan;
         client.DefaultRequestHeaders.UserAgent.Add(
-            new ProductInfoHeaderValue("dephealth", "0.4.0"));
+            new ProductInfoHeaderValue("dephealth", "0.4.2"));
 
         foreach (var (key, value) in _headers)
         {

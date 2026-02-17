@@ -138,30 +138,6 @@ func TestScheduler_DoubleStop(t *testing.T) {
 	sched.Stop()
 }
 
-func TestScheduler_AddAfterStart(t *testing.T) {
-	sched, _ := newTestScheduler(t)
-
-	dep := testDep("test-dep", 2*time.Second, 500*time.Millisecond, 0)
-	addTestDep(sched, dep, &mockChecker{})
-	_ = sched.Start(context.Background())
-	defer sched.Stop()
-
-	// Adding after start via Add should return ErrAlreadyStarted.
-	crit := false
-	dep2 := Dependency{
-		Name:     "test-dep-2",
-		Type:     TypeTCP,
-		Critical: &crit,
-		Endpoints: []Endpoint{
-			{Host: "127.0.0.1", Port: "5678"},
-		},
-		Config: DefaultCheckConfig(),
-	}
-	if err := sched.Add(dep2, &mockChecker{}); !errors.Is(err, ErrAlreadyStarted) {
-		t.Errorf("expected ErrAlreadyStarted when adding after Start, got: %v", err)
-	}
-}
-
 func TestScheduler_InitialDelay(t *testing.T) {
 	sched, _ := newTestScheduler(t)
 
@@ -448,44 +424,6 @@ func TestScheduler_ContextCancellation(t *testing.T) {
 		// OK.
 	case <-time.After(2 * time.Second):
 		t.Fatal("Stop did not complete after context cancellation")
-	}
-}
-
-func TestScheduler_InvalidDependency(t *testing.T) {
-	sched, _ := newTestScheduler(t)
-
-	crit := false
-	// Dependency without endpoints — invalid.
-	dep := Dependency{
-		Name:      "bad-dep",
-		Type:      TypeTCP,
-		Critical:  &crit,
-		Endpoints: nil,
-		Config:    DefaultCheckConfig(),
-	}
-
-	err := sched.Add(dep, &mockChecker{})
-	if err == nil {
-		t.Error("expected error for invalid dependency, got nil")
-	}
-}
-
-func TestScheduler_ValidAdd(t *testing.T) {
-	sched, _ := newTestScheduler(t)
-
-	crit := true
-	dep := Dependency{
-		Name:     "valid-dep",
-		Type:     TypeTCP,
-		Critical: &crit,
-		Endpoints: []Endpoint{
-			{Host: "127.0.0.1", Port: "5432"},
-		},
-		Config: DefaultCheckConfig(),
-	}
-
-	if err := sched.Add(dep, &mockChecker{}); err != nil {
-		t.Errorf("expected nil for valid dependency, got: %v", err)
 	}
 }
 

@@ -1,5 +1,3 @@
-using Moq;
-
 namespace DepHealth.AspNetCore.Tests;
 
 public class DepHealthHostedServiceTests

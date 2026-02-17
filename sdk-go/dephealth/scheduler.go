@@ -87,24 +87,6 @@ func NewScheduler(metrics *MetricsExporter, opts ...SchedulerOption) *Scheduler 
 	}
 }
 
-// Add adds a dependency with its checker to the scheduler.
-// Must be called before Start.
-func (s *Scheduler) Add(dep Dependency, checker HealthChecker) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.started {
-		return ErrAlreadyStarted
-	}
-
-	if err := dep.Validate(); err != nil {
-		return fmt.Errorf("invalid dependency %q: %w", dep.Name, err)
-	}
-
-	s.deps = append(s.deps, scheduledDep{dep: dep, checker: checker})
-	return nil
-}
-
 // Start launches periodic health checks for all registered dependencies.
 // Each endpoint of each dependency is checked in a separate goroutine.
 // Calling Start more than once returns an error.
