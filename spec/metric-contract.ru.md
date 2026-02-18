@@ -2,7 +2,7 @@
 
 # Контракт метрик
 
-> Версия спецификации: **3.0-draft**
+> Версия спецификации: **4.0-draft**
 >
 > Этот документ является единым источником правды для формата метрик,
 > экспортируемых всеми SDK dephealth. Все реализации обязаны следовать этому контракту.
@@ -41,6 +41,7 @@ Gauge-метрика, отражающая текущее состояние д�
 | Метка | Описание | Правила формирования | Пример |
 | --- | --- | --- | --- |
 | `name` | Уникальное имя приложения, экспортирующего метрики | Строчные буквы, цифры, `-`. Длина: 1-63 символа. Формат: `[a-z][a-z0-9-]*` | `order-api` |
+| `group` | Логическая группа сервиса (команда, подсистема, проект) | Строчные буквы, цифры, `-`. Длина: 1-63 символа. Формат: `[a-z][a-z0-9-]*` | `billing-team` |
 | `dependency` | Логическое имя зависимости, задаётся разработчиком. Для сервисов с dephealth SDK значение должно совпадать с `name` целевого сервиса | Строчные буквы, цифры, `-`. Длина: 1-63 символа. Формат: `[a-z][a-z0-9-]*` | `payment-api` |
 | `type` | Тип соединения / протокол | Одно из: `http`, `grpc`, `tcp`, `postgres`, `mysql`, `redis`, `amqp`, `kafka` | `postgres` |
 | `host` | Адрес endpoint-а (hostname или IP) | Как есть из конфигурации. IPv6 без квадратных скобок | `pg-master.db.svc.cluster.local` |
@@ -54,7 +55,7 @@ Gauge-метрика, отражающая текущее состояние д�
 **Правила**:
 
 - Имя метки: формат `[a-zA-Z_][a-zA-Z0-9_]*` (Prometheus naming conventions).
-- Запрещено переопределять обязательные метки: `name`, `dependency`, `type`,
+- Запрещено переопределять обязательные метки: `name`, `group`, `dependency`, `type`,
   `host`, `port`, `critical`. При попытке — ошибка конфигурации.
 - Если метка не указана, она **не включается** в метрику
   (а не выводится с пустым значением).
@@ -133,30 +134,30 @@ SDK экспортирует метрики в стандартном форма
 ```text
 # HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 # TYPE app_dependency_health gauge
-app_dependency_health{name="order-api",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes"} 1
-app_dependency_health{name="order-api",dependency="redis-cache",type="redis",host="redis-0.cache.svc",port="6379",critical="no"} 1
-app_dependency_health{name="order-api",dependency="payment-api",type="http",host="payment-svc.payments.svc",port="8080",critical="yes"} 0
+app_dependency_health{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes"} 1
+app_dependency_health{name="order-api",group="billing-team",dependency="redis-cache",type="redis",host="redis-0.cache.svc",port="6379",critical="no"} 1
+app_dependency_health{name="order-api",group="billing-team",dependency="payment-api",type="http",host="payment-svc.payments.svc",port="8080",critical="yes"} 0
 
 # HELP app_dependency_latency_seconds Latency of dependency health check in seconds
 # TYPE app_dependency_latency_seconds histogram
-app_dependency_latency_seconds_bucket{name="order-api",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="0.001"} 0
-app_dependency_latency_seconds_bucket{name="order-api",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="0.005"} 8
-app_dependency_latency_seconds_bucket{name="order-api",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="0.01"} 15
-app_dependency_latency_seconds_bucket{name="order-api",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="0.05"} 20
-app_dependency_latency_seconds_bucket{name="order-api",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="0.1"} 20
-app_dependency_latency_seconds_bucket{name="order-api",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="0.5"} 20
-app_dependency_latency_seconds_bucket{name="order-api",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="1"} 20
-app_dependency_latency_seconds_bucket{name="order-api",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="5"} 20
-app_dependency_latency_seconds_bucket{name="order-api",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="+Inf"} 20
-app_dependency_latency_seconds_sum{name="order-api",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes"} 0.085
-app_dependency_latency_seconds_count{name="order-api",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes"} 20
+app_dependency_latency_seconds_bucket{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="0.001"} 0
+app_dependency_latency_seconds_bucket{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="0.005"} 8
+app_dependency_latency_seconds_bucket{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="0.01"} 15
+app_dependency_latency_seconds_bucket{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="0.05"} 20
+app_dependency_latency_seconds_bucket{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="0.1"} 20
+app_dependency_latency_seconds_bucket{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="0.5"} 20
+app_dependency_latency_seconds_bucket{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="1"} 20
+app_dependency_latency_seconds_bucket{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="5"} 20
+app_dependency_latency_seconds_bucket{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="+Inf"} 20
+app_dependency_latency_seconds_sum{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes"} 0.085
+app_dependency_latency_seconds_count{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes"} 20
 ```
 
 ### 4.2. Требования к формату
 
 - Строки `# HELP` и `# TYPE` обязательны для каждой метрики.
 - Текст `# HELP` фиксирован (см. примеры выше) и не должен отличаться между SDK.
-- Порядок меток: `name`, `dependency`, `type`, `host`, `port`, `critical`,
+- Порядок меток: `name`, `group`, `dependency`, `type`, `host`, `port`, `critical`,
   затем произвольные в алфавитном порядке.
 - Значения меток экранируются согласно Prometheus exposition format:
   символы `\`, `"`, `\n` заменяются на `\\`, `\"`, `\n`.
@@ -174,11 +175,11 @@ app_dependency_latency_seconds_count{name="order-api",dependency="postgres-main"
 **Пример**: PostgreSQL с primary и replica:
 
 ```text
-app_dependency_health{name="order-api",dependency="postgres-main",type="postgres",host="pg-primary.db.svc",port="5432",critical="yes",role="primary"} 1
-app_dependency_health{name="order-api",dependency="postgres-main",type="postgres",host="pg-replica.db.svc",port="5432",critical="yes",role="replica"} 1
+app_dependency_health{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg-primary.db.svc",port="5432",critical="yes",role="primary"} 1
+app_dependency_health{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg-replica.db.svc",port="5432",critical="yes",role="replica"} 1
 
-app_dependency_latency_seconds_bucket{name="order-api",dependency="postgres-main",type="postgres",host="pg-primary.db.svc",port="5432",critical="yes",role="primary",le="0.005"} 10
-app_dependency_latency_seconds_bucket{name="order-api",dependency="postgres-main",type="postgres",host="pg-replica.db.svc",port="5432",critical="yes",role="replica",le="0.005"} 8
+app_dependency_latency_seconds_bucket{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg-primary.db.svc",port="5432",critical="yes",role="primary",le="0.005"} 10
+app_dependency_latency_seconds_bucket{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg-replica.db.svc",port="5432",critical="yes",role="replica",le="0.005"} 8
 ```
 
 ### 5.2. Обоснование
@@ -194,9 +195,9 @@ app_dependency_latency_seconds_bucket{name="order-api",dependency="postgres-main
 Для Kafka каждый брокер является отдельным endpoint-ом:
 
 ```text
-app_dependency_health{name="order-api",dependency="kafka-main",type="kafka",host="kafka-0.kafka.svc",port="9092",critical="yes"} 1
-app_dependency_health{name="order-api",dependency="kafka-main",type="kafka",host="kafka-1.kafka.svc",port="9092",critical="yes"} 1
-app_dependency_health{name="order-api",dependency="kafka-main",type="kafka",host="kafka-2.kafka.svc",port="9092",critical="yes"} 0
+app_dependency_health{name="order-api",group="billing-team",dependency="kafka-main",type="kafka",host="kafka-0.kafka.svc",port="9092",critical="yes"} 1
+app_dependency_health{name="order-api",group="billing-team",dependency="kafka-main",type="kafka",host="kafka-1.kafka.svc",port="9092",critical="yes"} 1
+app_dependency_health{name="order-api",group="billing-team",dependency="kafka-main",type="kafka",host="kafka-2.kafka.svc",port="9092",critical="yes"} 0
 ```
 
 ---
@@ -208,21 +209,21 @@ app_dependency_health{name="order-api",dependency="kafka-main",type="kafka",host
 ```text
 # HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 # TYPE app_dependency_health gauge
-app_dependency_health{name="my-service",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no"} 1
+app_dependency_health{name="my-service",group="my-team",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no"} 1
 
 # HELP app_dependency_latency_seconds Latency of dependency health check in seconds
 # TYPE app_dependency_latency_seconds histogram
-app_dependency_latency_seconds_bucket{name="my-service",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no",le="0.001"} 5
-app_dependency_latency_seconds_bucket{name="my-service",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no",le="0.005"} 10
-app_dependency_latency_seconds_bucket{name="my-service",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no",le="0.01"} 10
-app_dependency_latency_seconds_bucket{name="my-service",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no",le="0.05"} 10
-app_dependency_latency_seconds_bucket{name="my-service",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no",le="0.1"} 10
-app_dependency_latency_seconds_bucket{name="my-service",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no",le="0.5"} 10
-app_dependency_latency_seconds_bucket{name="my-service",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no",le="1"} 10
-app_dependency_latency_seconds_bucket{name="my-service",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no",le="5"} 10
-app_dependency_latency_seconds_bucket{name="my-service",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no",le="+Inf"} 10
-app_dependency_latency_seconds_sum{name="my-service",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no"} 0.025
-app_dependency_latency_seconds_count{name="my-service",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no"} 10
+app_dependency_latency_seconds_bucket{name="my-service",group="my-team",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no",le="0.001"} 5
+app_dependency_latency_seconds_bucket{name="my-service",group="my-team",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no",le="0.005"} 10
+app_dependency_latency_seconds_bucket{name="my-service",group="my-team",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no",le="0.01"} 10
+app_dependency_latency_seconds_bucket{name="my-service",group="my-team",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no",le="0.05"} 10
+app_dependency_latency_seconds_bucket{name="my-service",group="my-team",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no",le="0.1"} 10
+app_dependency_latency_seconds_bucket{name="my-service",group="my-team",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no",le="0.5"} 10
+app_dependency_latency_seconds_bucket{name="my-service",group="my-team",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no",le="1"} 10
+app_dependency_latency_seconds_bucket{name="my-service",group="my-team",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no",le="5"} 10
+app_dependency_latency_seconds_bucket{name="my-service",group="my-team",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no",le="+Inf"} 10
+app_dependency_latency_seconds_sum{name="my-service",group="my-team",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no"} 0.025
+app_dependency_latency_seconds_count{name="my-service",group="my-team",dependency="redis-cache",type="redis",host="redis.default.svc",port="6379",critical="no"} 10
 ```
 
 ### 6.2. Типичный микросервис (несколько зависимостей разных типов)
@@ -230,26 +231,26 @@ app_dependency_latency_seconds_count{name="my-service",dependency="redis-cache",
 ```text
 # HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 # TYPE app_dependency_health gauge
-app_dependency_health{name="order-api",dependency="postgres-main",type="postgres",host="pg.db.svc",port="5432",critical="yes"} 1
-app_dependency_health{name="order-api",dependency="redis-cache",type="redis",host="redis.cache.svc",port="6379",critical="no"} 1
-app_dependency_health{name="order-api",dependency="payment-api",type="http",host="payment.payments.svc",port="8080",critical="yes"} 1
-app_dependency_health{name="order-api",dependency="auth-api",type="grpc",host="auth.auth.svc",port="9090",critical="yes"} 0
-app_dependency_health{name="order-api",dependency="rabbitmq",type="amqp",host="rabbit.mq.svc",port="5672",critical="no"} 1
+app_dependency_health{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg.db.svc",port="5432",critical="yes"} 1
+app_dependency_health{name="order-api",group="billing-team",dependency="redis-cache",type="redis",host="redis.cache.svc",port="6379",critical="no"} 1
+app_dependency_health{name="order-api",group="billing-team",dependency="payment-api",type="http",host="payment.payments.svc",port="8080",critical="yes"} 1
+app_dependency_health{name="order-api",group="billing-team",dependency="auth-api",type="grpc",host="auth.auth.svc",port="9090",critical="yes"} 0
+app_dependency_health{name="order-api",group="billing-team",dependency="rabbitmq",type="amqp",host="rabbit.mq.svc",port="5672",critical="no"} 1
 ```
 
 ### 6.3. Сервис с AMQP и custom labels
 
 ```text
-app_dependency_health{name="order-api",dependency="rabbitmq-orders",type="amqp",host="rabbit.mq.svc",port="5672",critical="yes",vhost="orders"} 1
-app_dependency_health{name="order-api",dependency="rabbitmq-notifications",type="amqp",host="rabbit.mq.svc",port="5672",critical="no",vhost="notifications"} 1
+app_dependency_health{name="order-api",group="billing-team",dependency="rabbitmq-orders",type="amqp",host="rabbit.mq.svc",port="5672",critical="yes",vhost="orders"} 1
+app_dependency_health{name="order-api",group="billing-team",dependency="rabbitmq-notifications",type="amqp",host="rabbit.mq.svc",port="5672",critical="no",vhost="notifications"} 1
 ```
 
 ### 6.4. Сервис в состоянии деградации (partial failure)
 
 ```text
-app_dependency_health{name="order-api",dependency="postgres-main",type="postgres",host="pg-primary.db.svc",port="5432",critical="yes",role="primary"} 1
-app_dependency_health{name="order-api",dependency="postgres-main",type="postgres",host="pg-replica-1.db.svc",port="5432",critical="yes",role="replica"} 0
-app_dependency_health{name="order-api",dependency="postgres-main",type="postgres",host="pg-replica-2.db.svc",port="5432",critical="yes",role="replica"} 1
+app_dependency_health{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg-primary.db.svc",port="5432",critical="yes",role="primary"} 1
+app_dependency_health{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg-replica-1.db.svc",port="5432",critical="yes",role="replica"} 0
+app_dependency_health{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg-replica-2.db.svc",port="5432",critical="yes",role="replica"} 1
 ```
 
 ---
@@ -269,7 +270,7 @@ app_dependency_health{name="order-api"} == 0
 app_dependency_health{critical="yes"} == 0
 
 # Агрегированное здоровье зависимости (хотя бы один endpoint down)
-min by (name, dependency) (app_dependency_health) == 0
+min by (name, group, dependency) (app_dependency_health) == 0
 
 # P99 латентность проверок за 5 минут
 histogram_quantile(0.99, rate(app_dependency_latency_seconds_bucket[5m]))
@@ -281,7 +282,7 @@ rate(app_dependency_latency_seconds_sum[5m]) / rate(app_dependency_latency_secon
 changes(app_dependency_health[15m]) > 4
 
 # Граф зависимостей: все рёбра (name -> dependency)
-group by (name, dependency, type, critical) (app_dependency_health)
+group by (name, group, dependency, type, critical) (app_dependency_health)
 
 # Все сервисы, от которых зависит order-api
 app_dependency_health{name="order-api"}
@@ -328,7 +329,7 @@ Gauge-метрика (enum-паттерн), отражающая **катего�
 Те же обязательные и произвольные метки, что и у `app_dependency_health` (разделы 2.3, 2.4),
 плюс метка `status` в конце.
 
-Порядок меток: `name`, `dependency`, `type`, `host`, `port`, `critical`,
+Порядок меток: `name`, `group`, `dependency`, `type`, `host`, `port`, `critical`,
 произвольные метки в алфавитном порядке, `status`.
 
 ### 8.5. Начальное значение
@@ -344,14 +345,14 @@ Endpoint `pg.svc:5432` доступен (status = ok):
 ```text
 # HELP app_dependency_status Category of the last check result
 # TYPE app_dependency_status gauge
-app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="ok"} 1
-app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="timeout"} 0
-app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="connection_error"} 0
-app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="dns_error"} 0
-app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="auth_error"} 0
-app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="tls_error"} 0
-app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="unhealthy"} 0
-app_dependency_status{name="order-api",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="error"} 0
+app_dependency_status{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="ok"} 1
+app_dependency_status{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="timeout"} 0
+app_dependency_status{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="connection_error"} 0
+app_dependency_status{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="dns_error"} 0
+app_dependency_status{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="auth_error"} 0
+app_dependency_status{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="tls_error"} 0
+app_dependency_status{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="unhealthy"} 0
+app_dependency_status{name="order-api",group="billing-team",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="error"} 0
 ```
 
 ---
@@ -407,7 +408,7 @@ Gauge-метрика (info-паттерн), содержащая **деталь�
 Те же обязательные и произвольные метки, что и у `app_dependency_health` (разделы 2.3, 2.4),
 плюс метка `detail` в конце.
 
-Порядок меток: `name`, `dependency`, `type`, `host`, `port`, `critical`,
+Порядок меток: `name`, `group`, `dependency`, `type`, `host`, `port`, `critical`,
 произвольные метки в алфавитном порядке, `detail`.
 
 ### 9.6. Начальное значение
@@ -422,7 +423,7 @@ Gauge-метрика (info-паттерн), содержащая **деталь�
 ```text
 # HELP app_dependency_status_detail Detailed reason of the last check result
 # TYPE app_dependency_status_detail gauge
-app_dependency_status_detail{name="order-api",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",detail="http_503"} 1
+app_dependency_status_detail{name="order-api",group="billing-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",detail="http_503"} 1
 ```
 
 ### 9.8. Влияние на хранение
@@ -454,7 +455,7 @@ app_dependency_status{status="timeout"} == 1
 app_dependency_status{status="auth_error"} == 1
 
 # Детальная причина по конкретной зависимости
-app_dependency_status_detail{name="order-api",dependency="payment-api"}
+app_dependency_status_detail{name="order-api",group="billing-team",dependency="payment-api"}
 
 # Все HTTP 503 ошибки по всему кластеру
 app_dependency_status_detail{detail="http_503"}
@@ -467,11 +468,11 @@ count by (status) (app_dependency_status == 1)
 
 # Корреляция: unhealthy зависимости с деталями через join
 app_dependency_status{status="unhealthy"} == 1
-  AND on (name, dependency, type, host, port)
+  AND on (name, group, dependency, type, host, port)
 app_dependency_status_detail
 
 # Алерт: критичная зависимость с non-ok статусом более 5 минут
 app_dependency_status{status!="ok",critical="yes"} == 1
-  AND on (name, dependency, type, host, port)
+  AND on (name, group, dependency, type, host, port)
 (app_dependency_status offset 5m {status!="ok"} == 1)
 ```

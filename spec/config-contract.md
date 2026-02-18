@@ -2,7 +2,7 @@
 
 # Configuration Contract
 
-> Specification version: **2.0-draft**
+> Specification version: **3.0-draft**
 >
 > This document describes the input data formats for dependency configuration,
 > parsing rules, programmatic API, and configuration via environment variables.
@@ -318,7 +318,7 @@ dephealth.WithLabel("vhost", "orders")
 ### 7.4. Global Options (When Creating DepHealth)
 
 ```go
-dh := dephealth.New("order-api",
+dh := dephealth.New("order-api", "billing-team",
     // Global options
     dephealth.WithDefaultCheckInterval(30 * time.Second),
     dephealth.WithDefaultTimeout(10 * time.Second),
@@ -338,6 +338,9 @@ dh := dephealth.New("order-api",
 - `name` (required) — unique application name. Format: `[a-z][a-z0-9-]*`,
   length 1-63 characters. Alternatively set via `DEPHEALTH_NAME`
   (API > env var). If missing in both API and env — configuration error.
+- `group` (required) — logical group for this service (team, subsystem, project).
+  Format: `[a-z][a-z0-9-]*`, length 1-63 characters. Alternatively set via
+  `DEPHEALTH_GROUP` (API > env var). If missing in both — configuration error.
 
 ### 7.5. Validation
 
@@ -347,6 +350,8 @@ SDK validates configuration on `New()` call and returns error for:
 | --- | --- |
 | Missing application name | `missing name` |
 | Invalid application name | `invalid name: "..."` |
+| Missing group | `missing group` |
+| Invalid group | `invalid group: "..."` |
 | Invalid dependency name | `invalid dependency name: "..."` |
 | Missing critical | `missing critical for dependency "..."` |
 | Duplicate name + host + port | `duplicate endpoint: "..." host=... port=...` |
@@ -380,10 +385,11 @@ in microservice topology.
 
 ### 8.1. Format
 
-Instance-level variable:
+Instance-level variables:
 
 ```text
 DEPHEALTH_NAME=<value>
+DEPHEALTH_GROUP=<value>
 ```
 
 Dependency-level variables:
@@ -406,6 +412,7 @@ For example: `CHECK_INTERVAL=30`, `TIMEOUT=5`. SDK converts the number to native
 | Variable | Description | Example |
 | --- | --- | --- |
 | `DEPHEALTH_NAME` | Unique application name (`name` label) | `DEPHEALTH_NAME=order-api` |
+| `DEPHEALTH_GROUP` | Logical group (`group` label) | `DEPHEALTH_GROUP=billing-team` |
 
 #### Dependency Level
 

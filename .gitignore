@@ -69,3 +69,4 @@ docker-compose.override.yml
 .tasks
 .playwright-mcp
 
+plans/
