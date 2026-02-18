@@ -71,6 +71,7 @@ app = FastAPI(
     version="0.1.0",
     lifespan=dephealth_lifespan(
         "conformance-service",
+        "conformance-test",
         # PostgreSQL primary
         postgres_check("postgres-primary", url=PRIMARY_DATABASE_URL, critical=True),
         # PostgreSQL replica

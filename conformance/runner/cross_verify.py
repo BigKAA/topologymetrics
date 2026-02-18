@@ -25,7 +25,7 @@ DETAIL_METRIC = "app_dependency_status_detail"
 
 ALL_METRICS = [HEALTH_METRIC, LATENCY_METRIC, STATUS_METRIC, DETAIL_METRIC]
 
-REQUIRED_LABELS = {"name", "dependency", "type", "host", "port", "critical"}
+REQUIRED_LABELS = {"name", "group", "dependency", "type", "host", "port", "critical"}
 EXPECTED_BUCKETS = {0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0}
 
 VALID_STATUSES = {"ok", "timeout", "connection_error", "dns_error",

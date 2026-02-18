@@ -16,6 +16,7 @@ management:
 
 dephealth:
   name: conformance-service
+  group: conformance-test
   interval: ${CHECK_INTERVAL:10}s
   timeout: 5s
   dependencies:

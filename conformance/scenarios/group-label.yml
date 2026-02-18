@@ -1,0 +1,84 @@
+name: "group-label"
+description: "Validate mandatory group label in all metrics"
+
+checks:
+  # group label present in all 4 metric families (via required_labels)
+  - type: required_labels
+    metric: app_dependency_health
+
+  - type: required_labels
+    metric: app_dependency_latency_seconds
+
+  - type: required_labels
+    metric: app_dependency_status
+
+  - type: required_labels
+    metric: app_dependency_status_detail
+
+  # group label value follows naming rules ([a-z][a-z0-9-]*, 1-63 chars)
+  - type: label_values
+    metric: app_dependency_health
+
+  # group value matches configured value ("conformance-test") for all deps
+  - type: expected_dependencies
+    dependencies:
+      - dependency: postgres-primary
+        host: postgres-primary.dephealth-conformance.svc
+        port: 5432
+        group: "conformance-test"
+        value: 1
+      - dependency: postgres-replica
+        host: postgres-replica.dephealth-conformance.svc
+        port: 5432
+        group: "conformance-test"
+        value: 1
+      - dependency: redis-cache
+        host: redis.dephealth-conformance.svc
+        port: 6379
+        group: "conformance-test"
+        value: 1
+      - dependency: rabbitmq
+        host: rabbitmq.dephealth-conformance.svc
+        port: 5672
+        group: "conformance-test"
+        value: 1
+      - dependency: kafka-main
+        host: kafka.dephealth-conformance.svc
+        port: 9092
+        group: "conformance-test"
+        value: 1
+      - dependency: http-service
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        group: "conformance-test"
+        value: 1
+      - dependency: http-auth-bearer
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        group: "conformance-test"
+        value: 1
+      - dependency: http-auth-basic
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        group: "conformance-test"
+        value: 1
+      - dependency: http-auth-header
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        group: "conformance-test"
+        value: 1
+      - dependency: http-auth-wrong
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        group: "conformance-test"
+        value: 1
+      - dependency: grpc-service
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        group: "conformance-test"
+        value: 1
+      - dependency: grpc-auth-bearer
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        group: "conformance-test"
+        value: 1

@@ -27,7 +27,7 @@ logger = logging.getLogger("conformance.verify")
 # Ожидаемые имена метрик из спецификации
 HEALTH_METRIC = "app_dependency_health"
 LATENCY_METRIC = "app_dependency_latency_seconds"
-REQUIRED_LABELS = {"name", "dependency", "type", "host", "port", "critical"}
+REQUIRED_LABELS = {"name", "group", "dependency", "type", "host", "port", "critical"}
 EXPECTED_BUCKETS = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0]
 VALID_TYPES = {"http", "grpc", "tcp", "postgres", "mysql", "redis", "amqp", "kafka"}
 
@@ -239,6 +239,16 @@ def check_label_values(metrics: dict, name: str) -> list[CheckResult]:
                     f"(ожидается [a-z][a-z0-9-]*, 1-63 символа)",
                 ))
 
+        # Проверить формат group ([a-z][a-z0-9-]*, 1-63 символа)
+        group_val = labels.get("group", "")
+        if group_val:
+            if not re.fullmatch(r"[a-z][a-z0-9-]{0,62}", group_val):
+                results.append(CheckResult(
+                    f"label_group_{dep}", False,
+                    f"невалидный формат group: '{group_val}' "
+                    f"(ожидается [a-z][a-z0-9-]*, 1-63 символа)",
+                ))
+
         # Проверить значение critical (yes/no)
         if critical and critical not in ("yes", "no"):
             results.append(CheckResult(
@@ -346,6 +356,7 @@ def check_expected_dependencies(
         actual[key] = {
             "value": sample["value"],
             "name": sample["labels"].get("name", ""),
+            "group": sample["labels"].get("group", ""),
             "critical": sample["labels"].get("critical", ""),
         }
 
@@ -382,6 +393,14 @@ def check_expected_dependencies(
                 f"dep_{exp['dependency']}_name",
                 False,
                 f"name: '{entry['name']}', ожидалось '{exp['name']}'",
+            ))
+
+        # Проверить group, если указано в сценарии
+        if "group" in exp and entry["group"] != exp["group"]:
+            results.append(CheckResult(
+                f"dep_{exp['dependency']}_group",
+                False,
+                f"group: '{entry['group']}', ожидалось '{exp['group']}'",
             ))
 
         # Проверить critical, если указано в сценарии

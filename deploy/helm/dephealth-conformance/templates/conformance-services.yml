@@ -69,6 +69,8 @@ spec:
               value: "grpc-stub.{{ $ns }}.svc"
             - name: GRPC_STUB_PORT
               value: "9090"
+            - name: DEPHEALTH_GROUP
+              value: "conformance-test"
             - name: CHECK_INTERVAL
               valueFrom:
                 configMapKeyRef:

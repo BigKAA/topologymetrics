@@ -28,7 +28,7 @@ var intervalStr = Environment.GetEnvironmentVariable("CHECK_INTERVAL") ?? "10";
 var checkInterval = TimeSpan.FromSeconds(int.Parse(intervalStr));
 
 // --- Регистрация DepHealth с 12 зависимостями ---
-builder.Services.AddDepHealth("conformance-service", dh =>
+builder.Services.AddDepHealth("conformance-service", "conformance-test", dh =>
 {
     dh.AddPostgres("postgres-primary", primaryDbUrl, critical: true);
     dh.AddPostgres("postgres-replica", replicaDbUrl, critical: false);

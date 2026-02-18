@@ -121,7 +121,7 @@ func initRedis(ctx context.Context, rawURL string) (*redis.Client, error) {
 }
 
 func initDepHealth(cfg *Config, primaryDB, replicaDB *sql.DB, rdb *redis.Client, logger *slog.Logger) (*dephealth.DepHealth, error) {
-	dh, err := dephealth.New("conformance-service",
+	dh, err := dephealth.New("conformance-service", "conformance-test",
 		dephealth.WithCheckInterval(cfg.CheckInterval),
 		dephealth.WithLogger(logger),
 
