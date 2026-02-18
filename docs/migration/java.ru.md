@@ -5,6 +5,40 @@
 Пошаговая инструкция по добавлению мониторинга зависимостей
 в работающий микросервис.
 
+## Миграция на v0.5.0
+
+### Обязательный параметр `group`
+
+v0.5.0 добавляет обязательный параметр `group` (логическая группировка: команда, подсистема, проект).
+
+Программный API:
+```java
+// v0.4.x
+DepHealth dh = DepHealth.builder("my-service", meterRegistry)
+    .dependency(...)
+    .build();
+
+// v0.5.0
+DepHealth dh = DepHealth.builder("my-service", "my-team", meterRegistry)
+    .dependency(...)
+    .build();
+```
+
+Spring Boot YAML:
+```yaml
+# v0.5.0 — добавьте group
+dephealth:
+  name: my-service
+  group: my-team
+  dependencies: ...
+```
+
+Альтернатива: переменная окружения `DEPHEALTH_GROUP` (API имеет приоритет).
+
+Валидация: те же правила, что и для `name` — `[a-z][a-z0-9-]*`, 1-63 символа.
+
+---
+
 ## Миграция на v0.4.1
 
 ### Новое: healthDetails() API

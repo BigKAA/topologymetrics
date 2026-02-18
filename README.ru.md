@@ -22,18 +22,18 @@ HTTP/gRPC-сервисы). VictoriaMetrics собирает данные, Grafan
 
 ```text
 # Здоровье: 1 = доступен, 0 = недоступен
-app_dependency_health{name="order-service",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes"} 1
+app_dependency_health{name="order-service",group="orders",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes"} 1
 
 # Латентность проверки
-app_dependency_latency_seconds_bucket{name="order-service",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="0.01"} 42
+app_dependency_latency_seconds_bucket{name="order-service",group="orders",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="0.01"} 42
 
 # Категория статуса (enum-паттерн — все 8 значений всегда экспортируются, ровно одно = 1)
-app_dependency_status{name="order-service",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",status="ok"} 1
-app_dependency_status{name="order-service",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",status="timeout"} 0
+app_dependency_status{name="order-service",group="orders",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",status="ok"} 1
+app_dependency_status{name="order-service",group="orders",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",status="timeout"} 0
 # ... (ещё 6 значений status = 0)
 
 # Детальная причина
-app_dependency_status_detail{name="order-service",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",detail="ok"} 1
+app_dependency_status_detail{name="order-service",group="orders",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",detail="ok"} 1
 ```
 
 Из метрик автоматически строится граф зависимостей, настраивается алертинг
@@ -49,7 +49,7 @@ import (
     _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks"
 )
 
-dh, err := dephealth.New("order-service",
+dh, err := dephealth.New("order-service", "orders",
     dephealth.Postgres("postgres-main",
         dephealth.FromURL(os.Getenv("DATABASE_URL")),
         dephealth.Critical(true),
@@ -72,7 +72,7 @@ from dephealth.api import postgres_check, redis_check
 from dephealth_fastapi import dephealth_lifespan, DepHealthMiddleware
 
 app = FastAPI(
-    lifespan=dephealth_lifespan("order-service",
+    lifespan=dephealth_lifespan("order-service", "orders",
         postgres_check("postgres-main", url=os.environ["DATABASE_URL"], critical=True),
         redis_check("redis-cache", url=os.environ["REDIS_URL"], critical=False),
     )
@@ -86,6 +86,7 @@ app.add_middleware(DepHealthMiddleware)
 # application.yml
 dephealth:
   name: order-service
+  group: orders
   dependencies:
     postgres-main:
       type: postgres
@@ -101,14 +102,14 @@ dephealth:
 <dependency>
     <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-spring-boot-starter</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
 </dependency>
 ```
 
 ### C# (ASP.NET Core)
 
 ```csharp
-builder.Services.AddDepHealth("order-service", dh => dh
+builder.Services.AddDepHealth("order-service", "orders", dh => dh
     .AddDependency("postgres-main", DependencyType.Postgres, d => d
         .Url(builder.Configuration["DATABASE_URL"]!)
         .Critical(true))
@@ -193,7 +194,7 @@ plans/                          # Планы разработки
 | `app_dependency_status` | Gauge | Категория статуса (enum-паттерн): 8 значений на endpoint, ровно одно = 1 |
 | `app_dependency_status_detail` | Gauge | Детальная причина (info-паттерн): напр. `http_503`, `auth_error` |
 
-Обязательные метки: `name`, `dependency`, `type`, `host`, `port`, `critical`.
+Обязательные метки: `name`, `group`, `dependency`, `type`, `host`, `port`, `critical`.
 Дополнительные: `status` (на `app_dependency_status`), `detail` (на `app_dependency_status_detail`).
 
 ### Параметры по умолчанию
@@ -211,9 +212,10 @@ plans/                          # Планы разработки
 
 - Kubernetes-манифесты для зависимостей (PostgreSQL, Redis, RabbitMQ, Kafka)
 - Управляемые HTTP и gRPC заглушки
-- 9 тестовых сценариев: basic-health, partial-failure, full-failure, recovery,
-  latency, labels, timeout, initial-state, health-details
-- Все 4 SDK проходят 9/9 сценариев (36 тестов суммарно)
+- 14 тестовых сценариев: basic-health, partial-failure, full-failure, recovery,
+  latency, labels, timeout, initial-state, health-details, group-label,
+  status-enum, status-detail, critical-flag, concurrent-checks
+- Все 4 SDK проходят 14/14 сценариев (56 тестов суммарно)
 
 ## Документация
 

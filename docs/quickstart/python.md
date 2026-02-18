@@ -39,7 +39,7 @@ from dephealth_fastapi import dephealth_lifespan, DepHealthMiddleware
 from fastapi import FastAPI
 
 app = FastAPI(
-    lifespan=dephealth_lifespan("my-service",
+    lifespan=dephealth_lifespan("my-service", "my-team",
         http_check("payment-api", url="http://payment.svc:8080", critical=True),
     )
 )
@@ -50,10 +50,10 @@ app.add_middleware(DepHealthMiddleware)
 After startup, metrics will appear at `/metrics`:
 
 ```text
-app_dependency_health{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes"} 1
-app_dependency_latency_seconds_bucket{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",le="0.01"} 42
-app_dependency_status{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",status="healthy"} 1
-app_dependency_status_detail{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",detail=""} 1
+app_dependency_health{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes"} 1
+app_dependency_latency_seconds_bucket{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",le="0.01"} 42
+app_dependency_status{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",status="healthy"} 1
+app_dependency_status_detail{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",detail=""} 1
 ```
 
 ## Multiple Dependencies
@@ -70,7 +70,7 @@ from dephealth.api import (
     kafka_check,
 )
 
-dh = DependencyHealth("my-service",
+dh = DependencyHealth("my-service", "my-team",
     # Global settings
     check_interval=timedelta(seconds=30),
     timeout=timedelta(seconds=3),
@@ -131,7 +131,7 @@ postgres_check("postgres-main",
 Result in metrics:
 
 ```text
-app_dependency_health{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",role="primary",shard="eu-west"} 1
+app_dependency_health{name="my-service",group="my-team",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",role="primary",shard="eu-west"} 1
 ```
 
 ## Connection Pool Integration
@@ -148,7 +148,7 @@ from dephealth.api import DependencyHealth, postgres_check
 
 pool = await asyncpg.create_pool("postgresql://user:pass@pg.svc:5432/mydb")
 
-dh = DependencyHealth("my-service",
+dh = DependencyHealth("my-service", "my-team",
     postgres_check("postgres-main", pool=pool, critical=True),
 )
 ```
@@ -161,7 +161,7 @@ from dephealth.api import DependencyHealth, redis_check
 
 client = Redis.from_url("redis://redis.svc:6379/0")
 
-dh = DependencyHealth("my-service",
+dh = DependencyHealth("my-service", "my-team",
     redis_check("redis-cache", client=client, critical=False),
 )
 ```
@@ -177,7 +177,7 @@ pool = await aiomysql.create_pool(
     user="root", password="secret", db="mydb",
 )
 
-dh = DependencyHealth("my-service",
+dh = DependencyHealth("my-service", "my-team",
     mysql_check("mysql-main", pool=pool, critical=True),
 )
 ```
@@ -199,7 +199,7 @@ from dephealth_fastapi import (
 )
 
 app = FastAPI(
-    lifespan=dephealth_lifespan("my-service",
+    lifespan=dephealth_lifespan("my-service", "my-team",
         postgres_check("database",
             url="postgresql://user:pass@db:5432/mydb",
             critical=True,
@@ -261,7 +261,7 @@ from datetime import timedelta
 from dephealth.api import DependencyHealth, http_check, redis_check
 
 async def main():
-    dh = DependencyHealth("my-service",
+    dh = DependencyHealth("my-service", "my-team",
         http_check("api", url="http://api:8080", critical=True),
         redis_check("cache", url="redis://redis:6379", critical=False),
         check_interval=timedelta(seconds=15),
@@ -285,7 +285,7 @@ import logging
 from datetime import timedelta
 from prometheus_client import CollectorRegistry
 
-dh = DependencyHealth("my-service",
+dh = DependencyHealth("my-service", "my-team",
     # Check interval (default 15s)
     check_interval=timedelta(seconds=30),
 
@@ -389,6 +389,7 @@ classifies it as `auth_error`:
 | Variable | Description | Example |
 | --- | --- | --- |
 | `DEPHEALTH_NAME` | Application name (overridden by API argument) | `my-service` |
+| `DEPHEALTH_GROUP` | Logical group (`group` label) | `my-team` |
 | `DEPHEALTH_<DEP>_CRITICAL` | Dependency criticality | `yes` / `no` |
 | `DEPHEALTH_<DEP>_LABEL_<KEY>` | Custom label | `primary` |
 
@@ -407,6 +408,7 @@ export GRPC_BEARER_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 # Dependency configuration
 export DEPHEALTH_NAME=my-service
+export DEPHEALTH_GROUP=my-team
 export DEPHEALTH_POSTGRES_MAIN_CRITICAL=yes
 export DEPHEALTH_POSTGRES_MAIN_LABEL_ROLE=primary
 export DEPHEALTH_POSTGRES_MAIN_LABEL_SHARD=eu-west
@@ -431,7 +433,7 @@ redis_url = os.getenv("REDIS_URL")
 api_token = os.getenv("API_BEARER_TOKEN")
 grpc_token = os.getenv("GRPC_BEARER_TOKEN")
 
-dh = DependencyHealth("my-service",
+dh = DependencyHealth("my-service", "my-team",
     check_interval=timedelta(seconds=15),
 
     # PostgreSQL from env var
@@ -479,7 +481,7 @@ api_token = os.getenv("API_BEARER_TOKEN")
 grpc_token = os.getenv("GRPC_BEARER_TOKEN")
 
 app = FastAPI(
-    lifespan=dephealth_lifespan("my-service",
+    lifespan=dephealth_lifespan("my-service", "my-team",
         postgres_check("database", url=db_url, critical=True),
         redis_check("cache", url=redis_url, critical=False),
         http_check("api-service",
@@ -507,6 +509,7 @@ Priority: API values > environment variables.
 | Situation | Behavior |
 | --- | --- |
 | No `name` specified and no `DEPHEALTH_NAME` | Error on creation: `missing name` |
+| No `group` specified and no `DEPHEALTH_GROUP` | Error on creation: `missing group` |
 | No `critical` specified for dependency | Error on creation: `missing critical` |
 | Invalid label name | Error on creation: `invalid label name` |
 | Label conflicts with required label | Error on creation: `reserved label` |
@@ -563,7 +566,7 @@ dephealth exports four Prometheus metrics:
 | `app_dependency_status` | Gauge (enum) | Status category: 8 series per endpoint, exactly one = 1 |
 | `app_dependency_status_detail` | Gauge (info) | Detailed reason: e.g. `http_503`, `auth_error` |
 
-Labels: `name`, `dependency`, `type`, `host`, `port`, `critical`.
+Labels: `name`, `group`, `dependency`, `type`, `host`, `port`, `critical`.
 Additional: `status` (on `app_dependency_status`), `detail` (on `app_dependency_status_detail`).
 
 ## Supported Dependency Types

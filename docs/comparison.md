@@ -52,7 +52,7 @@ and pass identical conformance tests (8 scenarios).
 | --- | --- |
 | Go | `go get github.com/BigKAA/topologymetrics/sdk-go@latest` |
 | Python | `pip install dephealth[fastapi]` |
-| Java | Maven: `biz.kryukov.dev:dephealth-spring-boot-starter:0.4.2` |
+| Java | Maven: `biz.kryukov.dev:dephealth-spring-boot-starter:0.5.0` |
 | C# | `dotnet add package DepHealth.AspNetCore` |
 
 ## Exported Metrics

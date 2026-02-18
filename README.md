@@ -22,18 +22,18 @@ Each microservice exports metrics about the health of its connections:
 
 ```text
 # Health: 1 = available, 0 = unavailable
-app_dependency_health{name="order-service",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes"} 1
+app_dependency_health{name="order-service",group="orders",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes"} 1
 
 # Check latency
-app_dependency_latency_seconds_bucket{name="order-service",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="0.01"} 42
+app_dependency_latency_seconds_bucket{name="order-service",group="orders",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",le="0.01"} 42
 
 # Status category (enum pattern — all 8 values always exported, exactly one = 1)
-app_dependency_status{name="order-service",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",status="ok"} 1
-app_dependency_status{name="order-service",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",status="timeout"} 0
+app_dependency_status{name="order-service",group="orders",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",status="ok"} 1
+app_dependency_status{name="order-service",group="orders",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",status="timeout"} 0
 # ... (6 more status values = 0)
 
 # Detailed reason
-app_dependency_status_detail{name="order-service",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",detail="ok"} 1
+app_dependency_status_detail{name="order-service",group="orders",dependency="postgres-main",type="postgres",host="pg-master.db.svc",port="5432",critical="yes",detail="ok"} 1
 ```
 
 From these metrics a dependency graph is automatically built, alerting is configured
@@ -49,7 +49,7 @@ import (
     _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks"
 )
 
-dh, err := dephealth.New("order-service",
+dh, err := dephealth.New("order-service", "orders",
     dephealth.Postgres("postgres-main",
         dephealth.FromURL(os.Getenv("DATABASE_URL")),
         dephealth.Critical(true),
@@ -72,7 +72,7 @@ from dephealth.api import postgres_check, redis_check
 from dephealth_fastapi import dephealth_lifespan, DepHealthMiddleware
 
 app = FastAPI(
-    lifespan=dephealth_lifespan("order-service",
+    lifespan=dephealth_lifespan("order-service", "orders",
         postgres_check("postgres-main", url=os.environ["DATABASE_URL"], critical=True),
         redis_check("redis-cache", url=os.environ["REDIS_URL"], critical=False),
     )
@@ -86,6 +86,7 @@ app.add_middleware(DepHealthMiddleware)
 # application.yml
 dephealth:
   name: order-service
+  group: orders
   dependencies:
     postgres-main:
       type: postgres
@@ -101,14 +102,14 @@ dephealth:
 <dependency>
     <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-spring-boot-starter</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
 </dependency>
 ```
 
 ### C# (ASP.NET Core)
 
 ```csharp
-builder.Services.AddDepHealth("order-service", dh => dh
+builder.Services.AddDepHealth("order-service", "orders", dh => dh
     .AddDependency("postgres-main", DependencyType.Postgres, d => d
         .Url(builder.Configuration["DATABASE_URL"]!)
         .Critical(true))
@@ -193,7 +194,7 @@ The single source of truth for all SDKs — the `spec/` directory:
 | `app_dependency_status` | Gauge | Status category (enum pattern): 8 values per endpoint, exactly one = 1 |
 | `app_dependency_status_detail` | Gauge | Detailed reason (info pattern): e.g. `http_503`, `auth_error` |
 
-Required labels: `name`, `dependency`, `type`, `host`, `port`, `critical`.
+Required labels: `name`, `group`, `dependency`, `type`, `host`, `port`, `critical`.
 Additional label: `status` (on `app_dependency_status`), `detail` (on `app_dependency_status_detail`).
 
 ### Default Parameters
@@ -211,9 +212,10 @@ Infrastructure for verifying SDK compliance with the specification (`conformance
 
 - Kubernetes manifests for dependencies (PostgreSQL, Redis, RabbitMQ, Kafka)
 - Managed HTTP and gRPC stubs
-- 9 test scenarios: basic-health, partial-failure, full-failure, recovery,
-  latency, labels, timeout, initial-state, health-details
-- All 4 SDKs pass 9/9 scenarios (36 tests total)
+- 14 test scenarios: basic-health, partial-failure, full-failure, recovery,
+  latency, labels, timeout, initial-state, health-details, group-label,
+  status-enum, status-detail, critical-flag, concurrent-checks
+- All 4 SDKs pass 14/14 scenarios (56 tests total)
 
 ## Documentation
 

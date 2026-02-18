@@ -32,7 +32,7 @@ import (
 )
 
 func main() {
-    dh, err := dephealth.New("my-service",
+    dh, err := dephealth.New("my-service", "my-team",
         dephealth.HTTP("payment-api",
             dephealth.FromURL("http://payment.svc:8080"),
             dephealth.Critical(true),
@@ -62,16 +62,16 @@ func main() {
 После запуска на `/metrics` появятся метрики:
 
 ```text
-app_dependency_health{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes"} 1
-app_dependency_latency_seconds_bucket{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",le="0.01"} 42
-app_dependency_status{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",status="healthy"} 1
-app_dependency_status_detail{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",detail=""} 1
+app_dependency_health{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes"} 1
+app_dependency_latency_seconds_bucket{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",le="0.01"} 42
+app_dependency_status{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",status="healthy"} 1
+app_dependency_status_detail{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",detail=""} 1
 ```
 
 ## Несколько зависимостей
 
 ```go
-dh, err := dephealth.New("my-service",
+dh, err := dephealth.New("my-service", "my-team",
     // Глобальные настройки
     dephealth.WithCheckInterval(30 * time.Second),
     dephealth.WithTimeout(3 * time.Second),
@@ -132,7 +132,7 @@ dephealth.Postgres("postgres-main",
 Результат в метриках:
 
 ```text
-app_dependency_health{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",role="primary",shard="eu-west"} 1
+app_dependency_health{name="my-service",group="my-team",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",role="primary",shard="eu-west"} 1
 ```
 
 ## Интеграция с connection pool (contrib)
@@ -156,7 +156,7 @@ import (
 // Используем существующий connection pool
 db, _ := sql.Open("pgx", os.Getenv("DATABASE_URL"))
 
-dh, err := dephealth.New("my-service",
+dh, err := dephealth.New("my-service", "my-team",
     sqldb.FromDB("postgres-main", db,
         dephealth.FromURL(os.Getenv("DATABASE_URL")),
         dephealth.Critical(true),
@@ -171,7 +171,7 @@ import "github.com/BigKAA/topologymetrics/sdk-go/dephealth/contrib/sqldb"
 
 db, _ := sql.Open("mysql", "user:pass@tcp(mysql.svc:3306)/mydb")
 
-dh, err := dephealth.New("my-service",
+dh, err := dephealth.New("my-service", "my-team",
     sqldb.FromMySQLDB("mysql-main", db,
         dephealth.FromParams("mysql.svc", "3306"),
         dephealth.Critical(true),
@@ -189,7 +189,7 @@ import (
 
 client := redis.NewClient(&redis.Options{Addr: "redis.svc:6379"})
 
-dh, err := dephealth.New("my-service",
+dh, err := dephealth.New("my-service", "my-team",
     // Host и port извлекаются автоматически из client.Options().Addr
     redispool.FromClient("redis-cache", client,
         dephealth.Critical(false),
@@ -200,7 +200,7 @@ dh, err := dephealth.New("my-service",
 ## Глобальные опции
 
 ```go
-dh, err := dephealth.New("my-service",
+dh, err := dephealth.New("my-service", "my-team",
     // Интервал проверки (по умолчанию 15s)
     dephealth.WithCheckInterval(30 * time.Second),
 
@@ -305,6 +305,7 @@ dephealth.GRPC("grpc-backend",
 | Переменная | Описание | Пример |
 | --- | --- | --- |
 | `DEPHEALTH_NAME` | Имя приложения (перекрывается аргументом API) | `my-service` |
+| `DEPHEALTH_GROUP` | Логическая группа (метка `group`) | `my-team` |
 | `DEPHEALTH_<DEP>_CRITICAL` | Критичность зависимости | `yes` / `no` |
 | `DEPHEALTH_<DEP>_LABEL_<KEY>` | Произвольная метка | `primary` |
 
@@ -323,6 +324,7 @@ export GRPC_BEARER_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 # Конфигурация зависимостей
 export DEPHEALTH_NAME=my-service
+export DEPHEALTH_GROUP=my-team
 export DEPHEALTH_POSTGRES_MAIN_CRITICAL=yes
 export DEPHEALTH_POSTGRES_MAIN_LABEL_ROLE=primary
 export DEPHEALTH_POSTGRES_MAIN_LABEL_SHARD=eu-west
@@ -351,7 +353,7 @@ func main() {
     apiToken := os.Getenv("API_BEARER_TOKEN")
     grpcToken := os.Getenv("GRPC_BEARER_TOKEN")
 
-    dh, err := dephealth.New("my-service",
+    dh, err := dephealth.New("my-service", "my-team",
         // PostgreSQL из переменной окружения
         dephealth.Postgres("postgres-main",
             dephealth.FromURL(dbURL),
@@ -400,6 +402,7 @@ func main() {
 | Ситуация | Поведение |
 | --- | --- |
 | Не указан `name` и нет `DEPHEALTH_NAME` | Ошибка при создании: `missing name` |
+| Не указан `group` и нет `DEPHEALTH_GROUP` | Ошибка при создании: `missing group` |
 | Не указан `Critical()` для зависимости | Ошибка при создании: `missing critical` |
 | Недопустимое имя метки | Ошибка при создании: `invalid label name` |
 | Метка совпадает с обязательной | Ошибка при создании: `reserved label` |
@@ -468,7 +471,7 @@ dephealth экспортирует четыре метрики Prometheus:
 | `app_dependency_status` | Gauge (enum) | Категория статуса: 8 серий на endpoint, ровно одна = 1 |
 | `app_dependency_status_detail` | Gauge (info) | Детальная причина: напр. `http_503`, `auth_error` |
 
-Метки: `name`, `dependency`, `type`, `host`, `port`, `critical`.
+Метки: `name`, `group`, `dependency`, `type`, `host`, `port`, `critical`.
 Дополнительные: `status` (на `app_dependency_status`), `detail` (на `app_dependency_status_detail`).
 
 Для экспорта используйте стандартный `promhttp.Handler()`:

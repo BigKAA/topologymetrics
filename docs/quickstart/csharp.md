@@ -34,7 +34,7 @@ using DepHealth.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDepHealth("my-service", dh => dh
+builder.Services.AddDepHealth("my-service", "my-team", dh => dh
     .AddDependency("payment-api", DependencyType.Http, d => d
         .Url("http://payment.svc:8080")
         .Critical(true))
@@ -50,16 +50,16 @@ app.Run();
 After starting, `/metrics` will expose:
 
 ```text
-app_dependency_health{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes"} 1
-app_dependency_latency_seconds_bucket{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",le="0.01"} 42
-app_dependency_status{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",status="healthy"} 1
-app_dependency_status_detail{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",detail=""} 1
+app_dependency_health{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes"} 1
+app_dependency_latency_seconds_bucket{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",le="0.01"} 42
+app_dependency_status{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",status="healthy"} 1
+app_dependency_status_detail{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",detail=""} 1
 ```
 
 ## Multiple Dependencies
 
 ```csharp
-builder.Services.AddDepHealth("my-service", dh => dh
+builder.Services.AddDepHealth("my-service", "my-team", dh => dh
     // Global settings
     .CheckInterval(TimeSpan.FromSeconds(30))
     .Timeout(TimeSpan.FromSeconds(3))
@@ -117,7 +117,7 @@ Add custom labels via `.Label()`:
 Result in metrics:
 
 ```text
-app_dependency_health{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",role="primary",shard="eu-west"} 1
+app_dependency_health{name="my-service",group="my-team",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",role="primary",shard="eu-west"} 1
 ```
 
 ## Connection Pool Integration
@@ -132,7 +132,7 @@ using DepHealth.EntityFramework;
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-builder.Services.AddDepHealth("my-service", dh => dh
+builder.Services.AddDepHealth("my-service", "my-team", dh => dh
     .AddEntityFrameworkDependency<AppDbContext>("postgres-main",
         critical: true)
 );
@@ -153,7 +153,7 @@ builder.Services.AddDepHealth("my-service", dh => dh
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDepHealth("my-service", dh => dh
+builder.Services.AddDepHealth("my-service", "my-team", dh => dh
     .AddDependency("postgres-main", DependencyType.Postgres, d => d
         .Url(builder.Configuration["DATABASE_URL"]!)
         .Critical(true))
@@ -199,7 +199,7 @@ Status code: `200` (all healthy) or `503` (some unhealthy).
 ## Global Options
 
 ```csharp
-builder.Services.AddDepHealth("my-service", dh => dh
+builder.Services.AddDepHealth("my-service", "my-team", dh => dh
     // Check interval (default 15s)
     .CheckInterval(TimeSpan.FromSeconds(30))
 
@@ -296,6 +296,7 @@ classifies it as `auth_error`:
 | Variable | Description | Example |
 | --- | --- | --- |
 | `DEPHEALTH_NAME` | Application name (overridden by API) | `my-service` |
+| `DEPHEALTH_GROUP` | Logical group (`group` label) | `my-team` |
 | `DEPHEALTH_<DEP>_CRITICAL` | Dependency criticality | `yes` / `no` |
 | `DEPHEALTH_<DEP>_LABEL_<KEY>` | Custom label | `primary` |
 
@@ -314,6 +315,7 @@ export GRPC_BEARER_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 # Dependency configuration
 export DEPHEALTH_NAME=my-service
+export DEPHEALTH_GROUP=my-team
 export DEPHEALTH_POSTGRES_MAIN_CRITICAL=yes
 export DEPHEALTH_POSTGRES_MAIN_LABEL_ROLE=primary
 export DEPHEALTH_POSTGRES_MAIN_LABEL_SHARD=eu-west
@@ -333,7 +335,7 @@ var redisUrl = Environment.GetEnvironmentVariable("REDIS_URL");
 var apiToken = Environment.GetEnvironmentVariable("API_BEARER_TOKEN");
 var grpcToken = Environment.GetEnvironmentVariable("GRPC_BEARER_TOKEN");
 
-builder.Services.AddDepHealth("my-service", dh => dh
+builder.Services.AddDepHealth("my-service", "my-team", dh => dh
     .CheckInterval(TimeSpan.FromSeconds(15))
 
     // PostgreSQL from env var
@@ -374,6 +376,7 @@ Create `appsettings.json`:
 {
   "DepHealth": {
     "Name": "my-service",
+    "Group": "my-team",
     "Dependencies": {
       "postgres-main": {
         "Type": "Postgres",
@@ -394,7 +397,7 @@ var dbUrl = builder.Configuration["DATABASE_URL"];
 var redisUrl = builder.Configuration["REDIS_URL"];
 var apiToken = builder.Configuration["API_BEARER_TOKEN"];
 
-builder.Services.AddDepHealth("my-service", dh => dh
+builder.Services.AddDepHealth("my-service", "my-team", dh => dh
     .AddDependency("postgres-main", DependencyType.Postgres, d => d
         .Url(dbUrl!)
         .Critical(true))
@@ -415,6 +418,7 @@ Priority: API values > environment variables.
 | Situation | Behavior |
 | --- | --- |
 | `name` not specified and no `DEPHEALTH_NAME` | Error at creation: `missing name` |
+| No `group` specified and no `DEPHEALTH_GROUP` | Error on creation: `missing group` |
 | `.Critical()` not specified for dependency | Error at creation: `missing critical` |
 | Invalid label name | Error at creation: `invalid label name` |
 | Label conflicts with required label | Error at creation: `reserved label` |
@@ -467,7 +471,7 @@ dephealth exports four Prometheus metrics via prometheus-net:
 | `app_dependency_status` | Gauge (enum) | Status category: 8 series per endpoint, exactly one = 1 |
 | `app_dependency_status_detail` | Gauge (info) | Detailed reason: e.g. `http_503`, `auth_error` |
 
-Labels: `name`, `dependency`, `type`, `host`, `port`, `critical`.
+Labels: `name`, `group`, `dependency`, `type`, `host`, `port`, `critical`.
 Additional: `status` (on `app_dependency_status`), `detail` (on `app_dependency_status_detail`).
 
 ## Supported Dependency Types

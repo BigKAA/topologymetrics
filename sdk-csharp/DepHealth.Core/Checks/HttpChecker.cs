@@ -48,7 +48,7 @@ public sealed class HttpChecker : IHealthChecker
         using var client = new HttpClient(handler);
         client.Timeout = Timeout.InfiniteTimeSpan;
         client.DefaultRequestHeaders.UserAgent.Add(
-            new ProductInfoHeaderValue("dephealth", "0.4.2"));
+            new ProductInfoHeaderValue("dephealth", "0.5.0"));
 
         foreach (var (key, value) in _headers)
         {

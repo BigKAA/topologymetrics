@@ -5,6 +5,40 @@
 Пошаговая инструкция по добавлению мониторинга зависимостей
 в работающий микросервис.
 
+## Миграция на v0.5.0
+
+### Обязательный параметр `group`
+
+v0.5.0 добавляет обязательный параметр `group` (логическая группировка: команда, подсистема, проект).
+
+```python
+# v0.4.x
+dh = DependencyHealth("my-service",
+    postgres_check("postgres-main", ...),
+)
+
+# v0.5.0
+dh = DependencyHealth("my-service", "my-team",
+    postgres_check("postgres-main", ...),
+)
+```
+
+FastAPI:
+```python
+# v0.5.0
+app = FastAPI(
+    lifespan=dephealth_lifespan("my-service", "my-team",
+        postgres_check("postgres-main", ...),
+    )
+)
+```
+
+Альтернатива: переменная окружения `DEPHEALTH_GROUP` (API имеет приоритет).
+
+Валидация: те же правила, что и для `name` — `[a-z][a-z0-9-]*`, 1-63 символа.
+
+---
+
 ## Миграция на v0.4.1
 
 ### Новое: health_details() API

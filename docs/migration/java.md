@@ -5,6 +5,40 @@
 Step-by-step instructions for adding dependency monitoring
 to a running microservice.
 
+## Migration to v0.5.0
+
+### Breaking: mandatory `group` parameter
+
+v0.5.0 adds a mandatory `group` parameter (logical grouping: team, subsystem, project).
+
+Programmatic API:
+```java
+// v0.4.x
+DepHealth dh = DepHealth.builder("my-service", meterRegistry)
+    .dependency(...)
+    .build();
+
+// v0.5.0
+DepHealth dh = DepHealth.builder("my-service", "my-team", meterRegistry)
+    .dependency(...)
+    .build();
+```
+
+Spring Boot YAML:
+```yaml
+# v0.5.0 — add group
+dephealth:
+  name: my-service
+  group: my-team
+  dependencies: ...
+```
+
+Alternative: set `DEPHEALTH_GROUP` environment variable (API takes precedence).
+
+Validation: same rules as `name` — `[a-z][a-z0-9-]*`, 1-63 chars.
+
+---
+
 ## Migration to v0.4.1
 
 ### New: healthDetails() API

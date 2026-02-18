@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-02-18
+
+Mandatory `group` label: logical grouping of services (team, subsystem, project),
+independent of Kubernetes namespace. Enables dephealth-ui to group services by
+logical membership rather than physical location.
+
+### Breaking Changes
+
+- **All SDKs**: Added mandatory `group` parameter to service configuration
+  - Go: `New(name, group, opts...)` (was `New(name, opts...)`)
+  - Java: `builder(name, group, registry)` (was `builder(name, registry)`)
+  - Python: `DependencyHealth(name, group, *specs)` (was `DependencyHealth(name, *specs)`)
+  - C#: `CreateBuilder(name, group)` (was `CreateBuilder(name)`)
+- **All SDKs**: `group` label added to all Prometheus metrics
+  - Label order: `name, group, dependency, type, host, port, critical, [custom]`
+- **All SDKs**: Missing `group` causes a fail-fast error with clear message
+  referencing both API parameter and `DEPHEALTH_GROUP` environment variable
+
+### Added
+
+- `group` label in all four metrics: `app_dependency_health`,
+  `app_dependency_latency_seconds`, `app_dependency_status`,
+  `app_dependency_status_detail`
+- `DEPHEALTH_GROUP` environment variable (same precedence as `DEPHEALTH_NAME`:
+  API > env var)
+- `group` validation: same rules as `name` — `[a-z][a-z0-9-]*`, 1-63 chars
+- Migration guide from v0.4.2 to v0.5.0
+- Conformance scenario `group-label` validating `group` label presence and value
+- Java Spring Boot: `dephealth.group` property in application.yml
+
 ## [0.4.2] - 2026-02-16
 
 Authentication support for HTTP and gRPC health checkers across all SDKs.
@@ -273,6 +303,8 @@ verifying cross-language compatibility.
 - SDK comparison table
 - CONTRIBUTING.md with development workflow
 
+[0.5.0]: https://github.com/BigKAA/topologymetrics/releases/tag/v0.5.0
+[0.4.2]: https://github.com/BigKAA/topologymetrics/releases/tag/v0.4.2
 [0.4.1]: https://github.com/BigKAA/topologymetrics/releases/tag/v0.4.1
 [0.4.0]: https://github.com/BigKAA/topologymetrics/releases/tag/v0.4.0
 [Java SDK 0.2.2]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-java/v0.2.2

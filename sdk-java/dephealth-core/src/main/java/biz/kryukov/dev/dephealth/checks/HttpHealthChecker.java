@@ -24,7 +24,7 @@ import java.util.Map;
 public final class HttpHealthChecker implements HealthChecker {
 
     private static final String DEFAULT_HEALTH_PATH = "/health";
-    private static final String USER_AGENT = "dephealth/0.4.2";
+    private static final String USER_AGENT = "dephealth/0.5.0";
 
     private final String healthPath;
     private final boolean tlsEnabled;

@@ -5,6 +5,30 @@
 Step-by-step instructions for adding dependency monitoring
 to a running microservice.
 
+## Migration to v0.5.0
+
+### Breaking: mandatory `group` parameter
+
+v0.5.0 adds a mandatory `group` parameter (logical grouping: team, subsystem, project).
+
+```go
+// v0.4.x
+dh, err := dephealth.New("my-service",
+    dephealth.Postgres("postgres-main", ...),
+)
+
+// v0.5.0
+dh, err := dephealth.New("my-service", "my-team",
+    dephealth.Postgres("postgres-main", ...),
+)
+```
+
+Alternative: set `DEPHEALTH_GROUP` environment variable (API takes precedence).
+
+Validation: same rules as `name` — `[a-z][a-z0-9-]*`, 1-63 chars.
+
+---
+
 ## Migration to v0.4.1
 
 ### New: HealthDetails() API

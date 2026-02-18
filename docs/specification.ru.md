@@ -15,7 +15,7 @@
 ### Метрика здоровья
 
 ```text
-app_dependency_health{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes"} 1
+app_dependency_health{name="my-service",group="billing-team",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes"} 1
 ```
 
 | Свойство | Значение |
@@ -23,13 +23,13 @@ app_dependency_health{name="my-service",dependency="postgres-main",type="postgre
 | Имя | `app_dependency_health` |
 | Тип | Gauge |
 | Значения | `1` (доступен), `0` (недоступен) |
-| Обязательные метки | `name`, `dependency`, `type`, `host`, `port`, `critical` |
+| Обязательные метки | `name`, `group`, `dependency`, `type`, `host`, `port`, `critical` |
 | Опциональные метки | произвольные через `WithLabel(key, value)` |
 
 ### Метрика латентности
 
 ```text
-app_dependency_latency_seconds_bucket{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",le="0.01"} 42
+app_dependency_latency_seconds_bucket{name="my-service",group="billing-team",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",le="0.01"} 42
 ```
 
 | Свойство | Значение |
@@ -42,7 +42,7 @@ app_dependency_latency_seconds_bucket{name="my-service",dependency="postgres-mai
 ### Метрика статуса
 
 ```text
-app_dependency_status{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="ok"} 1
+app_dependency_status{name="my-service",group="billing-team",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="ok"} 1
 ```
 
 | Свойство | Значение |
@@ -59,7 +59,7 @@ app_dependency_status{name="my-service",dependency="postgres-main",type="postgre
 ### Метрика детализации статуса
 
 ```text
-app_dependency_status_detail{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",detail="ok"} 1
+app_dependency_status_detail{name="my-service",group="billing-team",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",detail="ok"} 1
 ```
 
 | Свойство | Значение |
@@ -76,6 +76,7 @@ app_dependency_status_detail{name="my-service",dependency="postgres-main",type="
 ### Правила формирования меток
 
 - `name` — уникальное имя приложения (формат `[a-z][a-z0-9-]*`, 1-63 символа)
+- `group` — логическая группа (формат `[a-z][a-z0-9-]*`, 1-63 символа, напр. `billing-team`)
 - `dependency` — логическое имя (например, `postgres-main`, `redis-cache`)
 - `type` — тип зависимости: `http`, `grpc`, `tcp`, `postgres`, `mysql`,
   `redis`, `amqp`, `kafka`
@@ -83,7 +84,7 @@ app_dependency_status_detail{name="my-service",dependency="postgres-main",type="
 - `port` — порт endpoint
 - `critical` — критичность зависимости: `yes` или `no`
 
-Порядок меток: `name`, `dependency`, `type`, `host`, `port`, `critical`,
+Порядок меток: `name`, `group`, `dependency`, `type`, `host`, `port`, `critical`,
 затем произвольные метки в алфавитном порядке.
 
 При нескольких endpoint-ах одной зависимости (например, primary + replica)
@@ -96,7 +97,7 @@ app_dependency_status_detail{name="my-service",dependency="postgres-main",type="
 `.Label(key, value)` (C#).
 
 Имена меток: формат `[a-zA-Z_][a-zA-Z0-9_]*`, нельзя переопределять
-обязательные метки (`name`, `dependency`, `type`, `host`, `port`, `critical`).
+обязательные метки (`name`, `group`, `dependency`, `type`, `host`, `port`, `critical`).
 
 ## Контракт поведения
 
@@ -214,6 +215,7 @@ app_dependency_status_detail{name="my-service",dependency="postgres-main",type="
 | Переменная | Описание |
 | --- | --- |
 | `DEPHEALTH_NAME` | Имя приложения (перекрывается API) |
+| `DEPHEALTH_GROUP` | Логическая группа (перекрывается API) |
 | `DEPHEALTH_<DEP>_CRITICAL` | Критичность зависимости: `yes`/`no` |
 | `DEPHEALTH_<DEP>_LABEL_<KEY>` | Произвольная метка для зависимости |
 

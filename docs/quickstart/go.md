@@ -32,7 +32,7 @@ import (
 )
 
 func main() {
-    dh, err := dephealth.New("my-service",
+    dh, err := dephealth.New("my-service", "my-team",
         dephealth.HTTP("payment-api",
             dephealth.FromURL("http://payment.svc:8080"),
             dephealth.Critical(true),
@@ -62,16 +62,16 @@ func main() {
 After startup, metrics will appear on `/metrics`:
 
 ```text
-app_dependency_health{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes"} 1
-app_dependency_latency_seconds_bucket{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",le="0.01"} 42
-app_dependency_status{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",status="healthy"} 1
-app_dependency_status_detail{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",detail=""} 1
+app_dependency_health{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes"} 1
+app_dependency_latency_seconds_bucket{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",le="0.01"} 42
+app_dependency_status{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",status="healthy"} 1
+app_dependency_status_detail{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",detail=""} 1
 ```
 
 ## Multiple Dependencies
 
 ```go
-dh, err := dephealth.New("my-service",
+dh, err := dephealth.New("my-service", "my-team",
     // Global settings
     dephealth.WithCheckInterval(30 * time.Second),
     dephealth.WithTimeout(3 * time.Second),
@@ -132,7 +132,7 @@ dephealth.Postgres("postgres-main",
 Result in metrics:
 
 ```text
-app_dependency_health{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",role="primary",shard="eu-west"} 1
+app_dependency_health{name="my-service",group="my-team",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",role="primary",shard="eu-west"} 1
 ```
 
 ## Connection Pool Integration (contrib)
@@ -156,7 +156,7 @@ import (
 // Use existing connection pool
 db, _ := sql.Open("pgx", os.Getenv("DATABASE_URL"))
 
-dh, err := dephealth.New("my-service",
+dh, err := dephealth.New("my-service", "my-team",
     sqldb.FromDB("postgres-main", db,
         dephealth.FromURL(os.Getenv("DATABASE_URL")),
         dephealth.Critical(true),
@@ -171,7 +171,7 @@ import "github.com/BigKAA/topologymetrics/sdk-go/dephealth/contrib/sqldb"
 
 db, _ := sql.Open("mysql", "user:pass@tcp(mysql.svc:3306)/mydb")
 
-dh, err := dephealth.New("my-service",
+dh, err := dephealth.New("my-service", "my-team",
     sqldb.FromMySQLDB("mysql-main", db,
         dephealth.FromParams("mysql.svc", "3306"),
         dephealth.Critical(true),
@@ -189,7 +189,7 @@ import (
 
 client := redis.NewClient(&redis.Options{Addr: "redis.svc:6379"})
 
-dh, err := dephealth.New("my-service",
+dh, err := dephealth.New("my-service", "my-team",
     // Host and port are extracted automatically from client.Options().Addr
     redispool.FromClient("redis-cache", client,
         dephealth.Critical(false),
@@ -200,7 +200,7 @@ dh, err := dephealth.New("my-service",
 ## Global Options
 
 ```go
-dh, err := dephealth.New("my-service",
+dh, err := dephealth.New("my-service", "my-team",
     // Check interval (default 15s)
     dephealth.WithCheckInterval(30 * time.Second),
 
@@ -305,6 +305,7 @@ classifies it as `auth_error`:
 | Variable | Description | Example |
 | --- | --- | --- |
 | `DEPHEALTH_NAME` | Application name (overridden by API argument) | `my-service` |
+| `DEPHEALTH_GROUP` | Logical group (`group` label) | `my-team` |
 | `DEPHEALTH_<DEP>_CRITICAL` | Dependency criticality | `yes` / `no` |
 | `DEPHEALTH_<DEP>_LABEL_<KEY>` | Custom label | `primary` |
 
@@ -323,6 +324,7 @@ export GRPC_BEARER_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 # Dependency configuration
 export DEPHEALTH_NAME=my-service
+export DEPHEALTH_GROUP=my-team
 export DEPHEALTH_POSTGRES_MAIN_CRITICAL=yes
 export DEPHEALTH_POSTGRES_MAIN_LABEL_ROLE=primary
 export DEPHEALTH_POSTGRES_MAIN_LABEL_SHARD=eu-west
@@ -351,7 +353,7 @@ func main() {
     apiToken := os.Getenv("API_BEARER_TOKEN")
     grpcToken := os.Getenv("GRPC_BEARER_TOKEN")
 
-    dh, err := dephealth.New("my-service",
+    dh, err := dephealth.New("my-service", "my-team",
         // PostgreSQL from env var
         dephealth.Postgres("postgres-main",
             dephealth.FromURL(dbURL),
@@ -400,6 +402,7 @@ Priority: API values > environment variables.
 | Situation | Behavior |
 | --- | --- |
 | `name` not specified and no `DEPHEALTH_NAME` | Creation error: `missing name` |
+| No `group` specified and no `DEPHEALTH_GROUP` | Error on creation: `missing group` |
 | `Critical()` not specified for dependency | Creation error: `missing critical` |
 | Invalid label name | Creation error: `invalid label name` |
 | Label conflicts with required label | Creation error: `reserved label` |
@@ -468,7 +471,7 @@ dephealth exports four Prometheus metrics:
 | `app_dependency_status` | Gauge (enum) | Status category: 8 series per endpoint, exactly one = 1 |
 | `app_dependency_status_detail` | Gauge (info) | Detailed reason: e.g. `http_503`, `auth_error` |
 
-Labels: `name`, `dependency`, `type`, `host`, `port`, `critical`.
+Labels: `name`, `group`, `dependency`, `type`, `host`, `port`, `critical`.
 Additional: `status` (on `app_dependency_status`), `detail` (on `app_dependency_status_detail`).
 
 For export, use the standard `promhttp.Handler()`:

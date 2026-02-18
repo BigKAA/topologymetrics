@@ -94,7 +94,7 @@ class HTTPChecker:
             ctx.verify_mode = ssl.CERT_NONE
             connector_kwargs["ssl"] = ctx
 
-        request_headers = {"User-Agent": "dephealth/0.4.2"}
+        request_headers = {"User-Agent": "dephealth/0.5.0"}
         request_headers.update(self._headers)
 
         timeout = aiohttp.ClientTimeout(total=self._timeout)

@@ -34,7 +34,7 @@ using DepHealth.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDepHealth("my-service", dh => dh
+builder.Services.AddDepHealth("my-service", "my-team", dh => dh
     .AddDependency("payment-api", DependencyType.Http, d => d
         .Url("http://payment.svc:8080")
         .Critical(true))
@@ -50,16 +50,16 @@ app.Run();
 После запуска на `/metrics` появятся метрики:
 
 ```text
-app_dependency_health{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes"} 1
-app_dependency_latency_seconds_bucket{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",le="0.01"} 42
-app_dependency_status{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",status="healthy"} 1
-app_dependency_status_detail{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",detail=""} 1
+app_dependency_health{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes"} 1
+app_dependency_latency_seconds_bucket{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",le="0.01"} 42
+app_dependency_status{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",status="healthy"} 1
+app_dependency_status_detail{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",detail=""} 1
 ```
 
 ## Несколько зависимостей
 
 ```csharp
-builder.Services.AddDepHealth("my-service", dh => dh
+builder.Services.AddDepHealth("my-service", "my-team", dh => dh
     // Глобальные настройки
     .CheckInterval(TimeSpan.FromSeconds(30))
     .Timeout(TimeSpan.FromSeconds(3))
@@ -117,7 +117,7 @@ builder.Services.AddDepHealth("my-service", dh => dh
 Результат в метриках:
 
 ```text
-app_dependency_health{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",role="primary",shard="eu-west"} 1
+app_dependency_health{name="my-service",group="my-team",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",role="primary",shard="eu-west"} 1
 ```
 
 ## Интеграция с connection pool
@@ -133,7 +133,7 @@ using DepHealth.EntityFramework;
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-builder.Services.AddDepHealth("my-service", dh => dh
+builder.Services.AddDepHealth("my-service", "my-team", dh => dh
     .AddEntityFrameworkDependency<AppDbContext>("postgres-main",
         critical: true)
 );
@@ -154,7 +154,7 @@ builder.Services.AddDepHealth("my-service", dh => dh
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDepHealth("my-service", dh => dh
+builder.Services.AddDepHealth("my-service", "my-team", dh => dh
     .AddDependency("postgres-main", DependencyType.Postgres, d => d
         .Url(builder.Configuration["DATABASE_URL"]!)
         .Critical(true))
@@ -200,7 +200,7 @@ GET /health/dependencies
 ## Глобальные опции
 
 ```csharp
-builder.Services.AddDepHealth("my-service", dh => dh
+builder.Services.AddDepHealth("my-service", "my-team", dh => dh
     // Интервал проверки (по умолчанию 15s)
     .CheckInterval(TimeSpan.FromSeconds(30))
 
@@ -297,6 +297,7 @@ HTTP и gRPC чекеры поддерживают аутентификацию.
 | Переменная | Описание | Пример |
 | --- | --- | --- |
 | `DEPHEALTH_NAME` | Имя приложения (перекрывается API) | `my-service` |
+| `DEPHEALTH_GROUP` | Логическая группа (метка `group`) | `my-team` |
 | `DEPHEALTH_<DEP>_CRITICAL` | Критичность зависимости | `yes` / `no` |
 | `DEPHEALTH_<DEP>_LABEL_<KEY>` | Произвольная метка | `primary` |
 
@@ -315,6 +316,7 @@ export GRPC_BEARER_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 # Конфигурация зависимостей
 export DEPHEALTH_NAME=my-service
+export DEPHEALTH_GROUP=my-team
 export DEPHEALTH_POSTGRES_MAIN_CRITICAL=yes
 export DEPHEALTH_POSTGRES_MAIN_LABEL_ROLE=primary
 export DEPHEALTH_POSTGRES_MAIN_LABEL_SHARD=eu-west
@@ -334,7 +336,7 @@ var redisUrl = Environment.GetEnvironmentVariable("REDIS_URL");
 var apiToken = Environment.GetEnvironmentVariable("API_BEARER_TOKEN");
 var grpcToken = Environment.GetEnvironmentVariable("GRPC_BEARER_TOKEN");
 
-builder.Services.AddDepHealth("my-service", dh => dh
+builder.Services.AddDepHealth("my-service", "my-team", dh => dh
     .CheckInterval(TimeSpan.FromSeconds(15))
 
     // PostgreSQL из переменной окружения
@@ -375,6 +377,7 @@ ASP.NET Core автоматически разрешает переменные 
 {
   "DepHealth": {
     "Name": "my-service",
+    "Group": "my-team",
     "Dependencies": {
       "postgres-main": {
         "Type": "Postgres",
@@ -395,7 +398,7 @@ var dbUrl = builder.Configuration["DATABASE_URL"];
 var redisUrl = builder.Configuration["REDIS_URL"];
 var apiToken = builder.Configuration["API_BEARER_TOKEN"];
 
-builder.Services.AddDepHealth("my-service", dh => dh
+builder.Services.AddDepHealth("my-service", "my-team", dh => dh
     .AddDependency("postgres-main", DependencyType.Postgres, d => d
         .Url(dbUrl!)
         .Critical(true))
@@ -416,6 +419,7 @@ builder.Services.AddDepHealth("my-service", dh => dh
 | Ситуация | Поведение |
 | --- | --- |
 | Не указан `name` и нет `DEPHEALTH_NAME` | Ошибка при создании: `missing name` |
+| Не указан `group` и нет `DEPHEALTH_GROUP` | Ошибка при создании: `missing group` |
 | Не указан `.Critical()` для зависимости | Ошибка при создании: `missing critical` |
 | Недопустимое имя метки | Ошибка при создании: `invalid label name` |
 | Метка совпадает с обязательной | Ошибка при создании: `reserved label` |
@@ -468,7 +472,7 @@ dephealth экспортирует четыре метрики Prometheus чер
 | `app_dependency_status` | Gauge (enum) | Категория статуса: 8 серий на endpoint, ровно одна = 1 |
 | `app_dependency_status_detail` | Gauge (info) | Детальная причина: напр. `http_503`, `auth_error` |
 
-Метки: `name`, `dependency`, `type`, `host`, `port`, `critical`.
+Метки: `name`, `group`, `dependency`, `type`, `host`, `port`, `critical`.
 Дополнительные: `status` (на `app_dependency_status`), `detail` (на `app_dependency_status_detail`).
 
 ## Поддерживаемые типы зависимостей

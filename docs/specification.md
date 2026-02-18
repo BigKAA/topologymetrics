@@ -15,7 +15,7 @@ Full specification documents are located in the [`spec/`](../spec/) directory.
 ### Health Metric
 
 ```text
-app_dependency_health{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes"} 1
+app_dependency_health{name="my-service",group="billing-team",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes"} 1
 ```
 
 | Property | Value |
@@ -23,13 +23,13 @@ app_dependency_health{name="my-service",dependency="postgres-main",type="postgre
 | Name | `app_dependency_health` |
 | Type | Gauge |
 | Values | `1` (available), `0` (unavailable) |
-| Required labels | `name`, `dependency`, `type`, `host`, `port`, `critical` |
+| Required labels | `name`, `group`, `dependency`, `type`, `host`, `port`, `critical` |
 | Optional labels | arbitrary via `WithLabel(key, value)` |
 
 ### Latency Metric
 
 ```text
-app_dependency_latency_seconds_bucket{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",le="0.01"} 42
+app_dependency_latency_seconds_bucket{name="my-service",group="billing-team",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",le="0.01"} 42
 ```
 
 | Property | Value |
@@ -42,7 +42,7 @@ app_dependency_latency_seconds_bucket{name="my-service",dependency="postgres-mai
 ### Status Metric
 
 ```text
-app_dependency_status{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="ok"} 1
+app_dependency_status{name="my-service",group="billing-team",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",status="ok"} 1
 ```
 
 | Property | Value |
@@ -59,7 +59,7 @@ No series churn on state changes.
 ### Status Detail Metric
 
 ```text
-app_dependency_status_detail{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",detail="ok"} 1
+app_dependency_status_detail{name="my-service",group="billing-team",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",detail="ok"} 1
 ```
 
 | Property | Value |
@@ -76,6 +76,7 @@ and a new one is created (acceptable series churn).
 ### Label Formation Rules
 
 - `name` — unique application name (format `[a-z][a-z0-9-]*`, 1-63 characters)
+- `group` — logical group (format `[a-z][a-z0-9-]*`, 1-63 characters, e.g. `billing-team`)
 - `dependency` — logical name (e.g. `postgres-main`, `redis-cache`)
 - `type` — dependency type: `http`, `grpc`, `tcp`, `postgres`, `mysql`,
   `redis`, `amqp`, `kafka`
@@ -83,7 +84,7 @@ and a new one is created (acceptable series churn).
 - `port` — endpoint port
 - `critical` — dependency criticality: `yes` or `no`
 
-Label order: `name`, `dependency`, `type`, `host`, `port`, `critical`,
+Label order: `name`, `group`, `dependency`, `type`, `host`, `port`, `critical`,
 then arbitrary labels in alphabetical order.
 
 When a single dependency has multiple endpoints (e.g. primary + replica),
@@ -96,7 +97,7 @@ Custom labels are added via `WithLabel(key, value)` (Go),
 `.Label(key, value)` (C#).
 
 Label names: format `[a-zA-Z_][a-zA-Z0-9_]*`, required labels
-(`name`, `dependency`, `type`, `host`, `port`, `critical`) cannot be overridden.
+(`name`, `group`, `dependency`, `type`, `host`, `port`, `critical`) cannot be overridden.
 
 ## Behavior Contract
 
@@ -214,6 +215,7 @@ Additional constraint: `timeout` must be less than `checkInterval`.
 | Variable | Description |
 | --- | --- |
 | `DEPHEALTH_NAME` | Application name (overridden by API) |
+| `DEPHEALTH_GROUP` | Logical group (overridden by API) |
 | `DEPHEALTH_<DEP>_CRITICAL` | Dependency criticality: `yes`/`no` |
 | `DEPHEALTH_<DEP>_LABEL_<KEY>` | Custom label for a dependency |
 

@@ -5,6 +5,40 @@
 Step-by-step instructions for adding dependency monitoring
 to a running microservice.
 
+## Migration to v0.5.0
+
+### Breaking: mandatory `group` parameter
+
+v0.5.0 adds a mandatory `group` parameter (logical grouping: team, subsystem, project).
+
+```python
+# v0.4.x
+dh = DependencyHealth("my-service",
+    postgres_check("postgres-main", ...),
+)
+
+# v0.5.0
+dh = DependencyHealth("my-service", "my-team",
+    postgres_check("postgres-main", ...),
+)
+```
+
+FastAPI:
+```python
+# v0.5.0
+app = FastAPI(
+    lifespan=dephealth_lifespan("my-service", "my-team",
+        postgres_check("postgres-main", ...),
+    )
+)
+```
+
+Alternative: set `DEPHEALTH_GROUP` environment variable (API takes precedence).
+
+Validation: same rules as `name` — `[a-z][a-z0-9-]*`, 1-63 chars.
+
+---
+
 ## Migration to v0.4.1
 
 ### New: health_details() API

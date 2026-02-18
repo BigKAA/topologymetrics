@@ -14,7 +14,7 @@ Core-модуль:
 <dependency>
     <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-core</artifactId>
-    <version>0.4.2</version>
+    <version>0.5.0</version>
 </dependency>
 ```
 
@@ -24,7 +24,7 @@ Spring Boot Starter (включает core):
 <dependency>
     <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-spring-boot-starter</artifactId>
-    <version>0.4.2</version>
+    <version>0.5.0</version>
 </dependency>
 ```
 
@@ -41,7 +41,7 @@ public class Main {
         PrometheusMeterRegistry registry = new PrometheusMeterRegistry(
             PrometheusConfig.DEFAULT);
 
-        DepHealth depHealth = DepHealth.builder("my-service", registry)
+        DepHealth depHealth = DepHealth.builder("my-service", "my-team", registry)
             .dependency("payment-api", DependencyType.HTTP, d -> d
                 .url("http://payment.svc:8080")
                 .critical(true))
@@ -60,16 +60,16 @@ public class Main {
 После запуска на `/metrics` появятся метрики:
 
 ```text
-app_dependency_health{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes"} 1
-app_dependency_latency_seconds_bucket{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",le="0.01"} 42
-app_dependency_status{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",status="healthy"} 1
-app_dependency_status_detail{name="my-service",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",detail=""} 1
+app_dependency_health{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes"} 1
+app_dependency_latency_seconds_bucket{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",le="0.01"} 42
+app_dependency_status{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",status="healthy"} 1
+app_dependency_status_detail{name="my-service",group="my-team",dependency="payment-api",type="http",host="payment.svc",port="8080",critical="yes",detail=""} 1
 ```
 
 ## Несколько зависимостей
 
 ```java
-DepHealth depHealth = DepHealth.builder("my-service", meterRegistry)
+DepHealth depHealth = DepHealth.builder("my-service", "my-team", meterRegistry)
     // Глобальные настройки
     .checkInterval(Duration.ofSeconds(30))
     .timeout(Duration.ofSeconds(3))
@@ -129,7 +129,7 @@ DepHealth depHealth = DepHealth.builder("my-service", meterRegistry)
 Результат в метриках:
 
 ```text
-app_dependency_health{name="my-service",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",role="primary",shard="eu-west"} 1
+app_dependency_health{name="my-service",group="my-team",dependency="postgres-main",type="postgres",host="pg.svc",port="5432",critical="yes",role="primary",shard="eu-west"} 1
 ```
 
 ## Интеграция с connection pool
@@ -145,7 +145,7 @@ import javax.sql.DataSource;
 
 DataSource dataSource = ...; // существующий pool из приложения
 
-DepHealth depHealth = DepHealth.builder("my-service", meterRegistry)
+DepHealth depHealth = DepHealth.builder("my-service", "my-team", meterRegistry)
     .dependency("postgres-main", DependencyType.POSTGRES, d -> d
         .dataSource(dataSource)
         .critical(true))
@@ -159,7 +159,7 @@ import redis.clients.jedis.JedisPool;
 
 JedisPool jedisPool = ...; // существующий pool из приложения
 
-DepHealth depHealth = DepHealth.builder("my-service", meterRegistry)
+DepHealth depHealth = DepHealth.builder("my-service", "my-team", meterRegistry)
     .dependency("redis-cache", DependencyType.REDIS, d -> d
         .jedisPool(jedisPool)
         .critical(false))
@@ -174,6 +174,7 @@ DepHealth depHealth = DepHealth.builder("my-service", meterRegistry)
 ```yaml
 dephealth:
   name: my-service
+  group: my-team
   interval: 15s
   timeout: 5s
 
@@ -259,7 +260,7 @@ curl http://localhost:8080/actuator/health
 ## Глобальные опции
 
 ```java
-DepHealth depHealth = DepHealth.builder("my-service", meterRegistry)
+DepHealth depHealth = DepHealth.builder("my-service", "my-team", meterRegistry)
     // Интервал проверки (по умолчанию 15s)
     .checkInterval(Duration.ofSeconds(30))
 
@@ -378,6 +379,7 @@ dephealth:
 | Переменная | Описание | Пример |
 | --- | --- | --- |
 | `DEPHEALTH_NAME` | Имя приложения (перекрывается API) | `my-service` |
+| `DEPHEALTH_GROUP` | Логическая группа (метка `group`) | `my-team` |
 | `DEPHEALTH_<DEP>_CRITICAL` | Критичность зависимости | `yes` / `no` |
 | `DEPHEALTH_<DEP>_LABEL_<KEY>` | Произвольная метка | `primary` |
 
@@ -396,6 +398,7 @@ export GRPC_BEARER_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 # Конфигурация зависимостей
 export DEPHEALTH_NAME=my-service
+export DEPHEALTH_GROUP=my-team
 export DEPHEALTH_POSTGRES_MAIN_CRITICAL=yes
 export DEPHEALTH_POSTGRES_MAIN_LABEL_ROLE=primary
 export DEPHEALTH_POSTGRES_MAIN_LABEL_SHARD=eu-west
@@ -417,7 +420,7 @@ public class Main {
         String apiToken = System.getenv("API_BEARER_TOKEN");
         String grpcToken = System.getenv("GRPC_BEARER_TOKEN");
 
-        DepHealth depHealth = DepHealth.builder("my-service", registry)
+        DepHealth depHealth = DepHealth.builder("my-service", "my-team", registry)
             // PostgreSQL из переменной окружения
             .dependency("postgres-main", DependencyType.POSTGRES, d -> d
                 .url(dbUrl)
@@ -456,6 +459,7 @@ Spring Boot автоматически разрешает плейсхолдер
 ```yaml
 dephealth:
   name: ${DEPHEALTH_NAME:my-service}
+  group: ${DEPHEALTH_GROUP:my-team}
   dependencies:
     postgres-main:
       type: postgres
@@ -491,6 +495,7 @@ dephealth:
 | Ситуация | Поведение |
 | --- | --- |
 | Не указан `name` и нет `DEPHEALTH_NAME` | Ошибка при создании: `missing name` |
+| Не указан `group` и нет `DEPHEALTH_GROUP` | Ошибка при создании: `missing group` |
 | Не указан `.critical()` для зависимости | Ошибка при создании: `missing critical` |
 | Недопустимое имя метки | Ошибка при создании: `invalid label name` |
 | Метка совпадает с обязательной | Ошибка при создании: `reserved label` |
@@ -539,7 +544,7 @@ dephealth экспортирует четыре метрики Prometheus чер
 | `app_dependency_status` | Gauge (enum) | Категория статуса: 8 серий на endpoint, ровно одна = 1 |
 | `app_dependency_status_detail` | Gauge (info) | Детальная причина: напр. `http_503`, `auth_error` |
 
-Метки: `name`, `dependency`, `type`, `host`, `port`, `critical`.
+Метки: `name`, `group`, `dependency`, `type`, `host`, `port`, `critical`.
 Дополнительные: `status` (на `app_dependency_status`), `detail` (на `app_dependency_status_detail`).
 
 Для Spring Boot: метрики доступны на `/actuator/prometheus`.
