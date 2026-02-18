@@ -17,13 +17,15 @@ public static class ServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="name">Unique application name.</param>
+    /// <param name="group">Logical group for this service.</param>
     /// <param name="configure">Dependencies configuration.</param>
     public static IServiceCollection AddDepHealth(
         this IServiceCollection services,
         string name,
+        string group,
         Action<DepHealthMonitor.Builder> configure)
     {
-        var builder = DepHealthMonitor.CreateBuilder(name);
+        var builder = DepHealthMonitor.CreateBuilder(name, group);
         configure(builder);
         var monitor = builder.Build();
 

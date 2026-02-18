@@ -10,7 +10,7 @@ public sealed partial class Endpoint : IEquatable<Endpoint>
 {
     private static readonly HashSet<string> ReservedLabels = new(StringComparer.Ordinal)
     {
-        "name", "dependency", "type", "host", "port", "critical"
+        "name", "group", "dependency", "type", "host", "port", "critical"
     };
 
     [GeneratedRegex("^[a-zA-Z_][a-zA-Z0-9_]*$")]

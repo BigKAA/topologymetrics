@@ -8,7 +8,7 @@ public class HealthDetailsTests
     private static CheckScheduler CreateScheduler()
     {
         var registry = Metrics.NewCustomRegistry();
-        var metrics = new PrometheusExporter("test-app", registry: registry);
+        var metrics = new PrometheusExporter("test-app", "test-group", registry: registry);
         return new CheckScheduler(metrics);
     }
 
@@ -290,7 +290,7 @@ public class HealthDetailsTests
     [Fact]
     public void FacadeDelegates()
     {
-        using var dh = DepHealthMonitor.CreateBuilder("test-app")
+        using var dh = DepHealthMonitor.CreateBuilder("test-app", "test-group")
             .AddTcp("svc", "localhost", "9090", critical: false)
             .Build();
 

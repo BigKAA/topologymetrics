@@ -19,9 +19,10 @@ public sealed class PrometheusExporter
     private const string StatusDetailDescription = "Detailed reason of the last check result";
 
     private static readonly double[] LatencyBuckets = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0];
-    private static readonly string[] RequiredLabelNames = ["name", "dependency", "type", "host", "port", "critical"];
+    private static readonly string[] RequiredLabelNames = ["name", "group", "dependency", "type", "host", "port", "critical"];
 
     private readonly string _instanceName;
+    private readonly string _instanceGroup;
     private readonly string[] _customLabelNames;
     private readonly CollectorRegistry _registry;
     private readonly Gauge _healthGauge;
@@ -32,10 +33,11 @@ public sealed class PrometheusExporter
     private readonly object _detailLock = new();
     private readonly Dictionary<string, string> _prevDetails = new();
 
-    public PrometheusExporter(string instanceName, string[]? customLabelNames = null,
-        CollectorRegistry? registry = null)
+    public PrometheusExporter(string instanceName, string instanceGroup,
+        string[]? customLabelNames = null, CollectorRegistry? registry = null)
     {
         _instanceName = instanceName;
+        _instanceGroup = instanceGroup;
         _customLabelNames = customLabelNames ?? [];
         Array.Sort(_customLabelNames, StringComparer.Ordinal);
         _registry = registry ?? Metrics.DefaultRegistry;
@@ -195,11 +197,12 @@ public sealed class PrometheusExporter
     {
         var values = new string[RequiredLabelNames.Length + _customLabelNames.Length];
         values[0] = _instanceName;
-        values[1] = dep.Name;
-        values[2] = dep.Type.Label();
-        values[3] = ep.Host;
-        values[4] = ep.Port;
-        values[5] = Dependency.BoolToYesNo(dep.Critical);
+        values[1] = _instanceGroup;
+        values[2] = dep.Name;
+        values[3] = dep.Type.Label();
+        values[4] = ep.Host;
+        values[5] = ep.Port;
+        values[6] = Dependency.BoolToYesNo(dep.Critical);
 
         for (var i = 0; i < _customLabelNames.Length; i++)
         {

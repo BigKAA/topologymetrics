@@ -11,7 +11,7 @@ namespace DepHealth;
 /// <para>
 /// Usage:
 /// <code>
-/// var dh = DepHealthMonitor.CreateBuilder("my-service")
+/// var dh = DepHealthMonitor.CreateBuilder("my-service", "my-team")
 ///     .AddPostgres("db", "postgres://user:pass@host:5432/mydb", critical: true)
 ///     .AddRedis("cache", "redis://cache:6379", critical: false)
 ///     .AddHttp("payment", "http://payment:8080", critical: true)
@@ -50,8 +50,8 @@ public sealed partial class DepHealthMonitor : IDisposable
 
     public void Dispose() => _scheduler.Dispose();
 
-    /// <summary>Creates a new builder with a required application name.</summary>
-    public static Builder CreateBuilder(string name) => new(name);
+    /// <summary>Creates a new builder with a required application name and group.</summary>
+    public static Builder CreateBuilder(string name, string group) => new(name, group);
 
     /// <summary>
     /// Fluent builder for configuring dephealth.
@@ -59,6 +59,7 @@ public sealed partial class DepHealthMonitor : IDisposable
     public sealed class Builder
     {
         private readonly string _name;
+        private readonly string _group;
         private CollectorRegistry? _registry;
         private ILogger? _logger;
         private TimeSpan _defaultInterval = CheckConfig.DefaultInterval;
@@ -66,7 +67,7 @@ public sealed partial class DepHealthMonitor : IDisposable
         private TimeSpan _defaultInitialDelay = TimeSpan.Zero;
         private readonly List<DependencyEntry> _entries = [];
 
-        internal Builder(string name)
+        internal Builder(string name, string group)
         {
             var resolvedName = name;
             var envName = Environment.GetEnvironmentVariable("DEPHEALTH_NAME");
@@ -82,6 +83,22 @@ public sealed partial class DepHealthMonitor : IDisposable
 
             ValidateInstanceName(resolvedName);
             _name = resolvedName;
+
+            // group: API > env var > error
+            var resolvedGroup = group;
+            if (string.IsNullOrEmpty(resolvedGroup))
+            {
+                resolvedGroup = Environment.GetEnvironmentVariable("DEPHEALTH_GROUP");
+            }
+
+            if (string.IsNullOrEmpty(resolvedGroup))
+            {
+                throw new ValidationException(
+                    "group is required: pass to CreateBuilder() or set DEPHEALTH_GROUP");
+            }
+
+            ValidateInstanceName(resolvedGroup);
+            _group = resolvedGroup;
         }
 
         public Builder WithRegistry(CollectorRegistry registry)
@@ -243,7 +260,7 @@ public sealed partial class DepHealthMonitor : IDisposable
             ApplyEnvVars();
 
             var customLabelKeys = CollectCustomLabelKeys();
-            var metrics = new PrometheusExporter(_name, customLabelKeys, _registry);
+            var metrics = new PrometheusExporter(_name, _group, customLabelKeys, _registry);
             var scheduler = new CheckScheduler(metrics, _logger);
 
             foreach (var entry in _entries)

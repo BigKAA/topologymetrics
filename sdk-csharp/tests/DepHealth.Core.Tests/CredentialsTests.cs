@@ -11,7 +11,7 @@ public class CredentialsTests
     [Fact]
     public void AddPostgres_UrlWithCredentials()
     {
-        using var dh = DepHealthMonitor.CreateBuilder("test-app")
+        using var dh = DepHealthMonitor.CreateBuilder("test-app", "test-group")
             .AddPostgres("db", "postgres://user:pass@host:5432/mydb", critical: true)
             .Build();
 
@@ -26,7 +26,7 @@ public class CredentialsTests
     [Fact]
     public void AddMySql_UrlWithCredentials()
     {
-        using var dh = DepHealthMonitor.CreateBuilder("test-app")
+        using var dh = DepHealthMonitor.CreateBuilder("test-app", "test-group")
             .AddMySql("mysql-db", "mysql://user:pass@host:3306/mydb", critical: true)
             .Build();
 
@@ -41,7 +41,7 @@ public class CredentialsTests
     [Fact]
     public void AddRedis_UrlWithPassword()
     {
-        using var dh = DepHealthMonitor.CreateBuilder("test-app")
+        using var dh = DepHealthMonitor.CreateBuilder("test-app", "test-group")
             .AddRedis("cache", "redis://:secret@host:6379", critical: false)
             .Build();
 
@@ -54,7 +54,7 @@ public class CredentialsTests
     [Fact]
     public void AddAmqp_UrlWithCredentials()
     {
-        using var dh = DepHealthMonitor.CreateBuilder("test-app")
+        using var dh = DepHealthMonitor.CreateBuilder("test-app", "test-group")
             .AddAmqp("mq", "amqp://user:pass@host:5672/vhost", critical: false)
             .Build();
 
@@ -68,7 +68,7 @@ public class CredentialsTests
     [Fact]
     public void AddPostgres_UrlEncoded()
     {
-        using var dh = DepHealthMonitor.CreateBuilder("test-app")
+        using var dh = DepHealthMonitor.CreateBuilder("test-app", "test-group")
             .AddPostgres("db", "postgres://user%40dom:p%40ss@host:5432/db",
                 critical: true)
             .Build();
@@ -83,7 +83,7 @@ public class CredentialsTests
     [Fact]
     public void AddAmqp_DefaultVhost()
     {
-        using var dh = DepHealthMonitor.CreateBuilder("test-app")
+        using var dh = DepHealthMonitor.CreateBuilder("test-app", "test-group")
             .AddAmqp("mq", "amqp://user:pass@host:5672/", critical: false)
             .Build();
 
@@ -95,7 +95,7 @@ public class CredentialsTests
     [Fact]
     public void AddRedis_NoPassword()
     {
-        using var dh = DepHealthMonitor.CreateBuilder("test-app")
+        using var dh = DepHealthMonitor.CreateBuilder("test-app", "test-group")
             .AddRedis("cache", "redis://host:6379", critical: false)
             .Build();
 

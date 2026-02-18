@@ -6,12 +6,13 @@ namespace DepHealth.Core.Tests;
 public class PrometheusExporterTests
 {
     private const string InstanceName = "test-app";
+    private const string InstanceGroup = "test-group";
 
     [Fact]
     public async Task SetHealth_ExportsGaugeWithAllLabels()
     {
         var registry = Metrics.NewCustomRegistry();
-        var exporter = new PrometheusExporter(InstanceName, registry: registry);
+        var exporter = new PrometheusExporter(InstanceName, InstanceGroup, registry: registry);
         var dep = CreateDep("test-db", DependencyType.Postgres, true, "db.local", "5432");
         var ep = dep.Endpoints[0];
 
@@ -20,6 +21,7 @@ public class PrometheusExporterTests
         var output = await ScrapeAsync(registry);
         Assert.Contains("app_dependency_health", output);
         Assert.Contains("name=\"test-app\"", output);
+        Assert.Contains("group=\"test-group\"", output);
         Assert.Contains("dependency=\"test-db\"", output);
         Assert.Contains("type=\"postgres\"", output);
         Assert.Contains("host=\"db.local\"", output);
@@ -31,7 +33,7 @@ public class PrometheusExporterTests
     public async Task SetHealth_CriticalNo()
     {
         var registry = Metrics.NewCustomRegistry();
-        var exporter = new PrometheusExporter(InstanceName, registry: registry);
+        var exporter = new PrometheusExporter(InstanceName, InstanceGroup, registry: registry);
         var dep = CreateDep("test-cache", DependencyType.Redis, false, "cache", "6379");
         var ep = dep.Endpoints[0];
 
@@ -45,7 +47,7 @@ public class PrometheusExporterTests
     public async Task ObserveLatency_ExportsHistogram()
     {
         var registry = Metrics.NewCustomRegistry();
-        var exporter = new PrometheusExporter(InstanceName, registry: registry);
+        var exporter = new PrometheusExporter(InstanceName, InstanceGroup, registry: registry);
         var dep = CreateDep("test-cache", DependencyType.Redis, false, "cache", "6379");
         var ep = dep.Endpoints[0];
 
@@ -54,13 +56,14 @@ public class PrometheusExporterTests
         var output = await ScrapeAsync(registry);
         Assert.Contains("app_dependency_latency_seconds", output);
         Assert.Contains("name=\"test-app\"", output);
+        Assert.Contains("group=\"test-group\"", output);
     }
 
     [Fact]
     public async Task HealthDescription_MatchesSpec()
     {
         var registry = Metrics.NewCustomRegistry();
-        var exporter = new PrometheusExporter(InstanceName, registry: registry);
+        var exporter = new PrometheusExporter(InstanceName, InstanceGroup, registry: registry);
         var dep = CreateDep("test-db", DependencyType.Postgres, true, "db", "5432");
         var ep = dep.Endpoints[0];
 
@@ -75,7 +78,7 @@ public class PrometheusExporterTests
     {
         var registry = Metrics.NewCustomRegistry();
         var customLabels = new[] { "region", "shard" };
-        var exporter = new PrometheusExporter(InstanceName, customLabels, registry);
+        var exporter = new PrometheusExporter(InstanceName, InstanceGroup, customLabels, registry);
 
         var labels = new Dictionary<string, string>
         {
@@ -100,7 +103,7 @@ public class PrometheusExporterTests
     {
         var registry = Metrics.NewCustomRegistry();
         var customLabels = new[] { "region" };
-        var exporter = new PrometheusExporter(InstanceName, customLabels, registry);
+        var exporter = new PrometheusExporter(InstanceName, InstanceGroup, customLabels, registry);
 
         var dep = CreateDep("test-db", DependencyType.Postgres, true, "db.local", "5432");
         var ep = dep.Endpoints[0];
@@ -112,11 +115,11 @@ public class PrometheusExporterTests
     }
 
     [Fact]
-    public async Task LabelOrder_NameDependencyTypeHostPortCriticalCustom()
+    public async Task LabelOrder_NameGroupDependencyTypeHostPortCriticalCustom()
     {
         var registry = Metrics.NewCustomRegistry();
         var customLabels = new[] { "region" };
-        var exporter = new PrometheusExporter(InstanceName, customLabels, registry);
+        var exporter = new PrometheusExporter(InstanceName, InstanceGroup, customLabels, registry);
 
         var labels = new Dictionary<string, string> { ["region"] = "eu" };
         var dep = Dependency.CreateBuilder("test-db", DependencyType.Postgres)
@@ -130,6 +133,7 @@ public class PrometheusExporterTests
         var output = await ScrapeAsync(registry);
         // Verify that label order is correct
         var nameIdx = output.IndexOf("name=\"test-app\"");
+        var groupIdx = output.IndexOf("group=\"test-group\"");
         var depIdx = output.IndexOf("dependency=\"test-db\"");
         var typeIdx = output.IndexOf("type=\"postgres\"");
         var hostIdx = output.IndexOf("host=\"db.local\"");
@@ -137,7 +141,8 @@ public class PrometheusExporterTests
         var critIdx = output.IndexOf("critical=\"yes\"");
         var regionIdx = output.IndexOf("region=\"eu\"");
 
-        Assert.True(nameIdx < depIdx, "name before dependency");
+        Assert.True(nameIdx < groupIdx, "name before group");
+        Assert.True(groupIdx < depIdx, "group before dependency");
         Assert.True(depIdx < typeIdx, "dependency before type");
         Assert.True(typeIdx < hostIdx, "type before host");
         Assert.True(hostIdx < portIdx, "host before port");
