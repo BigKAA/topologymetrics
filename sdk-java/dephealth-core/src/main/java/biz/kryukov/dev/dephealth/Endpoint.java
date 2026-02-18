@@ -17,7 +17,7 @@ public final class Endpoint {
 
     /** Labels reserved by the SDK — cannot be overridden via WithLabel/label(). */
     public static final Set<String> RESERVED_LABELS = Set.of(
-            "name", "dependency", "type", "host", "port", "critical"
+            "name", "group", "dependency", "type", "host", "port", "critical"
     );
 
     private final String host;

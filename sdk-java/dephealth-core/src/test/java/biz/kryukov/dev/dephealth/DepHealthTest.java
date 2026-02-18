@@ -22,7 +22,7 @@ class DepHealthTest {
 
     @Test
     void builderWithNameAndUrl() {
-        DepHealth dh = DepHealth.builder("test-app", registry)
+        DepHealth dh = DepHealth.builder("test-app", "test-group", registry)
                 .dependency("test-http", DependencyType.HTTP, d -> d
                         .url("http://localhost:8080")
                         .critical(true))
@@ -32,7 +32,7 @@ class DepHealthTest {
 
     @Test
     void builderWithParams() {
-        DepHealth dh = DepHealth.builder("test-app", registry)
+        DepHealth dh = DepHealth.builder("test-app", "test-group", registry)
                 .dependency("test-tcp", DependencyType.TCP, d -> d
                         .host("localhost")
                         .port("8080")
@@ -44,7 +44,7 @@ class DepHealthTest {
     @Test
     void missingNameThrows() {
         assertThrows(ConfigurationException.class, () ->
-                DepHealth.builder("", registry)
+                DepHealth.builder("", "test-group", registry)
                         .dependency("test", DependencyType.HTTP, d -> d
                                 .url("http://localhost:8080")
                                 .critical(true))
@@ -54,7 +54,7 @@ class DepHealthTest {
     @Test
     void nullNameThrows() {
         assertThrows(ConfigurationException.class, () ->
-                DepHealth.builder(null, registry)
+                DepHealth.builder(null, "test-group", registry)
                         .dependency("test", DependencyType.HTTP, d -> d
                                 .url("http://localhost:8080")
                                 .critical(true))
@@ -64,12 +64,38 @@ class DepHealthTest {
     @Test
     void invalidNameThrows() {
         assertThrows(ConfigurationException.class, () ->
-                DepHealth.builder("INVALID_NAME", registry));
+                DepHealth.builder("INVALID_NAME", "test-group", registry));
+    }
+
+    @Test
+    void missingGroupThrows() {
+        assertThrows(ConfigurationException.class, () ->
+                DepHealth.builder("test-app", "", registry)
+                        .dependency("test", DependencyType.HTTP, d -> d
+                                .url("http://localhost:8080")
+                                .critical(true))
+                        .build());
+    }
+
+    @Test
+    void nullGroupThrows() {
+        assertThrows(ConfigurationException.class, () ->
+                DepHealth.builder("test-app", null, registry)
+                        .dependency("test", DependencyType.HTTP, d -> d
+                                .url("http://localhost:8080")
+                                .critical(true))
+                        .build());
+    }
+
+    @Test
+    void invalidGroupThrows() {
+        assertThrows(ConfigurationException.class, () ->
+                DepHealth.builder("test-app", "INVALID_GROUP", registry));
     }
 
     @Test
     void noDependenciesAllowed() {
-        DepHealth dh = DepHealth.builder("test-app", registry).build();
+        DepHealth dh = DepHealth.builder("test-app", "test-group", registry).build();
         assertNotNull(dh);
 
         // health() returns an empty collection
@@ -85,7 +111,7 @@ class DepHealthTest {
     void missingCriticalThrows() {
         // critical not set -> error on build (Dependency.validate)
         assertThrows(ValidationException.class, () ->
-                DepHealth.builder("test-app", registry)
+                DepHealth.builder("test-app", "test-group", registry)
                         .dependency("test", DependencyType.HTTP, d -> d
                                 .url("http://localhost:8080"))
                         .build());
@@ -107,7 +133,7 @@ class DepHealthTest {
             }
         };
 
-        DepHealth dh = DepHealth.builder("test-app", registry)
+        DepHealth dh = DepHealth.builder("test-app", "test-group", registry)
                 .checkInterval(Duration.ofSeconds(1))
                 .dependency("test", DependencyType.HTTP, mockChecker, d -> d
                         .host("localhost")
@@ -141,7 +167,7 @@ class DepHealthTest {
             }
         };
 
-        DepHealth dh = DepHealth.builder("test-app", registry)
+        DepHealth dh = DepHealth.builder("test-app", "test-group", registry)
                 .checkInterval(Duration.ofSeconds(1))
                 .dependency("test", DependencyType.HTTP, mockChecker, d -> d
                         .host("localhost")
@@ -173,7 +199,7 @@ class DepHealthTest {
 
     @Test
     void globalIntervalUsed() {
-        DepHealth dh = DepHealth.builder("test-app", registry)
+        DepHealth dh = DepHealth.builder("test-app", "test-group", registry)
                 .checkInterval(Duration.ofSeconds(30))
                 .dependency("test", DependencyType.TCP, d -> d
                         .host("localhost")
@@ -185,7 +211,7 @@ class DepHealthTest {
 
     @Test
     void perDependencyIntervalOverridesGlobal() {
-        DepHealth dh = DepHealth.builder("test-app", registry)
+        DepHealth dh = DepHealth.builder("test-app", "test-group", registry)
                 .checkInterval(Duration.ofSeconds(30))
                 .dependency("test", DependencyType.TCP, d -> d
                         .host("localhost")
@@ -198,7 +224,7 @@ class DepHealthTest {
 
     @Test
     void jdbcUrlParsing() {
-        DepHealth dh = DepHealth.builder("test-app", registry)
+        DepHealth dh = DepHealth.builder("test-app", "test-group", registry)
                 .dependency("pg", DependencyType.POSTGRES, d -> d
                         .jdbcUrl("jdbc:postgresql://localhost:5432/db")
                         .critical(true))
@@ -209,14 +235,14 @@ class DepHealthTest {
     @Test
     void noEndpointConfigThrows() {
         assertThrows(ConfigurationException.class, () ->
-                DepHealth.builder("test-app", registry)
+                DepHealth.builder("test-app", "test-group", registry)
                         .dependency("test", DependencyType.HTTP, d -> d.critical(true))
                         .build());
     }
 
     @Test
     void withLabel() {
-        DepHealth dh = DepHealth.builder("test-app", registry)
+        DepHealth dh = DepHealth.builder("test-app", "test-group", registry)
                 .dependency("test-http", DependencyType.HTTP, d -> d
                         .url("http://localhost:8080")
                         .critical(true)
@@ -228,7 +254,7 @@ class DepHealthTest {
     @Test
     void reservedLabelThrows() {
         assertThrows(ValidationException.class, () ->
-                DepHealth.builder("test-app", registry)
+                DepHealth.builder("test-app", "test-group", registry)
                         .dependency("test-http", DependencyType.HTTP, d -> d
                                 .url("http://localhost:8080")
                                 .critical(true)
@@ -238,7 +264,7 @@ class DepHealthTest {
     @Test
     void invalidLabelNameThrows() {
         assertThrows(ValidationException.class, () ->
-                DepHealth.builder("test-app", registry)
+                DepHealth.builder("test-app", "test-group", registry)
                         .dependency("test-http", DependencyType.HTTP, d -> d
                                 .url("http://localhost:8080")
                                 .critical(true)

@@ -47,6 +47,7 @@ public final class MetricsExporter {
 
     private final MeterRegistry registry;
     private final String instanceName;
+    private final String instanceGroup;
     private final List<String> customLabelNames;
     private final ConcurrentHashMap<String, AtomicReference<Double>> healthValues =
             new ConcurrentHashMap<>();
@@ -69,9 +70,10 @@ public final class MetricsExporter {
      *
      * @param registry      Micrometer meter registry
      * @param instanceName  value of the {@code name} label (application name)
+     * @param instanceGroup value of the {@code group} label (logical group)
      */
-    public MetricsExporter(MeterRegistry registry, String instanceName) {
-        this(registry, instanceName, List.of());
+    public MetricsExporter(MeterRegistry registry, String instanceName, String instanceGroup) {
+        this(registry, instanceName, instanceGroup, List.of());
     }
 
     /**
@@ -79,12 +81,14 @@ public final class MetricsExporter {
      *
      * @param registry          Micrometer meter registry
      * @param instanceName      value of the {@code name} label (application name)
+     * @param instanceGroup     value of the {@code group} label (logical group)
      * @param customLabelNames  custom label names (sorted alphabetically)
      */
-    public MetricsExporter(MeterRegistry registry, String instanceName,
+    public MetricsExporter(MeterRegistry registry, String instanceName, String instanceGroup,
                            List<String> customLabelNames) {
         this.registry = registry;
         this.instanceName = Objects.requireNonNull(instanceName, "instanceName");
+        this.instanceGroup = Objects.requireNonNull(instanceGroup, "instanceGroup");
         this.customLabelNames = List.copyOf(customLabelNames);
     }
 
@@ -179,11 +183,12 @@ public final class MetricsExporter {
     }
 
     /**
-     * Builds tags in order: name, dependency, type, host, port, critical, custom (alphabetical).
+     * Builds tags in order: name, group, dependency, type, host, port, critical, custom (alphabetical).
      */
     Tags buildTags(Dependency dep, Endpoint ep) {
         Tags tags = Tags.of(
                 "name", instanceName,
+                "group", instanceGroup,
                 "dependency", dep.name(),
                 "type", dep.type().label(),
                 "host", ep.host(),

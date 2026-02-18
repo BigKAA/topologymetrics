@@ -22,7 +22,8 @@ public class DepHealthAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public DepHealth depHealth(DepHealthProperties properties, MeterRegistry meterRegistry) {
-        DepHealth.Builder builder = DepHealth.builder(properties.getName(), meterRegistry);
+        DepHealth.Builder builder = DepHealth.builder(
+                properties.getName(), properties.getGroup(), meterRegistry);
 
         if (properties.getInterval() != null) {
             builder.checkInterval(properties.getInterval());

@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
  *
  * <p>Usage:
  * <pre>{@code
- * DepHealth depHealth = DepHealth.builder("order-api", meterRegistry)
+ * DepHealth depHealth = DepHealth.builder("order-api", "billing-team", meterRegistry)
  *     .checkInterval(Duration.ofSeconds(15))
  *     .dependency("postgres-main", DependencyType.POSTGRES, d -> d
  *         .url("postgres://localhost:5432/db")
@@ -51,6 +51,7 @@ public final class DepHealth {
     private static final Pattern NAME_PATTERN = Pattern.compile("^[a-z][a-z0-9-]*$");
     private static final int MAX_NAME_LENGTH = 63;
     private static final String ENV_NAME = "DEPHEALTH_NAME";
+    private static final String ENV_GROUP = "DEPHEALTH_GROUP";
 
     private final CheckScheduler scheduler;
 
@@ -79,14 +80,15 @@ public final class DepHealth {
     }
 
     /**
-     * Creates a builder with a required application name.
+     * Creates a builder with a required application name and logical group.
      *
      * @param name          unique application name ({@code name} label)
+     * @param group         logical group ({@code group} label)
      * @param meterRegistry Micrometer meter registry
      * @return builder
      */
-    public static Builder builder(String name, MeterRegistry meterRegistry) {
-        return new Builder(name, meterRegistry);
+    public static Builder builder(String name, String group, MeterRegistry meterRegistry) {
+        return new Builder(name, group, meterRegistry);
     }
 
     /**
@@ -317,12 +319,13 @@ public final class DepHealth {
 
     public static final class Builder {
         private final String instanceName;
+        private final String instanceGroup;
         private final MeterRegistry meterRegistry;
         private Duration globalInterval;
         private Duration globalTimeout;
         private final List<DependencyEntry> entries = new ArrayList<>();
 
-        private Builder(String name, MeterRegistry meterRegistry) {
+        private Builder(String name, String group, MeterRegistry meterRegistry) {
             this.meterRegistry = meterRegistry;
             // API parameter takes precedence over env var
             String resolvedName = name;
@@ -335,6 +338,18 @@ public final class DepHealth {
             }
             validateInstanceName(resolvedName);
             this.instanceName = resolvedName;
+
+            // group: API > env var > error
+            String resolvedGroup = group;
+            if (resolvedGroup == null || resolvedGroup.isEmpty()) {
+                resolvedGroup = System.getenv(ENV_GROUP);
+            }
+            if (resolvedGroup == null || resolvedGroup.isEmpty()) {
+                throw new ConfigurationException(
+                        "group is required: pass it to builder() or set " + ENV_GROUP);
+            }
+            validateInstanceName(resolvedGroup);
+            this.instanceGroup = resolvedGroup;
         }
 
         public Builder checkInterval(Duration interval) {
@@ -376,7 +391,7 @@ public final class DepHealth {
             List<String> customLabelKeys = collectCustomLabelKeys();
 
             MetricsExporter metricsExporter = new MetricsExporter(
-                    meterRegistry, instanceName, customLabelKeys);
+                    meterRegistry, instanceName, instanceGroup, customLabelKeys);
             CheckScheduler scheduler = new CheckScheduler(metricsExporter);
 
             for (DependencyEntry entry : entries) {

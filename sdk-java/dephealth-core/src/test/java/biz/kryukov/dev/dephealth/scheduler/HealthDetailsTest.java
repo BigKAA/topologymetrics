@@ -27,7 +27,7 @@ class HealthDetailsTest {
 
     @BeforeEach
     void setUp() {
-        metrics = new MetricsExporter(new SimpleMeterRegistry(), "test-app");
+        metrics = new MetricsExporter(new SimpleMeterRegistry(), "test-app", "test-group");
         scheduler = new CheckScheduler(metrics);
     }
 

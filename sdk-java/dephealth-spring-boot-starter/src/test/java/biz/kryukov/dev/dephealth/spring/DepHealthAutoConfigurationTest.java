@@ -20,6 +20,7 @@ class DepHealthAutoConfigurationTest {
         contextRunner
                 .withPropertyValues(
                         "dephealth.name=test-app",
+                        "dephealth.group=test-group",
                         "dephealth.dependencies.test-http.type=http",
                         "dephealth.dependencies.test-http.url=http://localhost:8080",
                         "dephealth.dependencies.test-http.critical=true"
@@ -35,6 +36,7 @@ class DepHealthAutoConfigurationTest {
         contextRunner
                 .withPropertyValues(
                         "dephealth.name=test-app",
+                        "dephealth.group=test-group",
                         "dephealth.dependencies.test-http.type=http",
                         "dephealth.dependencies.test-http.url=http://localhost:8080",
                         "dephealth.dependencies.test-http.critical=true"
@@ -49,6 +51,7 @@ class DepHealthAutoConfigurationTest {
         contextRunner
                 .withPropertyValues(
                         "dephealth.name=test-app",
+                        "dephealth.group=test-group",
                         "dephealth.dependencies.test-http.type=http",
                         "dephealth.dependencies.test-http.url=http://localhost:8080",
                         "dephealth.dependencies.test-http.critical=true"
@@ -63,6 +66,7 @@ class DepHealthAutoConfigurationTest {
         contextRunner
                 .withPropertyValues(
                         "dephealth.name=test-app",
+                        "dephealth.group=test-group",
                         "dephealth.dependencies.test-http.type=http",
                         "dephealth.dependencies.test-http.url=http://localhost:8080",
                         "dephealth.dependencies.test-http.critical=true"
@@ -77,6 +81,7 @@ class DepHealthAutoConfigurationTest {
         contextRunner
                 .withPropertyValues(
                         "dephealth.name=test-app",
+                        "dephealth.group=test-group",
                         "dephealth.interval=30s",
                         "dephealth.timeout=10s",
                         "dephealth.dependencies.test-tcp.type=tcp",
@@ -94,6 +99,7 @@ class DepHealthAutoConfigurationTest {
         contextRunner
                 .withPropertyValues(
                         "dephealth.name=test-app",
+                        "dephealth.group=test-group",
                         "dephealth.dependencies.my-redis.type=redis",
                         "dephealth.dependencies.my-redis.url=redis://localhost:6379",
                         "dephealth.dependencies.my-redis.critical=true",
@@ -110,6 +116,7 @@ class DepHealthAutoConfigurationTest {
         contextRunner
                 .withPropertyValues(
                         "dephealth.name=test-app",
+                        "dephealth.group=test-group",
                         "dephealth.dependencies.test-http.type=http",
                         "dephealth.dependencies.test-http.url=http://localhost:8080",
                         "dephealth.dependencies.test-http.critical=true",

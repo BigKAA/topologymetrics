@@ -12,6 +12,7 @@ import java.util.Map;
  * <pre>
  * dephealth:
  *   name: order-api
+ *   group: billing-team
  *   interval: 15s
  *   timeout: 5s
  *   dependencies:
@@ -27,6 +28,7 @@ import java.util.Map;
 public class DepHealthProperties {
 
     private String name;
+    private String group;
     private Duration interval;
     private Duration timeout;
     private Map<String, DependencyProperties> dependencies = new LinkedHashMap<>();
@@ -37,6 +39,14 @@ public class DepHealthProperties {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getGroup() {
+        return group;
+    }
+
+    public void setGroup(String group) {
+        this.group = group;
     }
 
     public Duration getInterval() {

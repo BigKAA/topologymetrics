@@ -28,7 +28,7 @@ class MetricsExporterTest {
     @BeforeEach
     void setUp() {
         registry = new SimpleMeterRegistry();
-        exporter = new MetricsExporter(registry, "test-app");
+        exporter = new MetricsExporter(registry, "test-app", "test-group");
     }
 
     private Dependency testDep(String name, DependencyType type) {
@@ -47,6 +47,7 @@ class MetricsExporterTest {
 
         Gauge gauge = registry.find("app_dependency_health")
                 .tag("name", "test-app")
+                .tag("group", "test-group")
                 .tag("dependency", "test-db")
                 .tag("type", "postgres")
                 .tag("host", "localhost")
@@ -128,7 +129,7 @@ class MetricsExporterTest {
     @Test
     void customLabelsIncluded() {
         MetricsExporter exporterWithLabels = new MetricsExporter(
-                registry, "test-app", List.of("region", "zone"));
+                registry, "test-app", "test-group", List.of("region", "zone"));
 
         Endpoint ep = new Endpoint("localhost", "5432",
                 Map.of("region", "us-east", "zone", "a"));
@@ -151,7 +152,7 @@ class MetricsExporterTest {
     @Test
     void tagOrderIsCorrect() {
         MetricsExporter exporterWithLabels = new MetricsExporter(
-                registry, "test-app", List.of("region"));
+                registry, "test-app", "test-group", List.of("region"));
 
         Endpoint ep = new Endpoint("localhost", "5432", Map.of("region", "eu"));
 
@@ -167,11 +168,12 @@ class MetricsExporterTest {
                 .gauge();
 
         assertNotNull(gauge);
-        // Verify tag order: name, dependency, type, host, port, critical, custom
+        // Verify tag order: name, group, dependency, type, host, port, critical, custom
+        // (Micrometer sorts tags alphabetically)
         List<String> tagKeys = gauge.getId().getTags().stream()
                 .map(Tag::getKey)
                 .collect(Collectors.toList());
-        assertEquals(List.of("critical", "dependency", "host", "name", "port", "region", "type"),
+        assertEquals(List.of("critical", "dependency", "group", "host", "name", "port", "region", "type"),
                 tagKeys);
     }
 }

@@ -26,7 +26,7 @@ class DepHealthCredentialsTest {
 
     @Test
     void postgresUrlCredentials() throws Exception {
-        DepHealth dh = DepHealth.builder("test-app", registry)
+        DepHealth dh = DepHealth.builder("test-app", "test-group", registry)
                 .dependency("pg", DependencyType.POSTGRES, d -> d
                         .url("postgres://user:pass@host:5432/mydb")
                         .critical(true))
@@ -40,7 +40,7 @@ class DepHealthCredentialsTest {
 
     @Test
     void mysqlUrlCredentials() throws Exception {
-        DepHealth dh = DepHealth.builder("test-app", registry)
+        DepHealth dh = DepHealth.builder("test-app", "test-group", registry)
                 .dependency("mysql-db", DependencyType.MYSQL, d -> d
                         .url("mysql://user:pass@host:3306/mydb")
                         .critical(true))
@@ -54,7 +54,7 @@ class DepHealthCredentialsTest {
 
     @Test
     void redisUrlPassword() throws Exception {
-        DepHealth dh = DepHealth.builder("test-app", registry)
+        DepHealth dh = DepHealth.builder("test-app", "test-group", registry)
                 .dependency("redis-cache", DependencyType.REDIS, d -> d
                         .url("redis://:secret@host:6379/2")
                         .critical(false))
@@ -67,7 +67,7 @@ class DepHealthCredentialsTest {
 
     @Test
     void amqpUrlCredentials() throws Exception {
-        DepHealth dh = DepHealth.builder("test-app", registry)
+        DepHealth dh = DepHealth.builder("test-app", "test-group", registry)
                 .dependency("mq", DependencyType.AMQP, d -> d
                         .url("amqp://user:pass@host:5672/vhost")
                         .critical(false))
@@ -81,7 +81,7 @@ class DepHealthCredentialsTest {
 
     @Test
     void explicitDbParamsOverrideUrl() throws Exception {
-        DepHealth dh = DepHealth.builder("test-app", registry)
+        DepHealth dh = DepHealth.builder("test-app", "test-group", registry)
                 .dependency("pg", DependencyType.POSTGRES, d -> d
                         .url("postgres://urluser:urlpass@host:5432/urldb")
                         .dbUsername("explicit-user")
@@ -98,7 +98,7 @@ class DepHealthCredentialsTest {
 
     @Test
     void urlEncodedCredentials() throws Exception {
-        DepHealth dh = DepHealth.builder("test-app", registry)
+        DepHealth dh = DepHealth.builder("test-app", "test-group", registry)
                 .dependency("pg", DependencyType.POSTGRES, d -> d
                         .url("postgres://user%40dom:p%40ss@host:5432/db")
                         .critical(true))
@@ -111,7 +111,7 @@ class DepHealthCredentialsTest {
 
     @Test
     void amqpDefaultVhost() throws Exception {
-        DepHealth dh = DepHealth.builder("test-app", registry)
+        DepHealth dh = DepHealth.builder("test-app", "test-group", registry)
                 .dependency("mq", DependencyType.AMQP, d -> d
                         .url("amqp://user:pass@host:5672/")
                         .critical(false))
@@ -123,7 +123,7 @@ class DepHealthCredentialsTest {
 
     @Test
     void postgresNoCredentials() throws Exception {
-        DepHealth dh = DepHealth.builder("test-app", registry)
+        DepHealth dh = DepHealth.builder("test-app", "test-group", registry)
                 .dependency("pg", DependencyType.POSTGRES, d -> d
                         .url("postgres://host:5432/mydb")
                         .critical(true))
