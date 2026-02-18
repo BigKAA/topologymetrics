@@ -19,8 +19,8 @@ const (
 // Histogram buckets from the specification.
 var defaultLatencyBuckets = []float64{0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0}
 
-// requiredLabelNames contains the required v2.0 labels (name, dependency, type, host, port, critical).
-var requiredLabelNames = []string{"name", "dependency", "type", "host", "port", "critical"}
+// requiredLabelNames contains the required labels (name, group, dependency, type, host, port, critical).
+var requiredLabelNames = []string{"name", "group", "dependency", "type", "host", "port", "critical"}
 
 // MetricsExporter manages Prometheus metrics for dependencies.
 type MetricsExporter struct {
@@ -31,6 +31,9 @@ type MetricsExporter struct {
 
 	// instanceName is the application name (the "name" label).
 	instanceName string
+
+	// instanceGroup is the logical group (the "group" label).
+	instanceGroup string
 
 	// allLabelNames contains the full set of labels (required + custom),
 	// determined at exporter creation time.
@@ -68,8 +71,9 @@ func WithCustomLabels(labels ...string) MetricsOption {
 
 // NewMetricsExporter creates and registers Prometheus metrics.
 // instanceName is the application name (the "name" label), added to all metrics.
+// instanceGroup is the logical group (the "group" label), added to all metrics.
 // Returns an error if registration fails or invalid labels are specified.
-func NewMetricsExporter(instanceName string, opts ...MetricsOption) (*MetricsExporter, error) {
+func NewMetricsExporter(instanceName string, instanceGroup string, opts ...MetricsOption) (*MetricsExporter, error) {
 	cfg := metricsConfig{
 		registerer: prometheus.DefaultRegisterer,
 	}
@@ -138,6 +142,7 @@ func NewMetricsExporter(instanceName string, opts ...MetricsOption) (*MetricsExp
 		status:        status,
 		statusDetail:  statusDetail,
 		instanceName:  instanceName,
+		instanceGroup: instanceGroup,
 		allLabelNames: allLabels,
 		prevDetails:   make(map[string]string),
 	}, nil
@@ -229,6 +234,7 @@ func (m *MetricsExporter) labels(dep Dependency, ep Endpoint) prometheus.Labels 
 
 	labels := prometheus.Labels{
 		"name":       m.instanceName,
+		"group":      m.instanceGroup,
 		"dependency": dep.Name,
 		"type":       string(dep.Type),
 		"host":       ep.Host,

@@ -22,7 +22,7 @@ func TestFromClient(t *testing.T) {
 	defer func() { _ = client.Close() }()
 
 	reg := prometheus.NewRegistry()
-	dh, err := dephealth.New("test-app",
+	dh, err := dephealth.New("test-app", "test-group",
 		dephealth.WithRegisterer(reg),
 		FromClient("redis-cache", client, dephealth.Critical(false)),
 	)
@@ -60,7 +60,7 @@ func TestFromClient_WithCritical(t *testing.T) {
 	defer func() { _ = client.Close() }()
 
 	reg := prometheus.NewRegistry()
-	dh, err := dephealth.New("test-app",
+	dh, err := dephealth.New("test-app", "test-group",
 		dephealth.WithRegisterer(reg),
 		FromClient("redis-cache", client,
 			dephealth.Critical(true),
@@ -81,7 +81,7 @@ func TestFromClient_AutoExtractsAddr(t *testing.T) {
 	defer func() { _ = client.Close() }()
 
 	reg := prometheus.NewRegistry()
-	dh, err := dephealth.New("test-app",
+	dh, err := dephealth.New("test-app", "test-group",
 		dephealth.WithRegisterer(reg),
 		FromClient("redis-cache", client, dephealth.Critical(false)),
 	)

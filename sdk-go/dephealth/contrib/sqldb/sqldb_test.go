@@ -21,7 +21,7 @@ func TestFromDB(t *testing.T) {
 	mock.ExpectQuery("SELECT 1").WillReturnRows(sqlmock.NewRows([]string{"1"}).AddRow(1))
 
 	reg := prometheus.NewRegistry()
-	dh, err := dephealth.New("test-app",
+	dh, err := dephealth.New("test-app", "test-group",
 		dephealth.WithRegisterer(reg),
 		FromDB("pg-main", db,
 			dephealth.FromParams("pg.svc", "5432"),
@@ -42,7 +42,7 @@ func TestFromDB_MissingAddr(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	reg := prometheus.NewRegistry()
-	_, err = dephealth.New("test-app",
+	_, err = dephealth.New("test-app", "test-group",
 		dephealth.WithRegisterer(reg),
 		FromDB("pg-main", db, dephealth.Critical(true)),
 	)
@@ -61,7 +61,7 @@ func TestFromMySQLDB(t *testing.T) {
 	mock.ExpectQuery("SELECT 1").WillReturnRows(sqlmock.NewRows([]string{"1"}).AddRow(1))
 
 	reg := prometheus.NewRegistry()
-	dh, err := dephealth.New("test-app",
+	dh, err := dephealth.New("test-app", "test-group",
 		dephealth.WithRegisterer(reg),
 		FromMySQLDB("mysql-main", db,
 			dephealth.FromParams("mysql.svc", "3306"),

@@ -22,7 +22,7 @@ func TestHealthDetails_BeforeStart(t *testing.T) {
 
 func TestHealthDetails_UnknownState(t *testing.T) {
 	reg := prometheus.NewRegistry()
-	metrics, _ := NewMetricsExporter("test-app", WithMetricsRegisterer(reg))
+	metrics, _ := NewMetricsExporter("test-app", "test-group", WithMetricsRegisterer(reg))
 	sched := NewScheduler(metrics)
 
 	// Use a checker that blocks until we signal it.
@@ -347,7 +347,7 @@ func TestHealthDetails_ResultMapIndependent(t *testing.T) {
 func TestDepHealth_HealthDetails(t *testing.T) {
 	// Test HealthDetails() on DepHealth facade using internal scheduler directly.
 	reg := prometheus.NewRegistry()
-	metrics, err := NewMetricsExporter("test-app", WithMetricsRegisterer(reg))
+	metrics, err := NewMetricsExporter("test-app", "test-group", WithMetricsRegisterer(reg))
 	if err != nil {
 		t.Fatalf("metrics error: %v", err)
 	}

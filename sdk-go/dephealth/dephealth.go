@@ -18,21 +18,34 @@ type DepHealth struct {
 
 // New creates a DepHealth instance from functional options.
 // name is the unique application name (the "name" label in metrics).
+// group is the logical group (the "group" label in metrics).
 // If name is empty, it attempts to read from DEPHEALTH_NAME env var.
+// If group is empty, it attempts to read from DEPHEALTH_GROUP env var.
 // To use built-in checker factories (HTTP, Postgres, Redis, etc.),
 // the checks package must be imported:
 //
 //	import _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks"
-func New(name string, opts ...Option) (*DepHealth, error) {
-	// API > env var.
+func New(name string, group string, opts ...Option) (*DepHealth, error) {
+	// name: API > env var > error.
 	if name == "" {
 		name = os.Getenv("DEPHEALTH_NAME")
 	}
 	if name == "" {
-		return nil, fmt.Errorf("dephealth: missing name")
+		return nil, fmt.Errorf("dephealth: missing name: pass as first argument or set DEPHEALTH_NAME")
 	}
 	if err := ValidateName(name); err != nil {
 		return nil, fmt.Errorf("dephealth: invalid name: %w", err)
+	}
+
+	// group: API > env var > error.
+	if group == "" {
+		group = os.Getenv("DEPHEALTH_GROUP")
+	}
+	if group == "" {
+		return nil, fmt.Errorf("dephealth: missing group: pass as second argument or set DEPHEALTH_GROUP")
+	}
+	if err := ValidateName(group); err != nil {
+		return nil, fmt.Errorf("dephealth: invalid group: %w", err)
 	}
 
 	cfg := config{
@@ -56,7 +69,7 @@ func New(name string, opts ...Option) (*DepHealth, error) {
 	if len(customLabelKeys) > 0 {
 		metricsOpts = append(metricsOpts, WithCustomLabels(customLabelKeys...))
 	}
-	metrics, err := NewMetricsExporter(name, metricsOpts...)
+	metrics, err := NewMetricsExporter(name, group, metricsOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("dephealth: metrics: %w", err)
 	}

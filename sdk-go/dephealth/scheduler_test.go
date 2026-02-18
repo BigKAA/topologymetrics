@@ -78,7 +78,7 @@ func testDepWithThresholds(name string, failThreshold, successThreshold int) Dep
 func newTestScheduler(t *testing.T) (*Scheduler, *prometheus.Registry) {
 	t.Helper()
 	reg := prometheus.NewRegistry()
-	metrics, err := NewMetricsExporter("test-app", WithMetricsRegisterer(reg))
+	metrics, err := NewMetricsExporter("test-app", "test-group", WithMetricsRegisterer(reg))
 	if err != nil {
 		t.Fatalf("failed to create MetricsExporter: %v", err)
 	}
@@ -175,7 +175,7 @@ func TestScheduler_HealthyMetric(t *testing.T) {
 	expected := `
 		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 		# TYPE app_dependency_health gauge
-		app_dependency_health{critical="no",dependency="test-dep",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 1
+		app_dependency_health{critical="no",dependency="test-dep",group="test-group",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 1
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
 		t.Errorf("health metric mismatch: %v", err)
@@ -200,7 +200,7 @@ func TestScheduler_UnhealthyMetric(t *testing.T) {
 	expected := `
 		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 		# TYPE app_dependency_health gauge
-		app_dependency_health{critical="no",dependency="test-dep",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 0
+		app_dependency_health{critical="no",dependency="test-dep",group="test-group",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 0
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
 		t.Errorf("health metric mismatch: %v", err)
@@ -209,7 +209,7 @@ func TestScheduler_UnhealthyMetric(t *testing.T) {
 
 func TestScheduler_FailureThreshold(t *testing.T) {
 	reg := prometheus.NewRegistry()
-	metrics, _ := NewMetricsExporter("test-app", WithMetricsRegisterer(reg))
+	metrics, _ := NewMetricsExporter("test-app", "test-group", WithMetricsRegisterer(reg))
 	sched := NewScheduler(metrics)
 
 	callCount := atomic.Int64{}
@@ -234,7 +234,7 @@ func TestScheduler_FailureThreshold(t *testing.T) {
 	expected := `
 		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 		# TYPE app_dependency_health gauge
-		app_dependency_health{critical="no",dependency="test-dep",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 1
+		app_dependency_health{critical="no",dependency="test-dep",group="test-group",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 1
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
 		t.Errorf("metric should be 1 before reaching threshold: %v", err)
@@ -247,7 +247,7 @@ func TestScheduler_FailureThreshold(t *testing.T) {
 	expected = `
 		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 		# TYPE app_dependency_health gauge
-		app_dependency_health{critical="no",dependency="test-dep",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 0
+		app_dependency_health{critical="no",dependency="test-dep",group="test-group",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 0
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
 		t.Errorf("metric should be 0 after reaching threshold: %v", err)
@@ -256,7 +256,7 @@ func TestScheduler_FailureThreshold(t *testing.T) {
 
 func TestScheduler_Recovery(t *testing.T) {
 	reg := prometheus.NewRegistry()
-	metrics, _ := NewMetricsExporter("test-app", WithMetricsRegisterer(reg))
+	metrics, _ := NewMetricsExporter("test-app", "test-group", WithMetricsRegisterer(reg))
 	sched := NewScheduler(metrics)
 
 	shouldFail := atomic.Bool{}
@@ -281,7 +281,7 @@ func TestScheduler_Recovery(t *testing.T) {
 	expected := `
 		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 		# TYPE app_dependency_health gauge
-		app_dependency_health{critical="no",dependency="test-dep",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 0
+		app_dependency_health{critical="no",dependency="test-dep",group="test-group",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 0
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
 		t.Errorf("metric should be 0: %v", err)
@@ -295,7 +295,7 @@ func TestScheduler_Recovery(t *testing.T) {
 	expected = `
 		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 		# TYPE app_dependency_health gauge
-		app_dependency_health{critical="no",dependency="test-dep",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 1
+		app_dependency_health{critical="no",dependency="test-dep",group="test-group",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 1
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
 		t.Errorf("metric should be 1 after recovery: %v", err)
@@ -350,7 +350,7 @@ func TestScheduler_PanicRecovery(t *testing.T) {
 	expected := `
 		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 		# TYPE app_dependency_health gauge
-		app_dependency_health{critical="no",dependency="test-dep",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 0
+		app_dependency_health{critical="no",dependency="test-dep",group="test-group",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 0
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
 		t.Errorf("metric should be 0 after panic: %v", err)
@@ -359,7 +359,7 @@ func TestScheduler_PanicRecovery(t *testing.T) {
 
 func TestScheduler_MultipleEndpoints(t *testing.T) {
 	reg := prometheus.NewRegistry()
-	metrics, _ := NewMetricsExporter("test-app", WithMetricsRegisterer(reg))
+	metrics, _ := NewMetricsExporter("test-app", "test-group", WithMetricsRegisterer(reg))
 	sched := NewScheduler(metrics)
 
 	crit := false
@@ -391,8 +391,8 @@ func TestScheduler_MultipleEndpoints(t *testing.T) {
 	expected := `
 		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
 		# TYPE app_dependency_health gauge
-		app_dependency_health{critical="no",dependency="multi-ep",host="host-1",name="test-app",port="1111",type="tcp"} 1
-		app_dependency_health{critical="no",dependency="multi-ep",host="host-2",name="test-app",port="2222",type="tcp"} 1
+		app_dependency_health{critical="no",dependency="multi-ep",group="test-group",host="host-1",name="test-app",port="1111",type="tcp"} 1
+		app_dependency_health{critical="no",dependency="multi-ep",group="test-group",host="host-2",name="test-app",port="2222",type="tcp"} 1
 	`
 	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
 		t.Errorf("metrics for multiple endpoints mismatch: %v", err)

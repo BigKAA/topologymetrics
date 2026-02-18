@@ -30,7 +30,7 @@ func TestNew_ValidHTTP(t *testing.T) {
 	checker := &mockChecker{}
 	registerMockFactory(t, TypeHTTP, checker)
 
-	dh, err := New("test-app",
+	dh, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(true)),
 	)
@@ -45,7 +45,7 @@ func TestNew_ValidHTTP(t *testing.T) {
 func TestNew_NoDependencies(t *testing.T) {
 	reg := prometheus.NewRegistry()
 
-	dh, err := New("test-app", WithRegisterer(reg))
+	dh, err := New("test-app", "test-group", WithRegisterer(reg))
 	if err != nil {
 		t.Fatalf("zero deps should be allowed: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestNew_MissingName(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	registerMockFactory(t, TypeHTTP, &mockChecker{})
 
-	_, err := New("",
+	_, err := New("", "test-group",
 		WithRegisterer(reg),
 		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(true)),
 	)
@@ -85,7 +85,7 @@ func TestNew_NameFromEnv(t *testing.T) {
 
 	t.Setenv("DEPHEALTH_NAME", "env-app")
 
-	dh, err := New("",
+	dh, err := New("", "test-group",
 		WithRegisterer(reg),
 		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(true)),
 	)
@@ -97,11 +97,61 @@ func TestNew_NameFromEnv(t *testing.T) {
 	}
 }
 
+func TestNew_MissingGroup(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	registerMockFactory(t, TypeHTTP, &mockChecker{})
+
+	_, err := New("test-app", "",
+		WithRegisterer(reg),
+		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(true)),
+	)
+	if err == nil {
+		t.Fatal("expected error when group is missing")
+	}
+	if !strings.Contains(err.Error(), "missing group") {
+		t.Errorf("expected 'missing group' in error, got: %v", err)
+	}
+}
+
+func TestNew_InvalidGroup(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	registerMockFactory(t, TypeHTTP, &mockChecker{})
+
+	_, err := New("test-app", "INVALID_GROUP",
+		WithRegisterer(reg),
+		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(true)),
+	)
+	if err == nil {
+		t.Fatal("expected error for invalid group format")
+	}
+	if !strings.Contains(err.Error(), "invalid group") {
+		t.Errorf("expected 'invalid group' in error, got: %v", err)
+	}
+}
+
+func TestNew_GroupFromEnv(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	registerMockFactory(t, TypeHTTP, &mockChecker{})
+
+	t.Setenv("DEPHEALTH_GROUP", "env-group")
+
+	dh, err := New("test-app", "",
+		WithRegisterer(reg),
+		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(true)),
+	)
+	if err != nil {
+		t.Fatalf("expected success with group from env: %v", err)
+	}
+	if dh == nil {
+		t.Fatal("DepHealth should not be nil")
+	}
+}
+
 func TestNew_InvalidURL(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	registerMockFactory(t, TypeHTTP, &mockChecker{})
 
-	_, err := New("test-app",
+	_, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		HTTP("bad", FromURL("://invalid"), Critical(true)),
 	)
@@ -114,7 +164,7 @@ func TestNew_MissingHostPort(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	registerMockFactory(t, TypeHTTP, &mockChecker{})
 
-	_, err := New("test-app",
+	_, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		HTTP("no-addr", Critical(true)),
 	)
@@ -127,7 +177,7 @@ func TestNew_MissingCritical(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	registerMockFactory(t, TypeHTTP, &mockChecker{})
 
-	_, err := New("test-app",
+	_, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		HTTP("web-api", FromURL("http://api.svc:8080")),
 	)
@@ -140,7 +190,7 @@ func TestNew_FromParams(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	registerMockFactory(t, TypeTCP, &mockChecker{})
 
-	dh, err := New("test-app",
+	dh, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		TCP("my-tcp", FromParams("127.0.0.1", "8080"), Critical(false)),
 	)
@@ -157,7 +207,7 @@ func TestNew_CriticalFlag(t *testing.T) {
 	checker := &mockChecker{}
 	registerMockFactory(t, TypeHTTP, checker)
 
-	dh, err := New("test-app",
+	dh, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		HTTP("critical-api",
 			FromURL("http://api.svc:8080"),
@@ -180,7 +230,7 @@ func TestNew_CriticalFromEnv(t *testing.T) {
 
 	t.Setenv("DEPHEALTH_WEB_API_CRITICAL", "yes")
 
-	dh, err := New("test-app",
+	dh, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		HTTP("web-api", FromURL("http://api.svc:8080")),
 	)
@@ -196,7 +246,7 @@ func TestNew_WithLabel(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	registerMockFactory(t, TypeHTTP, &mockChecker{})
 
-	dh, err := New("test-app",
+	dh, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		HTTP("web-api",
 			FromURL("http://api.svc:8080"),
@@ -218,7 +268,7 @@ func TestNew_ReservedLabel(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	registerMockFactory(t, TypeHTTP, &mockChecker{})
 
-	_, err := New("test-app",
+	_, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		HTTP("web-api",
 			FromURL("http://api.svc:8080"),
@@ -237,7 +287,7 @@ func TestNew_LabelFromEnv(t *testing.T) {
 
 	t.Setenv("DEPHEALTH_WEB_API_LABEL_ROLE", "replica")
 
-	dh, err := New("test-app",
+	dh, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		HTTP("web-api",
 			FromURL("http://api.svc:8080"),
@@ -259,7 +309,7 @@ func TestDepHealth_StartStop(t *testing.T) {
 	checker := &mockChecker{}
 	registerMockFactory(t, TypeHTTP, checker)
 
-	dh, err := New("test-app",
+	dh, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(false)),
 	)
@@ -284,7 +334,7 @@ func TestDepHealth_Health(t *testing.T) {
 	checker := &mockChecker{}
 	registerMockFactory(t, TypeHTTP, checker)
 
-	dh, err := New("test-app",
+	dh, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(false)),
 	)
@@ -319,7 +369,7 @@ func TestNew_GlobalCheckInterval(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	registerMockFactory(t, TypeHTTP, &mockChecker{})
 
-	dh, err := New("test-app",
+	dh, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		WithCheckInterval(30*time.Second),
 		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(false)),
@@ -338,7 +388,7 @@ func TestNew_PerDepCheckInterval(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	registerMockFactory(t, TypeHTTP, &mockChecker{})
 
-	dh, err := New("test-app",
+	dh, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		WithCheckInterval(30*time.Second),
 		HTTP("web-api",
@@ -361,7 +411,7 @@ func TestNew_GlobalTimeout(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	registerMockFactory(t, TypeHTTP, &mockChecker{})
 
-	dh, err := New("test-app",
+	dh, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		WithTimeout(3*time.Second),
 		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(false)),
@@ -394,7 +444,7 @@ func TestNew_HTTPSAutoTLS(t *testing.T) {
 		}
 	})
 
-	_, err := New("test-app",
+	_, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		HTTP("secure-api", FromURL("https://api.svc:443"), Critical(false)),
 	)
@@ -411,7 +461,7 @@ func TestNew_AddDependency(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	checker := &mockChecker{}
 
-	dh, err := New("test-app",
+	dh, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		AddDependency("custom-dep", TypeTCP, checker,
 			FromParams("10.0.0.1", "9999"),
@@ -435,7 +485,7 @@ func TestNew_MultipleDependencies(t *testing.T) {
 	registerMockFactory(t, TypeHTTP, &mockChecker{})
 	registerMockFactory(t, TypeTCP, &mockChecker{})
 
-	dh, err := New("test-app",
+	dh, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(true)),
 		TCP("cache", FromParams("redis.svc", "6379"), Critical(false)),
@@ -453,7 +503,7 @@ func TestNew_NoFactoryRegistered(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	// Don't register a factory — should produce an error.
 
-	_, err := New("test-app",
+	_, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		HTTP("web-api", FromURL("http://api.svc:8080"), Critical(false)),
 	)
@@ -466,7 +516,7 @@ func TestNew_HTTPAuthConflict_BearerAndBasic(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	registerMockFactory(t, TypeHTTP, &mockChecker{})
 
-	_, err := New("test-app",
+	_, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		HTTP("web-api",
 			FromURL("http://api.svc:8080"),
@@ -487,7 +537,7 @@ func TestNew_HTTPAuthConflict_BearerAndHeader(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	registerMockFactory(t, TypeHTTP, &mockChecker{})
 
-	_, err := New("test-app",
+	_, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		HTTP("web-api",
 			FromURL("http://api.svc:8080"),
@@ -508,7 +558,7 @@ func TestNew_HTTPAuthConflict_BasicAndHeader(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	registerMockFactory(t, TypeHTTP, &mockChecker{})
 
-	_, err := New("test-app",
+	_, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		HTTP("web-api",
 			FromURL("http://api.svc:8080"),
@@ -527,7 +577,7 @@ func TestNew_HTTPAuth_SingleMethod_OK(t *testing.T) {
 	registerMockFactory(t, TypeHTTP, &mockChecker{})
 
 	// Bearer only — should succeed.
-	_, err := New("test-app",
+	_, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		HTTP("web-api",
 			FromURL("http://api.svc:8080"),
@@ -544,7 +594,7 @@ func TestNew_GRPCAuthConflict_BearerAndBasic(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	registerMockFactory(t, TypeGRPC, &mockChecker{})
 
-	_, err := New("test-app",
+	_, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		GRPC("backend",
 			FromParams("backend.svc", "9090"),
@@ -565,7 +615,7 @@ func TestNew_GRPCAuthConflict_BearerAndMetadata(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	registerMockFactory(t, TypeGRPC, &mockChecker{})
 
-	_, err := New("test-app",
+	_, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		GRPC("backend",
 			FromParams("backend.svc", "9090"),
@@ -583,7 +633,7 @@ func TestNew_GRPCAuth_SingleMethod_OK(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	registerMockFactory(t, TypeGRPC, &mockChecker{})
 
-	_, err := New("test-app",
+	_, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		GRPC("backend",
 			FromParams("backend.svc", "9090"),
@@ -613,7 +663,7 @@ func TestNew_CheckerWrappers(t *testing.T) {
 		}
 	})
 
-	_, err := New("test-app",
+	_, err := New("test-app", "test-group",
 		WithRegisterer(reg),
 		HTTP("web-api",
 			FromURL("http://api.svc:8080"),

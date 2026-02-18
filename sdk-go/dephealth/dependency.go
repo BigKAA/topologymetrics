@@ -62,6 +62,7 @@ var labelNamePattern = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 // reservedLabels contains label names that cannot be used as custom labels.
 var reservedLabels = map[string]bool{
 	"name":       true,
+	"group":      true,
 	"dependency": true,
 	"type":       true,
 	"host":       true,
