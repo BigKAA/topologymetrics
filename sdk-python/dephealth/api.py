@@ -106,6 +106,7 @@ class DependencyHealth:
 
         dh = DependencyHealth(
             "my-service",
+            "my-team",
             http_check("payment", url="http://payment:8080", critical=True),
             postgres_check("db", url="postgres://db:5432/mydb", critical=True),
             redis_check("cache", url="redis://cache:6379", critical=False),
@@ -119,6 +120,7 @@ class DependencyHealth:
     def __init__(
         self,
         name: str,
+        group: str,
         *specs: _DependencySpec,
         check_interval: timedelta | None = None,
         timeout: timedelta | None = None,
@@ -131,6 +133,12 @@ class DependencyHealth:
             raise ValueError(msg)
         _validate_instance_name(instance_name)
 
+        instance_group = group or os.environ.get("DEPHEALTH_GROUP", "")
+        if not instance_group:
+            msg = "group is required: pass as second argument or set DEPHEALTH_GROUP"
+            raise ValueError(msg)
+        _validate_instance_name(instance_group)
+
         self._log = log or logger
 
         for spec in specs:
@@ -139,6 +147,7 @@ class DependencyHealth:
         custom_label_keys = _collect_custom_label_keys(specs)
         self._metrics = MetricsExporter(
             instance_name=instance_name,
+            instance_group=instance_group,
             custom_label_names=custom_label_keys,
             registry=registry,
         )

@@ -58,7 +58,7 @@ class RedisChecker:
             kwargs["password"] = None
         client = Redis.from_url(conn_url, **kwargs)
         try:
-            result = await client.ping()
+            result = await client.ping()  # type: ignore[misc]
             if result is not True:
                 msg = f"Redis PING to {endpoint.host}:{endpoint.port} returned {result!r}"
                 raise UnhealthyError(msg)

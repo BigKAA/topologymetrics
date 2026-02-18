@@ -23,6 +23,7 @@ class TestDependencyHealth:
         with patch("dephealth.checks.http.HTTPChecker.check", new_callable=AsyncMock):
             dh = DependencyHealth(
                 "test-app",
+                "test-group",
                 http_check("api", url="http://localhost:8080", critical=True),
                 check_interval=timedelta(seconds=1),
                 registry=CollectorRegistry(),
@@ -35,6 +36,7 @@ class TestDependencyHealth:
         with patch("dephealth.checks.tcp.TCPChecker.check", new_callable=AsyncMock):
             dh = DependencyHealth(
                 "test-app",
+                "test-group",
                 tcp_check("svc", host="localhost", port="8080", critical=True),
                 check_interval=timedelta(seconds=1),
                 registry=CollectorRegistry(),
@@ -54,6 +56,7 @@ class TestDependencyHealth:
         ):
             dh = DependencyHealth(
                 "test-app",
+                "test-group",
                 http_check("api", url="http://localhost:8080", critical=True),
                 tcp_check("db", host="localhost", port="5432", critical=False),
                 check_interval=timedelta(seconds=1),
@@ -73,6 +76,7 @@ class TestDependencyHealth:
         with patch("dephealth.checks.tcp.TCPChecker.check", new_callable=AsyncMock):
             dh = DependencyHealth(
                 "test-app",
+                "test-group",
                 tcp_check("svc", host="localhost", port="8080", critical=True),
                 check_interval=timedelta(seconds=1),
                 registry=CollectorRegistry(),
@@ -89,6 +93,7 @@ class TestZeroDependencies:
     def test_creation_succeeds(self) -> None:
         dh = DependencyHealth(
             "leaf-app",
+            "test-group",
             registry=CollectorRegistry(),
         )
         assert dh is not None
@@ -96,6 +101,7 @@ class TestZeroDependencies:
     def test_health_returns_empty(self) -> None:
         dh = DependencyHealth(
             "leaf-app",
+            "test-group",
             registry=CollectorRegistry(),
         )
         assert dh.health() == {}
@@ -103,6 +109,7 @@ class TestZeroDependencies:
     async def test_start_stop_async(self) -> None:
         dh = DependencyHealth(
             "leaf-app",
+            "test-group",
             registry=CollectorRegistry(),
         )
         await dh.start()
@@ -111,6 +118,7 @@ class TestZeroDependencies:
     def test_start_stop_sync(self) -> None:
         dh = DependencyHealth(
             "leaf-app",
+            "test-group",
             registry=CollectorRegistry(),
         )
         dh.start_sync()
@@ -122,6 +130,7 @@ class TestInstanceName:
         with pytest.raises(ValueError, match="instance name is required"):
             DependencyHealth(
                 "",
+                "test-group",
                 tcp_check("svc", host="localhost", port="8080", critical=True),
                 registry=CollectorRegistry(),
             )
@@ -130,6 +139,7 @@ class TestInstanceName:
         with pytest.raises(ValueError, match="invalid instance name"):
             DependencyHealth(
                 "Bad-Name",
+                "test-group",
                 tcp_check("svc", host="localhost", port="8080", critical=True),
                 registry=CollectorRegistry(),
             )
@@ -141,6 +151,7 @@ class TestInstanceName:
         ):
             dh = DependencyHealth(
                 "",
+                "test-group",
                 tcp_check("svc", host="localhost", port="8080", critical=True),
                 registry=CollectorRegistry(),
             )
@@ -153,6 +164,53 @@ class TestInstanceName:
         ):
             dh = DependencyHealth(
                 "api-app",
+                "test-group",
+                tcp_check("svc", host="localhost", port="8080", critical=True),
+                registry=CollectorRegistry(),
+            )
+            assert dh is not None
+
+
+class TestInstanceGroup:
+    def test_missing_group_raises(self) -> None:
+        with pytest.raises(ValueError, match="group is required"):
+            DependencyHealth(
+                "test-app",
+                "",
+                tcp_check("svc", host="localhost", port="8080", critical=True),
+                registry=CollectorRegistry(),
+            )
+
+    def test_invalid_group_raises(self) -> None:
+        with pytest.raises(ValueError, match="invalid instance name"):
+            DependencyHealth(
+                "test-app",
+                "Bad-Group",
+                tcp_check("svc", host="localhost", port="8080", critical=True),
+                registry=CollectorRegistry(),
+            )
+
+    def test_group_from_env(self) -> None:
+        with (
+            patch.dict(os.environ, {"DEPHEALTH_GROUP": "env-group"}),
+            patch("dephealth.checks.tcp.TCPChecker.check", new_callable=AsyncMock),
+        ):
+            dh = DependencyHealth(
+                "test-app",
+                "",
+                tcp_check("svc", host="localhost", port="8080", critical=True),
+                registry=CollectorRegistry(),
+            )
+            assert dh is not None
+
+    def test_api_group_overrides_env(self) -> None:
+        with (
+            patch.dict(os.environ, {"DEPHEALTH_GROUP": "env-group"}),
+            patch("dephealth.checks.tcp.TCPChecker.check", new_callable=AsyncMock),
+        ):
+            dh = DependencyHealth(
+                "test-app",
+                "api-group",
                 tcp_check("svc", host="localhost", port="8080", critical=True),
                 registry=CollectorRegistry(),
             )
@@ -185,6 +243,7 @@ class TestLabels:
             registry = CollectorRegistry()
             dh = DependencyHealth(
                 "test-app",
+                "test-group",
                 tcp_check(
                     "svc",
                     host="localhost",
@@ -207,6 +266,7 @@ class TestEnvVars:
             registry = CollectorRegistry()
             dh = DependencyHealth(
                 "test-app",
+                "test-group",
                 tcp_check("svc", host="localhost", port="8080", critical=True),
                 check_interval=timedelta(seconds=1),
                 registry=registry,
@@ -220,6 +280,7 @@ class TestEnvVars:
         ):
             DependencyHealth(
                 "test-app",
+                "test-group",
                 tcp_check("svc", host="localhost", port="8080", critical=True),
                 registry=CollectorRegistry(),
             )
@@ -232,6 +293,7 @@ class TestEnvVars:
             registry = CollectorRegistry()
             dh = DependencyHealth(
                 "test-app",
+                "test-group",
                 tcp_check("svc", host="localhost", port="8080", critical=True),
                 check_interval=timedelta(seconds=1),
                 registry=registry,
@@ -247,6 +309,7 @@ class TestEnvVars:
             registry = CollectorRegistry()
             dh = DependencyHealth(
                 "test-app",
+                "test-group",
                 postgres_check(
                     "my-db",
                     url="postgres://localhost:5432/test",

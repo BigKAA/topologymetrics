@@ -130,7 +130,7 @@ class TestDephealthLifespan:
             patch.object(DependencyHealth, "start", new_callable=AsyncMock) as mock_start,
             patch.object(DependencyHealth, "stop", new_callable=AsyncMock) as mock_stop,
         ):
-            lifespan_fn = dephealth_lifespan("test-app", registry=registry)
+            lifespan_fn = dephealth_lifespan("test-app", "test-group", registry=registry)
             app = FastAPI()
 
             async with lifespan_fn(app) as state:  # type: ignore[misc]
@@ -145,7 +145,7 @@ class TestDephealthLifespan:
             patch.object(DependencyHealth, "start", new_callable=AsyncMock),
             patch.object(DependencyHealth, "stop", new_callable=AsyncMock),
         ):
-            lifespan_fn = dephealth_lifespan("test-app", registry=registry)
+            lifespan_fn = dephealth_lifespan("test-app", "test-group", registry=registry)
             app = FastAPI()
 
             async with lifespan_fn(app) as _:  # type: ignore[misc]

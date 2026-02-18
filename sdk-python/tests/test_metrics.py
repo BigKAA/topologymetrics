@@ -18,7 +18,9 @@ def _dep_and_ep(
 class TestMetricsExporter:
     def test_set_health(self) -> None:
         registry = CollectorRegistry()
-        m = MetricsExporter(instance_name="test-app", registry=registry)
+        m = MetricsExporter(
+            instance_name="test-app", instance_group="test-group", registry=registry
+        )
         dep, ep = _dep_and_ep()
 
         m.set_health(dep, ep, 1.0)
@@ -34,9 +36,27 @@ class TestMetricsExporter:
         assert health_samples[0].labels["type"] == "postgres"
         assert health_samples[0].labels["critical"] == "yes"
 
+    def test_group_label_present(self) -> None:
+        registry = CollectorRegistry()
+        m = MetricsExporter(
+            instance_name="test-app", instance_group="test-group", registry=registry
+        )
+        dep, ep = _dep_and_ep()
+
+        m.set_health(dep, ep, 1.0)
+
+        samples = list(registry.collect())
+        health_samples = [
+            s for metric in samples for s in metric.samples if s.name == "app_dependency_health"
+        ]
+        assert len(health_samples) == 1
+        assert health_samples[0].labels["group"] == "test-group"
+
     def test_critical_no(self) -> None:
         registry = CollectorRegistry()
-        m = MetricsExporter(instance_name="test-app", registry=registry)
+        m = MetricsExporter(
+            instance_name="test-app", instance_group="test-group", registry=registry
+        )
         dep, ep = _dep_and_ep(critical=False)
 
         m.set_health(dep, ep, 1.0)
@@ -49,7 +69,9 @@ class TestMetricsExporter:
 
     def test_observe_latency(self) -> None:
         registry = CollectorRegistry()
-        m = MetricsExporter(instance_name="test-app", registry=registry)
+        m = MetricsExporter(
+            instance_name="test-app", instance_group="test-group", registry=registry
+        )
         dep, ep = _dep_and_ep()
 
         m.observe_latency(dep, ep, 0.05)
@@ -66,7 +88,9 @@ class TestMetricsExporter:
 
     def test_delete_metrics(self) -> None:
         registry = CollectorRegistry()
-        m = MetricsExporter(instance_name="test-app", registry=registry)
+        m = MetricsExporter(
+            instance_name="test-app", instance_group="test-group", registry=registry
+        )
         dep, ep = _dep_and_ep()
 
         m.set_health(dep, ep, 1.0)
@@ -80,7 +104,9 @@ class TestMetricsExporter:
 
     def test_multiple_dependencies(self) -> None:
         registry = CollectorRegistry()
-        m = MetricsExporter(instance_name="test-app", registry=registry)
+        m = MetricsExporter(
+            instance_name="test-app", instance_group="test-group", registry=registry
+        )
 
         ep1 = Endpoint(host="db1", port="5432")
         dep1 = Dependency(
@@ -102,6 +128,7 @@ class TestMetricsExporter:
         registry = CollectorRegistry()
         m = MetricsExporter(
             instance_name="test-app",
+            instance_group="test-group",
             custom_label_names=("env", "region"),
             registry=registry,
         )
@@ -124,6 +151,7 @@ class TestMetricsExporter:
         registry = CollectorRegistry()
         m = MetricsExporter(
             instance_name="test-app",
+            instance_group="test-group",
             custom_label_names=("env",),
             registry=registry,
         )
@@ -141,10 +169,11 @@ class TestMetricsExporter:
         assert health_samples[0].labels["env"] == ""
 
     def test_label_order(self) -> None:
-        """Label order: name, dependency, type, host, port, critical, custom (alphabetical)."""
+        """Label order: name, group, dependency, type, host, port, critical, custom."""
         registry = CollectorRegistry()
         m = MetricsExporter(
             instance_name="test-app",
+            instance_group="test-group",
             custom_label_names=("env", "region"),
             registry=registry,
         )
@@ -155,4 +184,15 @@ class TestMetricsExporter:
 
         labels = m._labels(dep, ep)
         keys = list(labels.keys())
-        assert keys == ["name", "dependency", "type", "host", "port", "critical", "env", "region"]
+        expected = [
+            "name",
+            "group",
+            "dependency",
+            "type",
+            "host",
+            "port",
+            "critical",
+            "env",
+            "region",
+        ]
+        assert keys == expected

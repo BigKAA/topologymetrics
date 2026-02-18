@@ -13,6 +13,7 @@ from dephealth.api import DependencyHealth, _DependencySpec
 
 def dephealth_lifespan(
     name: str,
+    group: str,
     *specs: _DependencySpec,
     **kwargs: Any,  # noqa: ANN401
 ) -> object:
@@ -24,6 +25,7 @@ def dephealth_lifespan(
 
         app = FastAPI(lifespan=dephealth_lifespan(
             "my-service",
+            "my-team",
             http_check("payment", url="http://payment:8080", critical=True),
             postgres_check("db", url="postgres://db:5432/mydb", critical=True),
         ))
@@ -31,7 +33,7 @@ def dephealth_lifespan(
 
     @asynccontextmanager
     async def _lifespan(app: FastAPI) -> AsyncIterator[dict[str, Any]]:
-        dh = DependencyHealth(name, *specs, **kwargs)
+        dh = DependencyHealth(name, group, *specs, **kwargs)
         app.state.dephealth = dh
         await dh.start()
         try:

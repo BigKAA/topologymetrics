@@ -22,7 +22,9 @@ def _make_dep(interval: float = 0.1, initial_delay: float = 0.0) -> Dependency:
 
 def _make_scheduler() -> tuple[CheckScheduler, CollectorRegistry]:
     registry = CollectorRegistry()
-    metrics = MetricsExporter(instance_name="test-app", registry=registry)
+    metrics = MetricsExporter(
+        instance_name="test-app", instance_group="test-group", registry=registry
+    )
     scheduler = CheckScheduler(metrics=metrics)
     return scheduler, registry
 

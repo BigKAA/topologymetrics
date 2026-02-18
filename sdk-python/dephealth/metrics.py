@@ -18,7 +18,7 @@ from dephealth.check_result import ALL_STATUS_CATEGORIES
 from dephealth.dependency import Dependency, Endpoint, bool_to_yes_no
 
 _DEFAULT_BUCKETS = (0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0)
-_REQUIRED_LABEL_NAMES = ("name", "dependency", "type", "host", "port", "critical")
+_REQUIRED_LABEL_NAMES = ("name", "group", "dependency", "type", "host", "port", "critical")
 
 
 class MetricsExporter:
@@ -27,10 +27,12 @@ class MetricsExporter:
     def __init__(
         self,
         instance_name: str,
+        instance_group: str,
         custom_label_names: tuple[str, ...] = (),
         registry: CollectorRegistry | None = None,
     ) -> None:
         self._instance_name = instance_name
+        self._instance_group = instance_group
         self._custom_label_names = custom_label_names
         reg = registry if registry is not None else REGISTRY
 
@@ -126,6 +128,7 @@ class MetricsExporter:
     def _labels(self, dep: Dependency, endpoint: Endpoint) -> dict[str, str]:
         result: dict[str, str] = {
             "name": self._instance_name,
+            "group": self._instance_group,
             "dependency": dep.name,
             "type": str(dep.type),
             "host": endpoint.host,

@@ -42,7 +42,7 @@ _NAME_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z0-9_-]{0,62}$")
 LABEL_NAME_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
 
 RESERVED_LABELS: frozenset[str] = frozenset(
-    {"name", "dependency", "type", "host", "port", "critical"}
+    {"name", "group", "dependency", "type", "host", "port", "critical"}
 )
 
 

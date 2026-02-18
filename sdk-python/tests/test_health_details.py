@@ -36,7 +36,9 @@ def _make_dep(
 
 def _make_scheduler() -> tuple[CheckScheduler, CollectorRegistry]:
     registry = CollectorRegistry()
-    metrics = MetricsExporter(instance_name="test-app", registry=registry)
+    metrics = MetricsExporter(
+        instance_name="test-app", instance_group="test-group", registry=registry
+    )
     scheduler = CheckScheduler(metrics=metrics)
     return scheduler, registry
 
@@ -242,6 +244,7 @@ class TestHealthDetailsFacade:
         with patch("dephealth.checks.tcp.TCPChecker.check", new_callable=AsyncMock):
             dh = DependencyHealth(
                 "test-app",
+                "test-group",
                 tcp_check("svc", host="localhost", port="8080", critical=True),
                 check_interval=timedelta(seconds=1),
                 registry=CollectorRegistry(),
@@ -256,7 +259,7 @@ class TestHealthDetailsFacade:
 
     def test_facade_empty_before_add(self) -> None:
         """DependencyHealth with no deps returns empty health_details."""
-        dh = DependencyHealth("leaf-app", registry=CollectorRegistry())
+        dh = DependencyHealth("leaf-app", "test-group", registry=CollectorRegistry())
         assert dh.health_details() == {}
 
 
