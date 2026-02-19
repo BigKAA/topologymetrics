@@ -27,7 +27,8 @@ conformance/stubs/http-stub/http-stub
 .DS_Store
 Thumbs.db
 
-# Serena
+# AI
+CLAUDE.md
 .serena/
 
 # Python
