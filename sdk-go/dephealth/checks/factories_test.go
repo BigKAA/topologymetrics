@@ -10,35 +10,6 @@ import (
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 )
 
-func TestPostgresFactory_URLPassedAsDSN(t *testing.T) {
-	dc := &dephealth.DependencyConfig{
-		URL: "postgres://user:pass@pg.svc:5432/mydb",
-	}
-	checker := newPostgresFromConfig(dc)
-	pg, ok := checker.(*PostgresChecker)
-	if !ok {
-		t.Fatal("expected *PostgresChecker")
-	}
-	if pg.dsn != dc.URL {
-		t.Errorf("dsn = %q, expected %q", pg.dsn, dc.URL)
-	}
-}
-
-func TestMySQLFactory_URLConvertedToDSN(t *testing.T) {
-	dc := &dephealth.DependencyConfig{
-		URL: "mysql://user:pass@mysql.svc:3306/mydb",
-	}
-	checker := newMySQLFromConfig(dc)
-	my, ok := checker.(*MySQLChecker)
-	if !ok {
-		t.Fatal("expected *MySQLChecker")
-	}
-	want := "user:pass@tcp(mysql.svc:3306)/mydb"
-	if my.dsn != want {
-		t.Errorf("dsn = %q, expected %q", my.dsn, want)
-	}
-}
-
 func TestRedisFactory_PasswordFromURL(t *testing.T) {
 	mr := miniredis.RunT(t)
 	mr.RequireAuth("secret")
@@ -110,48 +81,5 @@ func TestAMQPFactory_ExplicitAMQPURLHasPriority(t *testing.T) {
 	}
 	if ac.url != dc.AMQPURL {
 		t.Errorf("url = %q, expected %q (explicit AMQPURL)", ac.url, dc.AMQPURL)
-	}
-}
-
-func TestMySQLURLToDSN(t *testing.T) {
-	tests := []struct {
-		name string
-		url  string
-		want string
-	}{
-		{
-			name: "full URL",
-			url:  "mysql://user:pass@host:3306/db",
-			want: "user:pass@tcp(host:3306)/db",
-		},
-		{
-			name: "without password",
-			url:  "mysql://user@host:3306/db",
-			want: "user@tcp(host:3306)/db",
-		},
-		{
-			name: "without credentials",
-			url:  "mysql://host:3306/db",
-			want: "@tcp(host:3306)/db",
-		},
-		{
-			name: "with query params",
-			url:  "mysql://user:pass@host:3306/db?charset=utf8mb4",
-			want: "user:pass@tcp(host:3306)/db?charset=utf8mb4",
-		},
-		{
-			name: "without database",
-			url:  "mysql://user:pass@host:3306",
-			want: "user:pass@tcp(host:3306)",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := mysqlURLToDSN(tt.url)
-			if got != tt.want {
-				t.Errorf("mysqlURLToDSN(%q) = %q, expected %q", tt.url, got, tt.want)
-			}
-		})
 	}
 }

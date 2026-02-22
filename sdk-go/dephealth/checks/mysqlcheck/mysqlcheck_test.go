@@ -1,4 +1,4 @@
-package checks
+package mysqlcheck
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 )
 
-func TestMySQLChecker_Check_PoolMode(t *testing.T) {
+func TestChecker_Check_PoolMode(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("failed to create sqlmock: %v", err)
@@ -18,7 +18,7 @@ func TestMySQLChecker_Check_PoolMode(t *testing.T) {
 
 	mock.ExpectQuery("SELECT 1").WillReturnRows(sqlmock.NewRows([]string{"1"}).AddRow(1))
 
-	checker := NewMySQLChecker(WithMySQLDB(db))
+	checker := New(WithDB(db))
 	ep := dephealth.Endpoint{Host: "ignored", Port: "3306"}
 
 	if err := checker.Check(context.Background(), ep); err != nil {
@@ -30,7 +30,7 @@ func TestMySQLChecker_Check_PoolMode(t *testing.T) {
 	}
 }
 
-func TestMySQLChecker_Check_PoolMode_Error(t *testing.T) {
+func TestChecker_Check_PoolMode_Error(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("failed to create sqlmock: %v", err)
@@ -39,7 +39,7 @@ func TestMySQLChecker_Check_PoolMode_Error(t *testing.T) {
 
 	mock.ExpectQuery("SELECT 1").WillReturnError(context.DeadlineExceeded)
 
-	checker := NewMySQLChecker(WithMySQLDB(db))
+	checker := New(WithDB(db))
 	ep := dephealth.Endpoint{Host: "ignored", Port: "3306"}
 
 	if err := checker.Check(context.Background(), ep); err == nil {
@@ -47,7 +47,7 @@ func TestMySQLChecker_Check_PoolMode_Error(t *testing.T) {
 	}
 }
 
-func TestMySQLChecker_Check_PoolMode_CustomQuery(t *testing.T) {
+func TestChecker_Check_PoolMode_CustomQuery(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("failed to create sqlmock: %v", err)
@@ -56,7 +56,7 @@ func TestMySQLChecker_Check_PoolMode_CustomQuery(t *testing.T) {
 
 	mock.ExpectQuery("SELECT version()").WillReturnRows(sqlmock.NewRows([]string{"version"}).AddRow("8.0"))
 
-	checker := NewMySQLChecker(WithMySQLDB(db), WithMySQLQuery("SELECT version()"))
+	checker := New(WithDB(db), WithQuery("SELECT version()"))
 	ep := dephealth.Endpoint{Host: "ignored", Port: "3306"}
 
 	if err := checker.Check(context.Background(), ep); err != nil {
@@ -64,8 +64,8 @@ func TestMySQLChecker_Check_PoolMode_CustomQuery(t *testing.T) {
 	}
 }
 
-func TestMySQLChecker_Check_Standalone_ConnectionRefused(t *testing.T) {
-	checker := NewMySQLChecker()
+func TestChecker_Check_Standalone_ConnectionRefused(t *testing.T) {
+	checker := New()
 	ep := dephealth.Endpoint{Host: "127.0.0.1", Port: "1"}
 
 	err := checker.Check(context.Background(), ep)
@@ -74,11 +74,11 @@ func TestMySQLChecker_Check_Standalone_ConnectionRefused(t *testing.T) {
 	}
 }
 
-func TestMySQLChecker_Check_Standalone_ContextCanceled(t *testing.T) {
+func TestChecker_Check_Standalone_ContextCanceled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	checker := NewMySQLChecker()
+	checker := New()
 	ep := dephealth.Endpoint{Host: "127.0.0.1", Port: "3306"}
 
 	err := checker.Check(ctx, ep)
@@ -87,9 +87,67 @@ func TestMySQLChecker_Check_Standalone_ContextCanceled(t *testing.T) {
 	}
 }
 
-func TestMySQLChecker_Type(t *testing.T) {
-	checker := NewMySQLChecker()
+func TestChecker_Type(t *testing.T) {
+	checker := New()
 	if got := checker.Type(); got != "mysql" {
 		t.Errorf("Type() = %q, expected %q", got, "mysql")
+	}
+}
+
+func TestNewFromConfig_URLConvertedToDSN(t *testing.T) {
+	dc := &dephealth.DependencyConfig{
+		URL: "mysql://user:pass@mysql.svc:3306/mydb",
+	}
+	checker := NewFromConfig(dc)
+	my, ok := checker.(*Checker)
+	if !ok {
+		t.Fatal("expected *Checker")
+	}
+	want := "user:pass@tcp(mysql.svc:3306)/mydb"
+	if my.dsn != want {
+		t.Errorf("dsn = %q, expected %q", my.dsn, want)
+	}
+}
+
+func TestURLToDSN(t *testing.T) {
+	tests := []struct {
+		name string
+		url  string
+		want string
+	}{
+		{
+			name: "full URL",
+			url:  "mysql://user:pass@host:3306/db",
+			want: "user:pass@tcp(host:3306)/db",
+		},
+		{
+			name: "without password",
+			url:  "mysql://user@host:3306/db",
+			want: "user@tcp(host:3306)/db",
+		},
+		{
+			name: "without credentials",
+			url:  "mysql://host:3306/db",
+			want: "@tcp(host:3306)/db",
+		},
+		{
+			name: "with query params",
+			url:  "mysql://user:pass@host:3306/db?charset=utf8mb4",
+			want: "user:pass@tcp(host:3306)/db?charset=utf8mb4",
+		},
+		{
+			name: "without database",
+			url:  "mysql://user:pass@host:3306",
+			want: "user:pass@tcp(host:3306)",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := URLToDSN(tt.url)
+			if got != tt.want {
+				t.Errorf("URLToDSN(%q) = %q, expected %q", tt.url, got, tt.want)
+			}
+		})
 	}
 }

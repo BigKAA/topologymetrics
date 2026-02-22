@@ -9,35 +9,9 @@ import (
 )
 
 func init() {
-	dephealth.RegisterCheckerFactory(dephealth.TypePostgres, newPostgresFromConfig)
-	dephealth.RegisterCheckerFactory(dephealth.TypeMySQL, newMySQLFromConfig)
 	dephealth.RegisterCheckerFactory(dephealth.TypeRedis, newRedisFromConfig)
 	dephealth.RegisterCheckerFactory(dephealth.TypeAMQP, newAMQPFromConfig)
 	dephealth.RegisterCheckerFactory(dephealth.TypeKafka, newKafkaFromConfig)
-}
-
-func newPostgresFromConfig(dc *dephealth.DependencyConfig) dephealth.HealthChecker {
-	var opts []PostgresOption
-	if dc.URL != "" {
-		opts = append(opts, WithPostgresDSN(dc.URL))
-	}
-	if dc.PostgresQuery != "" {
-		opts = append(opts, WithPostgresQuery(dc.PostgresQuery))
-	}
-	return NewPostgresChecker(opts...)
-}
-
-func newMySQLFromConfig(dc *dephealth.DependencyConfig) dephealth.HealthChecker {
-	var opts []MySQLOption
-	if dc.URL != "" {
-		if dsn := mysqlURLToDSN(dc.URL); dsn != "" {
-			opts = append(opts, WithMySQLDSN(dsn))
-		}
-	}
-	if dc.MySQLQuery != "" {
-		opts = append(opts, WithMySQLQuery(dc.MySQLQuery))
-	}
-	return NewMySQLChecker(opts...)
 }
 
 func newRedisFromConfig(dc *dephealth.DependencyConfig) dephealth.HealthChecker {
@@ -78,29 +52,4 @@ func newAMQPFromConfig(dc *dephealth.DependencyConfig) dephealth.HealthChecker {
 
 func newKafkaFromConfig(_ *dephealth.DependencyConfig) dephealth.HealthChecker {
 	return NewKafkaChecker()
-}
-
-// mysqlURLToDSN converts a mysql:// URL to the go-sql-driver/mysql DSN format.
-// mysql://user:pass@host:3306/db → user:pass@tcp(host:3306)/db
-// Returns empty string if the URL cannot be parsed.
-func mysqlURLToDSN(rawURL string) string {
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		return ""
-	}
-
-	var userinfo string
-	if u.User != nil {
-		userinfo = u.User.String()
-	}
-
-	host := u.Host // includes port if specified
-
-	path := u.Path // e.g. "/db"
-
-	dsn := userinfo + "@tcp(" + host + ")" + path
-	if q := u.RawQuery; q != "" {
-		dsn += "?" + q
-	}
-	return dsn
 }
