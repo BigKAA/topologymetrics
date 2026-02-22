@@ -1,15 +1,23 @@
-// Package checks provides health checker implementations for various dependency types.
+// Package checks registers all built-in health checkers.
 //
-// Each checker implements the [dephealth.HealthChecker] interface and supports
-// the functional options pattern for configuration.
+// Importing this package registers factories for all supported dependency types.
+// For selective imports (to reduce binary size), import individual sub-packages:
 //
-// Supported dependency types:
-//   - TCP: basic TCP connectivity check
-//   - HTTP: HTTP endpoint health check with configurable path and TLS
-//   - gRPC: gRPC Health Checking Protocol (grpc.health.v1)
-//   - PostgreSQL: SQL query check (standalone or connection pool)
-//   - MySQL: SQL query check (standalone or connection pool)
-//   - Redis: PING command check (standalone or connection pool)
-//   - AMQP: connection-level check (standalone only)
-//   - Kafka: broker metadata request check (standalone only)
+//	import _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/httpcheck"
+//	import _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/pgcheck"
+//
+// This package also provides backward-compatible type aliases and constructor
+// wrappers so that existing code using checks.HTTPChecker, checks.NewHTTPChecker, etc.
+// continues to compile without changes.
 package checks
+
+import (
+	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/amqpcheck"
+	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/grpccheck"
+	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/httpcheck"
+	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/kafkacheck"
+	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/mysqlcheck"
+	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/pgcheck"
+	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/redischeck"
+	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/tcpcheck"
+)

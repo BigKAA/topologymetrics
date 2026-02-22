@@ -22,9 +22,14 @@ type DepHealth struct {
 // If name is empty, it attempts to read from DEPHEALTH_NAME env var.
 // If group is empty, it attempts to read from DEPHEALTH_GROUP env var.
 // To use built-in checker factories (HTTP, Postgres, Redis, etc.),
-// the checks package must be imported:
+// import all checkers at once:
 //
 //	import _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks"
+//
+// Or import only what you need to reduce binary size:
+//
+//	import _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/httpcheck"
+//	import _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/pgcheck"
 func New(name string, group string, opts ...Option) (*DepHealth, error) {
 	// name: API > env var > error.
 	if name == "" {
