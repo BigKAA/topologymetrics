@@ -9,35 +9,11 @@ import (
 )
 
 func init() {
-	dephealth.RegisterCheckerFactory(dephealth.TypeGRPC, newGRPCFromConfig)
 	dephealth.RegisterCheckerFactory(dephealth.TypePostgres, newPostgresFromConfig)
 	dephealth.RegisterCheckerFactory(dephealth.TypeMySQL, newMySQLFromConfig)
 	dephealth.RegisterCheckerFactory(dephealth.TypeRedis, newRedisFromConfig)
 	dephealth.RegisterCheckerFactory(dephealth.TypeAMQP, newAMQPFromConfig)
 	dephealth.RegisterCheckerFactory(dephealth.TypeKafka, newKafkaFromConfig)
-}
-
-func newGRPCFromConfig(dc *dephealth.DependencyConfig) dephealth.HealthChecker {
-	var opts []GRPCOption
-	if dc.GRPCServiceName != "" {
-		opts = append(opts, WithServiceName(dc.GRPCServiceName))
-	}
-	if dc.GRPCTLS != nil {
-		opts = append(opts, WithGRPCTLS(*dc.GRPCTLS))
-	}
-	if dc.GRPCTLSSkipVerify != nil {
-		opts = append(opts, WithGRPCTLSSkipVerify(*dc.GRPCTLSSkipVerify))
-	}
-	if len(dc.GRPCMetadata) > 0 {
-		opts = append(opts, WithMetadata(dc.GRPCMetadata))
-	}
-	if dc.GRPCBearerToken != "" {
-		opts = append(opts, WithGRPCBearerToken(dc.GRPCBearerToken))
-	}
-	if dc.GRPCBasicUser != "" {
-		opts = append(opts, WithGRPCBasicAuth(dc.GRPCBasicUser, dc.GRPCBasicPass))
-	}
-	return NewGRPCChecker(opts...)
 }
 
 func newPostgresFromConfig(dc *dephealth.DependencyConfig) dephealth.HealthChecker {
