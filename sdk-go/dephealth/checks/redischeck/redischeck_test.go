@@ -1,7 +1,8 @@
-package checks
+package redischeck
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/alicebob/miniredis/v2"
@@ -10,7 +11,7 @@ import (
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 )
 
-func TestRedisChecker_Check_PoolMode(t *testing.T) {
+func TestChecker_Check_PoolMode(t *testing.T) {
 	mr := miniredis.RunT(t)
 
 	client := redis.NewClient(&redis.Options{
@@ -18,7 +19,7 @@ func TestRedisChecker_Check_PoolMode(t *testing.T) {
 	})
 	defer func() { _ = client.Close() }()
 
-	checker := NewRedisChecker(WithRedisClient(client))
+	checker := New(WithClient(client))
 	ep := dephealth.Endpoint{Host: "ignored", Port: "6379"}
 
 	if err := checker.Check(context.Background(), ep); err != nil {
@@ -26,10 +27,10 @@ func TestRedisChecker_Check_PoolMode(t *testing.T) {
 	}
 }
 
-func TestRedisChecker_Check_Standalone(t *testing.T) {
+func TestChecker_Check_Standalone(t *testing.T) {
 	mr := miniredis.RunT(t)
 
-	checker := NewRedisChecker()
+	checker := New()
 	ep := dephealth.Endpoint{Host: mr.Host(), Port: mr.Port()}
 
 	if err := checker.Check(context.Background(), ep); err != nil {
@@ -37,11 +38,11 @@ func TestRedisChecker_Check_Standalone(t *testing.T) {
 	}
 }
 
-func TestRedisChecker_Check_Standalone_WithPassword(t *testing.T) {
+func TestChecker_Check_Standalone_WithPassword(t *testing.T) {
 	mr := miniredis.RunT(t)
 	mr.RequireAuth("secret")
 
-	checker := NewRedisChecker(WithRedisPassword("secret"))
+	checker := New(WithPassword("secret"))
 	ep := dephealth.Endpoint{Host: mr.Host(), Port: mr.Port()}
 
 	if err := checker.Check(context.Background(), ep); err != nil {
@@ -49,11 +50,11 @@ func TestRedisChecker_Check_Standalone_WithPassword(t *testing.T) {
 	}
 }
 
-func TestRedisChecker_Check_Standalone_WrongPassword(t *testing.T) {
+func TestChecker_Check_Standalone_WrongPassword(t *testing.T) {
 	mr := miniredis.RunT(t)
 	mr.RequireAuth("secret")
 
-	checker := NewRedisChecker(WithRedisPassword("wrong"))
+	checker := New(WithPassword("wrong"))
 	ep := dephealth.Endpoint{Host: mr.Host(), Port: mr.Port()}
 
 	if err := checker.Check(context.Background(), ep); err == nil {
@@ -61,10 +62,10 @@ func TestRedisChecker_Check_Standalone_WrongPassword(t *testing.T) {
 	}
 }
 
-func TestRedisChecker_Check_Standalone_WithDB(t *testing.T) {
+func TestChecker_Check_Standalone_WithDB(t *testing.T) {
 	mr := miniredis.RunT(t)
 
-	checker := NewRedisChecker(WithRedisDB(2))
+	checker := New(WithDB(2))
 	ep := dephealth.Endpoint{Host: mr.Host(), Port: mr.Port()}
 
 	if err := checker.Check(context.Background(), ep); err != nil {
@@ -72,8 +73,8 @@ func TestRedisChecker_Check_Standalone_WithDB(t *testing.T) {
 	}
 }
 
-func TestRedisChecker_Check_ConnectionRefused(t *testing.T) {
-	checker := NewRedisChecker()
+func TestChecker_Check_ConnectionRefused(t *testing.T) {
+	checker := New()
 	ep := dephealth.Endpoint{Host: "127.0.0.1", Port: "1"}
 
 	err := checker.Check(context.Background(), ep)
@@ -82,11 +83,11 @@ func TestRedisChecker_Check_ConnectionRefused(t *testing.T) {
 	}
 }
 
-func TestRedisChecker_Check_ContextCanceled(t *testing.T) {
+func TestChecker_Check_ContextCanceled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	checker := NewRedisChecker()
+	checker := New()
 	ep := dephealth.Endpoint{Host: "127.0.0.1", Port: "6379"}
 
 	err := checker.Check(ctx, ep)
@@ -95,9 +96,54 @@ func TestRedisChecker_Check_ContextCanceled(t *testing.T) {
 	}
 }
 
-func TestRedisChecker_Type(t *testing.T) {
-	checker := NewRedisChecker()
+func TestChecker_Type(t *testing.T) {
+	checker := New()
 	if got := checker.Type(); got != "redis" {
 		t.Errorf("Type() = %q, expected %q", got, "redis")
+	}
+}
+
+func TestNewFromConfig_PasswordFromURL(t *testing.T) {
+	mr := miniredis.RunT(t)
+	mr.RequireAuth("secret")
+
+	dc := &dephealth.DependencyConfig{
+		URL: fmt.Sprintf("redis://:secret@%s:%s/0", mr.Host(), mr.Port()),
+	}
+	checker := NewFromConfig(dc)
+	ep := dephealth.Endpoint{Host: mr.Host(), Port: mr.Port()}
+
+	if err := checker.Check(context.Background(), ep); err != nil {
+		t.Errorf("expected success with password from URL, got error: %v", err)
+	}
+}
+
+func TestNewFromConfig_ExplicitPasswordOverridesURL(t *testing.T) {
+	mr := miniredis.RunT(t)
+	mr.RequireAuth("correct")
+
+	dc := &dephealth.DependencyConfig{
+		URL:           fmt.Sprintf("redis://:wrong@%s:%s/0", mr.Host(), mr.Port()),
+		RedisPassword: "correct",
+	}
+	checker := NewFromConfig(dc)
+	ep := dephealth.Endpoint{Host: mr.Host(), Port: mr.Port()}
+
+	if err := checker.Check(context.Background(), ep); err != nil {
+		t.Errorf("expected success with explicit password, got error: %v", err)
+	}
+}
+
+func TestNewFromConfig_DBFromURL(t *testing.T) {
+	dc := &dephealth.DependencyConfig{
+		URL: "redis://localhost:6379/3",
+	}
+	checker := NewFromConfig(dc)
+	rc, ok := checker.(*Checker)
+	if !ok {
+		t.Fatal("expected *Checker")
+	}
+	if rc.db != 3 {
+		t.Errorf("db = %d, expected 3", rc.db)
 	}
 }

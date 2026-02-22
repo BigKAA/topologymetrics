@@ -10,7 +10,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
-	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks" // register checker factories
+	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/redischeck" // register Redis checker factory
 )
 
 func TestFromClient(t *testing.T) {

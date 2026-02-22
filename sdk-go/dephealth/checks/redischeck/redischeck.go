@@ -1,10 +1,17 @@
-package checks
+// Package redischeck provides a Redis health checker for dephealth.
+//
+// Import this package to register the Redis checker factory:
+//
+//	import _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/redischeck"
+package redischeck
 
 import (
 	"context"
 	"errors"
 	"fmt"
 	"net"
+	"net/url"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -14,66 +21,97 @@ import (
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 )
 
-// RedisOption configures the RedisChecker.
-type RedisOption func(*RedisChecker)
+func init() {
+	dephealth.RegisterCheckerFactory(dephealth.TypeRedis, NewFromConfig)
+}
 
-// RedisChecker performs health checks against Redis using the PING command.
+// Option configures the Checker.
+type Option func(*Checker)
+
+// Checker performs health checks against Redis using the PING command.
 // Supports two modes:
 //   - Standalone: creates a new redis client per check
 //   - Pool: uses an existing redis.Cmdable (Client, ClusterClient, etc.)
-type RedisChecker struct {
+type Checker struct {
 	client   redis.Cmdable // nil = standalone, non-nil = pool mode
 	password string        // password for standalone mode
 	db       int           // database number for standalone mode
 }
 
-// WithRedisClient sets an existing Redis client for pool mode.
-func WithRedisClient(client redis.Cmdable) RedisOption {
-	return func(c *RedisChecker) {
+// WithClient sets an existing Redis client for pool mode.
+func WithClient(client redis.Cmdable) Option {
+	return func(c *Checker) {
 		c.client = client
 	}
 }
 
-// WithRedisPassword sets the password for standalone mode connections.
-func WithRedisPassword(password string) RedisOption {
-	return func(c *RedisChecker) {
+// WithPassword sets the password for standalone mode connections.
+func WithPassword(password string) Option {
+	return func(c *Checker) {
 		c.password = password
 	}
 }
 
-// WithRedisDB sets the database number for standalone mode connections.
-func WithRedisDB(db int) RedisOption {
-	return func(c *RedisChecker) {
+// WithDB sets the database number for standalone mode connections.
+func WithDB(db int) Option {
+	return func(c *Checker) {
 		c.db = db
 	}
 }
 
-// NewRedisChecker creates a new Redis health checker with the given options.
-func NewRedisChecker(opts ...RedisOption) *RedisChecker {
-	c := &RedisChecker{}
+// New creates a new Redis health checker with the given options.
+func New(opts ...Option) *Checker {
+	c := &Checker{}
 	for _, opt := range opts {
 		opt(c)
 	}
 	return c
 }
 
+// NewFromConfig creates a Redis checker from DependencyConfig.
+func NewFromConfig(dc *dephealth.DependencyConfig) dephealth.HealthChecker {
+	var opts []Option
+	if dc.RedisPassword != "" {
+		opts = append(opts, WithPassword(dc.RedisPassword))
+	}
+	if dc.RedisDB != nil {
+		opts = append(opts, WithDB(*dc.RedisDB))
+	}
+	// Extract password and db from URL if explicit options are not set.
+	if dc.URL != "" {
+		u, err := url.Parse(dc.URL)
+		if err == nil && u != nil && u.User != nil && dc.RedisPassword == "" {
+			if p, ok := u.User.Password(); ok {
+				opts = append(opts, WithPassword(p))
+			}
+		}
+		if err == nil && u != nil && dc.RedisDB == nil {
+			dbStr := strings.TrimPrefix(u.Path, "/")
+			if db, parseErr := strconv.Atoi(dbStr); parseErr == nil {
+				opts = append(opts, WithDB(db))
+			}
+		}
+	}
+	return New(opts...)
+}
+
 // Check performs a PING command against the Redis endpoint.
 // In pool mode, uses the existing client. In standalone mode, creates a new client.
-func (c *RedisChecker) Check(ctx context.Context, endpoint dephealth.Endpoint) error {
+func (c *Checker) Check(ctx context.Context, endpoint dephealth.Endpoint) error {
 	if c.client != nil {
 		return c.checkPool(ctx)
 	}
 	return c.checkStandalone(ctx, endpoint)
 }
 
-func (c *RedisChecker) checkPool(ctx context.Context) error {
+func (c *Checker) checkPool(ctx context.Context) error {
 	if err := c.client.Ping(ctx).Err(); err != nil {
-		return classifyRedisError(err, "pool")
+		return classifyError(err, "pool")
 	}
 	return nil
 }
 
-func (c *RedisChecker) checkStandalone(ctx context.Context, endpoint dephealth.Endpoint) error {
+func (c *Checker) checkStandalone(ctx context.Context, endpoint dephealth.Endpoint) error {
 	addr := net.JoinHostPort(endpoint.Host, endpoint.Port)
 	client := redis.NewClient(&redis.Options{
 		Addr:         addr,
@@ -87,13 +125,13 @@ func (c *RedisChecker) checkStandalone(ctx context.Context, endpoint dephealth.E
 	defer func() { _ = client.Close() }()
 
 	if err := client.Ping(ctx).Err(); err != nil {
-		return classifyRedisError(err, addr)
+		return classifyError(err, addr)
 	}
 	return nil
 }
 
-// classifyRedisError wraps Redis errors with appropriate classification.
-func classifyRedisError(err error, target string) error {
+// classifyError wraps Redis errors with appropriate classification.
+func classifyError(err error, target string) error {
 	msg := err.Error()
 
 	// Auth errors.
@@ -150,6 +188,6 @@ func classifyRedisError(err error, target string) error {
 }
 
 // Type returns the dependency type for this checker.
-func (c *RedisChecker) Type() string {
+func (c *Checker) Type() string {
 	return string(dephealth.TypeRedis)
 }

@@ -1,4 +1,4 @@
-package checks
+package httpcheck
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 )
 
-func TestHTTPChecker_Check_Success(t *testing.T) {
+func TestChecker_Check_Success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -23,13 +23,13 @@ func TestHTTPChecker_Check_Success(t *testing.T) {
 	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
-	checker := NewHTTPChecker(WithHealthPath("/"))
+	checker := New(WithHealthPath("/"))
 	if err := checker.Check(context.Background(), ep); err != nil {
 		t.Errorf("expected success, got error: %v", err)
 	}
 }
 
-func TestHTTPChecker_Check_Non2xx(t *testing.T) {
+func TestChecker_Check_Non2xx(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}))
@@ -38,7 +38,7 @@ func TestHTTPChecker_Check_Non2xx(t *testing.T) {
 	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
-	checker := NewHTTPChecker(WithHealthPath("/"))
+	checker := New(WithHealthPath("/"))
 	err := checker.Check(context.Background(), ep)
 	if err == nil {
 		t.Error("expected error for status 503, got nil")
@@ -48,7 +48,7 @@ func TestHTTPChecker_Check_Non2xx(t *testing.T) {
 	}
 }
 
-func TestHTTPChecker_Check_Redirect(t *testing.T) {
+func TestChecker_Check_Redirect(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/other", http.StatusMovedPermanently)
 	}))
@@ -57,14 +57,14 @@ func TestHTTPChecker_Check_Redirect(t *testing.T) {
 	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
-	checker := NewHTTPChecker(WithHealthPath("/"))
+	checker := New(WithHealthPath("/"))
 	err := checker.Check(context.Background(), ep)
 	if err == nil {
 		t.Error("expected error for redirect 301, got nil")
 	}
 }
 
-func TestHTTPChecker_Check_UserAgent(t *testing.T) {
+func TestChecker_Check_UserAgent(t *testing.T) {
 	var gotUA string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotUA = r.Header.Get("User-Agent")
@@ -75,16 +75,16 @@ func TestHTTPChecker_Check_UserAgent(t *testing.T) {
 	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
-	checker := NewHTTPChecker(WithHealthPath("/"))
+	checker := New(WithHealthPath("/"))
 	_ = checker.Check(context.Background(), ep)
 
-	expected := "dephealth/" + Version
+	expected := "dephealth/" + dephealth.Version
 	if gotUA != expected {
 		t.Errorf("User-Agent = %q, expected %q", gotUA, expected)
 	}
 }
 
-func TestHTTPChecker_Check_CustomPath(t *testing.T) {
+func TestChecker_Check_CustomPath(t *testing.T) {
 	var gotPath string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotPath = r.URL.Path
@@ -95,7 +95,7 @@ func TestHTTPChecker_Check_CustomPath(t *testing.T) {
 	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
-	checker := NewHTTPChecker(WithHealthPath("/custom/healthz"))
+	checker := New(WithHealthPath("/custom/healthz"))
 	_ = checker.Check(context.Background(), ep)
 
 	if gotPath != "/custom/healthz" {
@@ -103,7 +103,7 @@ func TestHTTPChecker_Check_CustomPath(t *testing.T) {
 	}
 }
 
-func TestHTTPChecker_Check_TLS(t *testing.T) {
+func TestChecker_Check_TLS(t *testing.T) {
 	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -113,7 +113,7 @@ func TestHTTPChecker_Check_TLS(t *testing.T) {
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
 	// Without skip verify — expect error (self-signed certificate).
-	checker := NewHTTPChecker(
+	checker := New(
 		WithHealthPath("/"),
 		WithTLSEnabled(true),
 	)
@@ -123,17 +123,17 @@ func TestHTTPChecker_Check_TLS(t *testing.T) {
 	}
 
 	// With skip verify — expect success.
-	checker = NewHTTPChecker(
+	checker = New(
 		WithHealthPath("/"),
 		WithTLSEnabled(true),
-		WithHTTPTLSSkipVerify(true),
+		WithTLSSkipVerify(true),
 	)
 	if err := checker.Check(context.Background(), ep); err != nil {
 		t.Errorf("expected success with skip verify, got: %v", err)
 	}
 }
 
-func TestHTTPChecker_Check_TLSWithCert(t *testing.T) {
+func TestChecker_Check_TLSWithCert(t *testing.T) {
 	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -148,7 +148,7 @@ func TestHTTPChecker_Check_TLSWithCert(t *testing.T) {
 
 	// Create a checker with TLS and a trusted certificate via custom transport.
 	// This verifies that TLS works correctly with a valid certificate.
-	checker := NewHTTPChecker(
+	checker := New(
 		WithHealthPath("/"),
 		WithTLSEnabled(true),
 	)
@@ -168,7 +168,7 @@ func TestHTTPChecker_Check_TLSWithCert(t *testing.T) {
 
 	addr := net.JoinHostPort(host, port)
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, "https://"+addr+"/", nil)
-	req.Header.Set("User-Agent", "dephealth/"+Version)
+	req.Header.Set("User-Agent", "dephealth/"+dephealth.Version)
 	resp, err := client.Do(req)
 	if err != nil {
 		t.Fatalf("request with trusted certificate failed: %v", err)
@@ -184,37 +184,37 @@ func TestHTTPChecker_Check_TLSWithCert(t *testing.T) {
 	}
 }
 
-func TestHTTPChecker_Check_ConnectionRefused(t *testing.T) {
+func TestChecker_Check_ConnectionRefused(t *testing.T) {
 	ep := dephealth.Endpoint{Host: "127.0.0.1", Port: "1"}
 
-	checker := NewHTTPChecker(WithHealthPath("/"))
+	checker := New(WithHealthPath("/"))
 	err := checker.Check(context.Background(), ep)
 	if err == nil {
 		t.Error("expected error for closed port, got nil")
 	}
 }
 
-func TestHTTPChecker_Check_ContextCanceled(t *testing.T) {
+func TestChecker_Check_ContextCanceled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
 	ep := dephealth.Endpoint{Host: "127.0.0.1", Port: "9999"}
 
-	checker := NewHTTPChecker(WithHealthPath("/"))
+	checker := New(WithHealthPath("/"))
 	err := checker.Check(ctx, ep)
 	if err == nil {
 		t.Error("expected error for canceled context, got nil")
 	}
 }
 
-func TestHTTPChecker_Type(t *testing.T) {
-	checker := NewHTTPChecker()
+func TestChecker_Type(t *testing.T) {
+	checker := New()
 	if got := checker.Type(); got != "http" {
 		t.Errorf("Type() = %q, expected %q", got, "http")
 	}
 }
 
-func TestHTTPChecker_DefaultHealthPath(t *testing.T) {
+func TestChecker_DefaultHealthPath(t *testing.T) {
 	var gotPath string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotPath = r.URL.Path
@@ -225,7 +225,7 @@ func TestHTTPChecker_DefaultHealthPath(t *testing.T) {
 	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
-	checker := NewHTTPChecker() // without WithHealthPath — default /health
+	checker := New() // without WithHealthPath — default /health
 	_ = checker.Check(context.Background(), ep)
 
 	if gotPath != "/health" {
@@ -233,7 +233,7 @@ func TestHTTPChecker_DefaultHealthPath(t *testing.T) {
 	}
 }
 
-func TestHTTPChecker_Check_BearerToken(t *testing.T) {
+func TestChecker_Check_BearerToken(t *testing.T) {
 	var gotAuth string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotAuth = r.Header.Get("Authorization")
@@ -244,7 +244,7 @@ func TestHTTPChecker_Check_BearerToken(t *testing.T) {
 	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
-	checker := NewHTTPChecker(WithHealthPath("/"), WithBearerToken("test-token-123"))
+	checker := New(WithHealthPath("/"), WithBearerToken("test-token-123"))
 	if err := checker.Check(context.Background(), ep); err != nil {
 		t.Fatalf("expected success, got error: %v", err)
 	}
@@ -253,7 +253,7 @@ func TestHTTPChecker_Check_BearerToken(t *testing.T) {
 	}
 }
 
-func TestHTTPChecker_Check_BasicAuth(t *testing.T) {
+func TestChecker_Check_BasicAuth(t *testing.T) {
 	var gotAuth string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotAuth = r.Header.Get("Authorization")
@@ -264,7 +264,7 @@ func TestHTTPChecker_Check_BasicAuth(t *testing.T) {
 	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
-	checker := NewHTTPChecker(WithHealthPath("/"), WithBasicAuth("admin", "secret"))
+	checker := New(WithHealthPath("/"), WithBasicAuth("admin", "secret"))
 	if err := checker.Check(context.Background(), ep); err != nil {
 		t.Fatalf("expected success, got error: %v", err)
 	}
@@ -273,7 +273,7 @@ func TestHTTPChecker_Check_BasicAuth(t *testing.T) {
 	}
 }
 
-func TestHTTPChecker_Check_CustomHeaders(t *testing.T) {
+func TestChecker_Check_CustomHeaders(t *testing.T) {
 	var gotAPIKey, gotCustom string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotAPIKey = r.Header.Get("X-API-Key")
@@ -285,7 +285,7 @@ func TestHTTPChecker_Check_CustomHeaders(t *testing.T) {
 	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
-	checker := NewHTTPChecker(
+	checker := New(
 		WithHealthPath("/"),
 		WithHeaders(map[string]string{
 			"X-API-Key": "my-key",
@@ -303,7 +303,7 @@ func TestHTTPChecker_Check_CustomHeaders(t *testing.T) {
 	}
 }
 
-func TestHTTPChecker_Check_401_AuthError(t *testing.T) {
+func TestChecker_Check_401_AuthError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 	}))
@@ -312,7 +312,7 @@ func TestHTTPChecker_Check_401_AuthError(t *testing.T) {
 	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
-	checker := NewHTTPChecker(WithHealthPath("/"))
+	checker := New(WithHealthPath("/"))
 	err := checker.Check(context.Background(), ep)
 	if err == nil {
 		t.Fatal("expected error for 401, got nil")
@@ -330,7 +330,7 @@ func TestHTTPChecker_Check_401_AuthError(t *testing.T) {
 	}
 }
 
-func TestHTTPChecker_Check_403_AuthError(t *testing.T) {
+func TestChecker_Check_403_AuthError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 	}))
@@ -339,7 +339,7 @@ func TestHTTPChecker_Check_403_AuthError(t *testing.T) {
 	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
-	checker := NewHTTPChecker(WithHealthPath("/"))
+	checker := New(WithHealthPath("/"))
 	err := checker.Check(context.Background(), ep)
 	if err == nil {
 		t.Fatal("expected error for 403, got nil")
@@ -354,7 +354,7 @@ func TestHTTPChecker_Check_403_AuthError(t *testing.T) {
 	}
 }
 
-func TestHTTPChecker_Check_503_Unhealthy(t *testing.T) {
+func TestChecker_Check_503_Unhealthy(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}))
@@ -363,7 +363,7 @@ func TestHTTPChecker_Check_503_Unhealthy(t *testing.T) {
 	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
-	checker := NewHTTPChecker(WithHealthPath("/"))
+	checker := New(WithHealthPath("/"))
 	err := checker.Check(context.Background(), ep)
 	if err == nil {
 		t.Fatal("expected error for 503, got nil")

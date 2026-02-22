@@ -1,4 +1,9 @@
-package checks
+// Package pgcheck provides a PostgreSQL health checker for dephealth.
+//
+// Import this package to register the PostgreSQL checker factory:
+//
+//	import _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/pgcheck"
+package pgcheck
 
 import (
 	"context"
@@ -12,44 +17,48 @@ import (
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 )
 
-// PostgresOption configures the PostgresChecker.
-type PostgresOption func(*PostgresChecker)
+func init() {
+	dephealth.RegisterCheckerFactory(dephealth.TypePostgres, NewFromConfig)
+}
 
-// PostgresChecker performs health checks against a PostgreSQL database.
+// Option configures the Checker.
+type Option func(*Checker)
+
+// Checker performs health checks against a PostgreSQL database.
 // Supports two modes:
 //   - Standalone: creates a new connection per check using DSN built from endpoint
 //   - Pool: uses an existing *sql.DB connection pool
-type PostgresChecker struct {
+type Checker struct {
 	db    *sql.DB // nil = standalone, non-nil = pool mode
 	dsn   string  // custom DSN for standalone mode (overrides endpoint-based DSN)
 	query string  // health check query
 }
 
-// WithPostgresDB sets an existing connection pool for pool mode.
-func WithPostgresDB(db *sql.DB) PostgresOption {
-	return func(c *PostgresChecker) {
+// WithDB sets an existing connection pool for pool mode.
+func WithDB(db *sql.DB) Option {
+	return func(c *Checker) {
 		c.db = db
 	}
 }
 
-// WithPostgresDSN sets a custom DSN for standalone mode.
+// WithDSN sets a custom DSN for standalone mode.
 // If set, the endpoint host/port are ignored.
-func WithPostgresDSN(dsn string) PostgresOption {
-	return func(c *PostgresChecker) {
+func WithDSN(dsn string) Option {
+	return func(c *Checker) {
 		c.dsn = dsn
 	}
 }
 
-// WithPostgresQuery sets the health check SQL query (default "SELECT 1").
-func WithPostgresQuery(query string) PostgresOption {
-	return func(c *PostgresChecker) {
+// WithQuery sets the health check SQL query (default "SELECT 1").
+func WithQuery(query string) Option {
+	return func(c *Checker) {
 		c.query = query
 	}
 }
 
-// NewPostgresChecker creates a new PostgreSQL health checker with the given options.
-func NewPostgresChecker(opts ...PostgresOption) *PostgresChecker {
-	c := &PostgresChecker{
+// New creates a new PostgreSQL health checker with the given options.
+func New(opts ...Option) *Checker {
+	c := &Checker{
 		query: "SELECT 1",
 	}
 	for _, opt := range opts {
@@ -58,24 +67,36 @@ func NewPostgresChecker(opts ...PostgresOption) *PostgresChecker {
 	return c
 }
 
+// NewFromConfig creates a PostgreSQL checker from DependencyConfig.
+func NewFromConfig(dc *dephealth.DependencyConfig) dephealth.HealthChecker {
+	var opts []Option
+	if dc.URL != "" {
+		opts = append(opts, WithDSN(dc.URL))
+	}
+	if dc.PostgresQuery != "" {
+		opts = append(opts, WithQuery(dc.PostgresQuery))
+	}
+	return New(opts...)
+}
+
 // Check performs a health check against the PostgreSQL endpoint.
 // In pool mode, uses the existing *sql.DB. In standalone mode, opens a new connection.
-func (c *PostgresChecker) Check(ctx context.Context, endpoint dephealth.Endpoint) error {
+func (c *Checker) Check(ctx context.Context, endpoint dephealth.Endpoint) error {
 	if c.db != nil {
 		return c.checkPool(ctx)
 	}
 	return c.checkStandalone(ctx, endpoint)
 }
 
-func (c *PostgresChecker) checkPool(ctx context.Context) error {
+func (c *Checker) checkPool(ctx context.Context) error {
 	rows, err := c.db.QueryContext(ctx, c.query)
 	if err != nil {
-		return classifyPostgresError(err, "pool")
+		return classifyError(err, "pool")
 	}
 	return rows.Close()
 }
 
-func (c *PostgresChecker) checkStandalone(ctx context.Context, endpoint dephealth.Endpoint) error {
+func (c *Checker) checkStandalone(ctx context.Context, endpoint dephealth.Endpoint) error {
 	dsn := c.dsn
 	if dsn == "" {
 		dsn = fmt.Sprintf("postgres://%s/postgres", net.JoinHostPort(endpoint.Host, endpoint.Port))
@@ -89,14 +110,14 @@ func (c *PostgresChecker) checkStandalone(ctx context.Context, endpoint dephealt
 
 	rows, err := db.QueryContext(ctx, c.query)
 	if err != nil {
-		return classifyPostgresError(err, endpoint.Host)
+		return classifyError(err, endpoint.Host)
 	}
 	return rows.Close()
 }
 
-// classifyPostgresError wraps PostgreSQL errors with appropriate classification.
+// classifyError wraps PostgreSQL errors with appropriate classification.
 // Detects auth errors via SQLSTATE codes 28000/28P01 in the error message.
-func classifyPostgresError(err error, target string) error {
+func classifyError(err error, target string) error {
 	msg := err.Error()
 	if strings.Contains(msg, "28000") || strings.Contains(msg, "28P01") ||
 		strings.Contains(msg, "password authentication failed") {
@@ -110,6 +131,6 @@ func classifyPostgresError(err error, target string) error {
 }
 
 // Type returns the dependency type for this checker.
-func (c *PostgresChecker) Type() string {
+func (c *Checker) Type() string {
 	return string(dephealth.TypePostgres)
 }

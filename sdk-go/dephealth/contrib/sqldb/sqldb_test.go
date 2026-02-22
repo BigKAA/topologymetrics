@@ -7,7 +7,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
-	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks" // register checker factories
+	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/mysqlcheck" // register MySQL checker factory
+	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/pgcheck"    // register PostgreSQL checker factory
 )
 
 func TestFromDB(t *testing.T) {

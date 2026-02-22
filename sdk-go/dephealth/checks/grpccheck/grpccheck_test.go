@@ -1,4 +1,4 @@
-package checks
+package grpccheck
 
 import (
 	"context"
@@ -89,84 +89,84 @@ func startTestAuthGRPCServer(t *testing.T, requiredAuth string) (string, *testAu
 	}
 }
 
-func TestGRPCChecker_Check_Serving(t *testing.T) {
+func TestChecker_Check_Serving(t *testing.T) {
 	addr, stop := startTestGRPCServer(t, healthpb.HealthCheckResponse_SERVING)
 	defer stop()
 
 	host, port, _ := net.SplitHostPort(addr)
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
-	checker := NewGRPCChecker()
+	checker := New()
 	if err := checker.Check(context.Background(), ep); err != nil {
 		t.Errorf("expected success, got error: %v", err)
 	}
 }
 
-func TestGRPCChecker_Check_NotServing(t *testing.T) {
+func TestChecker_Check_NotServing(t *testing.T) {
 	addr, stop := startTestGRPCServer(t, healthpb.HealthCheckResponse_NOT_SERVING)
 	defer stop()
 
 	host, port, _ := net.SplitHostPort(addr)
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
-	checker := NewGRPCChecker()
+	checker := New()
 	err := checker.Check(context.Background(), ep)
 	if err == nil {
 		t.Error("expected error for NOT_SERVING, got nil")
 	}
 }
 
-func TestGRPCChecker_Check_WithServiceName(t *testing.T) {
+func TestChecker_Check_WithServiceName(t *testing.T) {
 	addr, stop := startTestGRPCServer(t, healthpb.HealthCheckResponse_SERVING)
 	defer stop()
 
 	host, port, _ := net.SplitHostPort(addr)
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
-	checker := NewGRPCChecker(WithServiceName("myservice"))
+	checker := New(WithServiceName("myservice"))
 	if err := checker.Check(context.Background(), ep); err != nil {
 		t.Errorf("expected success with serviceName, got error: %v", err)
 	}
 }
 
-func TestGRPCChecker_Check_ConnectionRefused(t *testing.T) {
+func TestChecker_Check_ConnectionRefused(t *testing.T) {
 	ep := dephealth.Endpoint{Host: "127.0.0.1", Port: "1"}
 
-	checker := NewGRPCChecker()
+	checker := New()
 	err := checker.Check(context.Background(), ep)
 	if err == nil {
 		t.Error("expected error for closed port, got nil")
 	}
 }
 
-func TestGRPCChecker_Check_ContextCanceled(t *testing.T) {
+func TestChecker_Check_ContextCanceled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
 	ep := dephealth.Endpoint{Host: "127.0.0.1", Port: "9999"}
 
-	checker := NewGRPCChecker()
+	checker := New()
 	err := checker.Check(ctx, ep)
 	if err == nil {
 		t.Error("expected error for canceled context, got nil")
 	}
 }
 
-func TestGRPCChecker_Type(t *testing.T) {
-	checker := NewGRPCChecker()
+func TestChecker_Type(t *testing.T) {
+	checker := New()
 	if got := checker.Type(); got != "grpc" {
 		t.Errorf("Type() = %q, expected %q", got, "grpc")
 	}
 }
 
-func TestGRPCChecker_Check_BearerToken(t *testing.T) {
+func TestChecker_Check_BearerToken(t *testing.T) {
 	addr, authSrv, stop := startTestAuthGRPCServer(t, "Bearer test-token")
 	defer stop()
 
 	host, port, _ := net.SplitHostPort(addr)
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
-	checker := NewGRPCChecker(WithGRPCBearerToken("test-token"))
+	checker := New(WithBearerToken("test-token"))
 	if err := checker.Check(context.Background(), ep); err != nil {
 		t.Fatalf("expected success, got error: %v", err)
 	}
@@ -175,7 +175,7 @@ func TestGRPCChecker_Check_BearerToken(t *testing.T) {
 	}
 }
 
-func TestGRPCChecker_Check_BasicAuth(t *testing.T) {
+func TestChecker_Check_BasicAuth(t *testing.T) {
 	// Base64 of "admin:secret" = "YWRtaW46c2VjcmV0"
 	addr, authSrv, stop := startTestAuthGRPCServer(t, "Basic YWRtaW46c2VjcmV0")
 	defer stop()
@@ -183,7 +183,7 @@ func TestGRPCChecker_Check_BasicAuth(t *testing.T) {
 	host, port, _ := net.SplitHostPort(addr)
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
-	checker := NewGRPCChecker(WithGRPCBasicAuth("admin", "secret"))
+	checker := New(WithBasicAuth("admin", "secret"))
 	if err := checker.Check(context.Background(), ep); err != nil {
 		t.Fatalf("expected success, got error: %v", err)
 	}
@@ -192,14 +192,14 @@ func TestGRPCChecker_Check_BasicAuth(t *testing.T) {
 	}
 }
 
-func TestGRPCChecker_Check_CustomMetadata(t *testing.T) {
+func TestChecker_Check_CustomMetadata(t *testing.T) {
 	addr, _, stop := startTestAuthGRPCServer(t, "Bearer custom-meta")
 	defer stop()
 
 	host, port, _ := net.SplitHostPort(addr)
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
-	checker := NewGRPCChecker(WithMetadata(map[string]string{
+	checker := New(WithMetadata(map[string]string{
 		"authorization": "Bearer custom-meta",
 	}))
 	if err := checker.Check(context.Background(), ep); err != nil {
@@ -207,7 +207,7 @@ func TestGRPCChecker_Check_CustomMetadata(t *testing.T) {
 	}
 }
 
-func TestGRPCChecker_Check_Unauthenticated_AuthError(t *testing.T) {
+func TestChecker_Check_Unauthenticated_AuthError(t *testing.T) {
 	addr, _, stop := startTestAuthGRPCServer(t, "Bearer required-token")
 	defer stop()
 
@@ -215,7 +215,7 @@ func TestGRPCChecker_Check_Unauthenticated_AuthError(t *testing.T) {
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
 	// No auth — server returns UNAUTHENTICATED.
-	checker := NewGRPCChecker()
+	checker := New()
 	err := checker.Check(context.Background(), ep)
 	if err == nil {
 		t.Fatal("expected error for unauthenticated, got nil")
@@ -233,7 +233,7 @@ func TestGRPCChecker_Check_Unauthenticated_AuthError(t *testing.T) {
 	}
 }
 
-func TestGRPCChecker_Check_PermissionDenied_AuthError(t *testing.T) {
+func TestChecker_Check_PermissionDenied_AuthError(t *testing.T) {
 	addr, _, stop := startTestAuthGRPCServer(t, "Bearer correct-token")
 	defer stop()
 
@@ -241,7 +241,7 @@ func TestGRPCChecker_Check_PermissionDenied_AuthError(t *testing.T) {
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
 	// Wrong token — server returns PERMISSION_DENIED.
-	checker := NewGRPCChecker(WithGRPCBearerToken("wrong-token"))
+	checker := New(WithBearerToken("wrong-token"))
 	err := checker.Check(context.Background(), ep)
 	if err == nil {
 		t.Fatal("expected error for permission denied, got nil")
@@ -256,14 +256,14 @@ func TestGRPCChecker_Check_PermissionDenied_AuthError(t *testing.T) {
 	}
 }
 
-func TestGRPCChecker_Check_NotServing_Unhealthy(t *testing.T) {
+func TestChecker_Check_NotServing_Unhealthy(t *testing.T) {
 	addr, stop := startTestGRPCServer(t, healthpb.HealthCheckResponse_NOT_SERVING)
 	defer stop()
 
 	host, port, _ := net.SplitHostPort(addr)
 	ep := dephealth.Endpoint{Host: host, Port: port}
 
-	checker := NewGRPCChecker()
+	checker := New()
 	err := checker.Check(context.Background(), ep)
 	if err == nil {
 		t.Fatal("expected error for NOT_SERVING, got nil")

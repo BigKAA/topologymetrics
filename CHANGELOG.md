@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-02-22 (Go SDK only)
+
+Split the `checks` package into individual sub-packages so users can import
+only the checkers they need, reducing binary size and build time.
+
+### Added
+
+- **Go SDK**: Selective checker imports via sub-packages (`httpcheck`, `pgcheck`,
+  `grpccheck`, `tcpcheck`, `mysqlcheck`, `redischeck`, `amqpcheck`, `kafkacheck`)
+- **Go SDK**: Each sub-package self-registers its factory via `init()`
+- **Go SDK**: Backward-compatible type aliases and constructor wrappers in
+  `checks/compat.go` (marked `Deprecated`)
+- Migration guide from v0.5.0 to v0.6.0
+
+### Changed
+
+- **Go SDK**: `checks` package now re-exports all sub-packages via blank imports
+- **Go SDK**: `Version` constant moved from `checks/doc.go` to `dephealth/version.go`
+- **Go SDK**: `contrib/sqldb` and `contrib/redispool` updated to use sub-packages
+- **Go SDK**: Error message for missing checker factory now mentions both import styles
+
 ## [0.5.0] - 2026-02-18
 
 Mandatory `group` label: logical grouping of services (team, subsystem, project),

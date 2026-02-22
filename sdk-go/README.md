@@ -22,27 +22,52 @@ go get github.com/BigKAA/topologymetrics/sdk-go/dephealth
 package main
 
 import (
+    "context"
     "log"
     "net/http"
+    "os"
+    "os/signal"
+    "syscall"
 
     "github.com/BigKAA/topologymetrics/sdk-go/dephealth"
     "github.com/prometheus/client_golang/prometheus/promhttp"
+
+    // Register checker factories
+    _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/pgcheck"
+    _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/redischeck"
 )
 
 func main() {
-    dh, err := dephealth.New(
-        dephealth.WithDependency("postgres", "postgresql://user:pass@localhost:5432/mydb"),
-        dephealth.WithDependency("redis", "redis://localhost:6379"),
+    dh, err := dephealth.New("my-service", "my-team",
+        dephealth.Postgres("postgres",
+            dephealth.FromURL("postgresql://user:pass@localhost:5432/mydb"),
+            dephealth.Critical(true),
+        ),
+        dephealth.Redis("redis",
+            dephealth.FromURL("redis://localhost:6379"),
+            dephealth.Critical(false),
+        ),
     )
     if err != nil {
         log.Fatal(err)
     }
 
-    dh.Start()
+    ctx, cancel := context.WithCancel(context.Background())
+    defer cancel()
+
+    if err := dh.Start(ctx); err != nil {
+        log.Fatal(err)
+    }
     defer dh.Stop()
 
     http.Handle("/metrics", promhttp.Handler())
-    log.Fatal(http.ListenAndServe(":8080", nil))
+    go func() {
+        log.Fatal(http.ListenAndServe(":8080", nil))
+    }()
+
+    sigCh := make(chan os.Signal, 1)
+    signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
+    <-sigCh
 }
 ```
 
@@ -50,10 +75,10 @@ func main() {
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `WithInterval` | `15s` | Check interval |
-| `WithTimeout` | `5s` | Check timeout |
-| `WithFailureThreshold` | `1` | Consecutive failures before unhealthy |
-| `WithSuccessThreshold` | `1` | Consecutive successes before healthy |
+| `WithCheckInterval(d)` | `15s` | Interval between health checks |
+| `WithTimeout(d)` | `5s` | Timeout for a single check |
+| `WithRegisterer(r)` | default | Custom Prometheus registerer |
+| `WithLogger(l)` | none | `*slog.Logger` for SDK operations |
 
 ## Supported Dependencies
 
@@ -74,23 +99,47 @@ func main() {
 details := dh.HealthDetails()
 for key, ep := range details {
     fmt.Printf("%s: healthy=%v status=%s latency=%v\n",
-        key, ep.Healthy, ep.Status, ep.Latency)
+        key, *ep.Healthy, ep.Status, ep.Latency)
 }
 ```
 
 ## Connection Pool Integration
 
 ```go
-import "github.com/BigKAA/topologymetrics/sdk-go/dephealth/contrib/pgxcheck"
+import "github.com/BigKAA/topologymetrics/sdk-go/dephealth/contrib/sqldb"
 
-pool, _ := pgxpool.New(ctx, connString)
-checker := pgxcheck.New(pool)
+db, _ := sql.Open("pgx", connString)
 
-dh, _ := dephealth.New(
-    dephealth.WithChecker("postgres", checker,
-        dephealth.FromURL("postgresql://localhost:5432/mydb")),
+dh, _ := dephealth.New("my-service", "my-team",
+    sqldb.FromDB("postgres", db,
+        dephealth.FromURL("postgresql://localhost:5432/mydb"),
+        dephealth.Critical(true),
+    ),
 )
 ```
+
+See [Connection Pools](docs/connection-pools.md) for Redis and MySQL pool
+integration.
+
+## Selective Imports
+
+By default, importing the `checks` package registers all checker factories:
+
+```go
+import _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks" // all checkers
+```
+
+To reduce binary size, import only the checkers you need:
+
+```go
+import (
+    _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/httpcheck"
+    _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/pgcheck"
+)
+```
+
+Available sub-packages: `tcpcheck`, `httpcheck`, `grpccheck`, `pgcheck`,
+`mysqlcheck`, `redischeck`, `amqpcheck`, `kafkacheck`.
 
 ## Authentication
 
@@ -104,13 +153,30 @@ dephealth.HTTP("secure-api",
 )
 
 dephealth.GRPC("grpc-backend",
-    dephealth.FromParams("backend.svc", 9090),
+    dephealth.FromParams("backend.svc", "9090"),
     dephealth.Critical(true),
     dephealth.WithGRPCBearerToken("eyJhbG..."),
 )
 ```
 
-See [quickstart guide](../docs/quickstart/go.md#authentication) for all options.
+See [Authentication](docs/authentication.md) for all options.
+
+## Documentation
+
+| Guide | Description |
+| --- | --- |
+| [Getting Started](docs/getting-started.md) | Installation, basic setup, first health check |
+| [Checkers](docs/checkers.md) | Detailed guide for all 8 built-in checkers |
+| [Configuration](docs/configuration.md) | All options, defaults, environment variables |
+| [Connection Pools](docs/connection-pools.md) | Integration with existing connection pools |
+| [Custom Checkers](docs/custom-checkers.md) | Implementing your own health checker |
+| [Authentication](docs/authentication.md) | Auth for HTTP, gRPC, and database checkers |
+| [Metrics](docs/metrics.md) | Prometheus metrics reference and PromQL examples |
+| [Selective Imports](docs/selective-imports.md) | Binary size optimization with split packages |
+| [API Reference](docs/api-reference.md) | Complete reference of all public symbols |
+| [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions |
+| [Quick Start Guide](../docs/quickstart/go.md) | Extended examples with environment variables |
+| [Migration v0.5 to v0.6](../docs/migration/v050-to-v060.md) | Migration guide for v0.6.0 split checkers |
 
 ## License
 

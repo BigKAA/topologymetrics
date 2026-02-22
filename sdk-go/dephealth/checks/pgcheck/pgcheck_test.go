@@ -1,4 +1,4 @@
-package checks
+package pgcheck
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 )
 
-func TestPostgresChecker_Check_PoolMode(t *testing.T) {
+func TestChecker_Check_PoolMode(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("failed to create sqlmock: %v", err)
@@ -18,7 +18,7 @@ func TestPostgresChecker_Check_PoolMode(t *testing.T) {
 
 	mock.ExpectQuery("SELECT 1").WillReturnRows(sqlmock.NewRows([]string{"1"}).AddRow(1))
 
-	checker := NewPostgresChecker(WithPostgresDB(db))
+	checker := New(WithDB(db))
 	ep := dephealth.Endpoint{Host: "ignored", Port: "5432"}
 
 	if err := checker.Check(context.Background(), ep); err != nil {
@@ -30,7 +30,7 @@ func TestPostgresChecker_Check_PoolMode(t *testing.T) {
 	}
 }
 
-func TestPostgresChecker_Check_PoolMode_Error(t *testing.T) {
+func TestChecker_Check_PoolMode_Error(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("failed to create sqlmock: %v", err)
@@ -39,7 +39,7 @@ func TestPostgresChecker_Check_PoolMode_Error(t *testing.T) {
 
 	mock.ExpectQuery("SELECT 1").WillReturnError(context.DeadlineExceeded)
 
-	checker := NewPostgresChecker(WithPostgresDB(db))
+	checker := New(WithDB(db))
 	ep := dephealth.Endpoint{Host: "ignored", Port: "5432"}
 
 	if err := checker.Check(context.Background(), ep); err == nil {
@@ -47,7 +47,7 @@ func TestPostgresChecker_Check_PoolMode_Error(t *testing.T) {
 	}
 }
 
-func TestPostgresChecker_Check_PoolMode_CustomQuery(t *testing.T) {
+func TestChecker_Check_PoolMode_CustomQuery(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("failed to create sqlmock: %v", err)
@@ -56,7 +56,7 @@ func TestPostgresChecker_Check_PoolMode_CustomQuery(t *testing.T) {
 
 	mock.ExpectQuery("SELECT version()").WillReturnRows(sqlmock.NewRows([]string{"version"}).AddRow("15.0"))
 
-	checker := NewPostgresChecker(WithPostgresDB(db), WithPostgresQuery("SELECT version()"))
+	checker := New(WithDB(db), WithQuery("SELECT version()"))
 	ep := dephealth.Endpoint{Host: "ignored", Port: "5432"}
 
 	if err := checker.Check(context.Background(), ep); err != nil {
@@ -64,8 +64,8 @@ func TestPostgresChecker_Check_PoolMode_CustomQuery(t *testing.T) {
 	}
 }
 
-func TestPostgresChecker_Check_Standalone_ConnectionRefused(t *testing.T) {
-	checker := NewPostgresChecker()
+func TestChecker_Check_Standalone_ConnectionRefused(t *testing.T) {
+	checker := New()
 	ep := dephealth.Endpoint{Host: "127.0.0.1", Port: "1"}
 
 	err := checker.Check(context.Background(), ep)
@@ -74,11 +74,11 @@ func TestPostgresChecker_Check_Standalone_ConnectionRefused(t *testing.T) {
 	}
 }
 
-func TestPostgresChecker_Check_Standalone_ContextCanceled(t *testing.T) {
+func TestChecker_Check_Standalone_ContextCanceled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	checker := NewPostgresChecker()
+	checker := New()
 	ep := dephealth.Endpoint{Host: "127.0.0.1", Port: "5432"}
 
 	err := checker.Check(ctx, ep)
@@ -87,9 +87,23 @@ func TestPostgresChecker_Check_Standalone_ContextCanceled(t *testing.T) {
 	}
 }
 
-func TestPostgresChecker_Type(t *testing.T) {
-	checker := NewPostgresChecker()
+func TestChecker_Type(t *testing.T) {
+	checker := New()
 	if got := checker.Type(); got != "postgres" {
 		t.Errorf("Type() = %q, expected %q", got, "postgres")
+	}
+}
+
+func TestNewFromConfig_URLPassedAsDSN(t *testing.T) {
+	dc := &dephealth.DependencyConfig{
+		URL: "postgres://user:pass@pg.svc:5432/mydb",
+	}
+	checker := NewFromConfig(dc)
+	pg, ok := checker.(*Checker)
+	if !ok {
+		t.Fatal("expected *Checker")
+	}
+	if pg.dsn != dc.URL {
+		t.Errorf("dsn = %q, expected %q", pg.dsn, dc.URL)
 	}
 }

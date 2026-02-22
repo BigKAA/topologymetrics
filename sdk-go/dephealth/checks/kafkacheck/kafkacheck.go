@@ -1,4 +1,9 @@
-package checks
+// Package kafkacheck provides a Kafka health checker for dephealth.
+//
+// Import this package to register the Kafka checker factory:
+//
+//	import _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/kafkacheck"
+package kafkacheck
 
 import (
 	"context"
@@ -10,19 +15,28 @@ import (
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 )
 
-// KafkaChecker performs health checks against a Kafka broker.
+func init() {
+	dephealth.RegisterCheckerFactory(dephealth.TypeKafka, NewFromConfig)
+}
+
+// Checker performs health checks against a Kafka broker.
 // Connects to the broker, requests broker metadata, and closes the connection.
 // Only standalone mode is supported.
-type KafkaChecker struct{}
+type Checker struct{}
 
-// NewKafkaChecker creates a new Kafka health checker.
-func NewKafkaChecker() *KafkaChecker {
-	return &KafkaChecker{}
+// New creates a new Kafka health checker.
+func New() *Checker {
+	return &Checker{}
+}
+
+// NewFromConfig creates a Kafka checker from DependencyConfig.
+func NewFromConfig(_ *dephealth.DependencyConfig) dephealth.HealthChecker {
+	return New()
 }
 
 // Check connects to the Kafka broker, requests metadata, and closes.
 // Returns nil if the broker responds with metadata.
-func (c *KafkaChecker) Check(ctx context.Context, endpoint dephealth.Endpoint) error {
+func (c *Checker) Check(ctx context.Context, endpoint dephealth.Endpoint) error {
 	addr := net.JoinHostPort(endpoint.Host, endpoint.Port)
 
 	dialer := &kafka.Dialer{}
@@ -48,6 +62,6 @@ func (c *KafkaChecker) Check(ctx context.Context, endpoint dephealth.Endpoint) e
 }
 
 // Type returns the dependency type for this checker.
-func (c *KafkaChecker) Type() string {
+func (c *Checker) Type() string {
 	return string(dephealth.TypeKafka)
 }

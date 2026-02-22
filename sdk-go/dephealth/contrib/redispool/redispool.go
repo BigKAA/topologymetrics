@@ -8,14 +8,14 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
-	"github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks"
+	"github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/redischeck"
 )
 
 // FromClient creates an Option for monitoring Redis via an existing *redis.Client.
 // Host and port are automatically extracted from client.Options().Addr.
 // Additional DependencyOption values (Critical, CheckInterval, etc.) can be provided.
 func FromClient(name string, client *redis.Client, opts ...dephealth.DependencyOption) dephealth.Option {
-	checker := checks.NewRedisChecker(checks.WithRedisClient(client))
+	checker := redischeck.New(redischeck.WithClient(client))
 
 	// Extract host:port from the client.
 	addr := client.Options().Addr

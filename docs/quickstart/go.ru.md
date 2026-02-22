@@ -28,7 +28,10 @@ import (
     "github.com/BigKAA/topologymetrics/sdk-go/dephealth"
     "github.com/prometheus/client_golang/prometheus/promhttp"
 
-    _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks" // регистрация чекеров
+    // Импорт всех чекеров сразу:
+    _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks"
+    // Или только нужные (уменьшает размер бинарника):
+    // _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/httpcheck"
 )
 
 func main() {
@@ -507,3 +510,5 @@ http.Handle("/metrics", promhttp.Handler())
 - [Руководство по интеграции](../migration/go.ru.md) — пошаговое подключение
   к существующему сервису
 - [Обзор спецификации](../specification.ru.md) — детали контрактов метрик и поведения
+- [Документация SDK](../../sdk-go/docs/getting-started.ru.md) — подробные руководства по SDK,
+  справочник API и устранение неполадок
