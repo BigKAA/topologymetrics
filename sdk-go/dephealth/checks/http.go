@@ -97,7 +97,7 @@ func (c *HTTPChecker) Check(ctx context.Context, endpoint dephealth.Endpoint) er
 	if err != nil {
 		return fmt.Errorf("http create request: %w", err)
 	}
-	req.Header.Set("User-Agent", "dephealth/"+Version)
+	req.Header.Set("User-Agent", "dephealth/"+dephealth.Version)
 
 	// Apply custom headers after User-Agent so they can override it.
 	for k, v := range c.headers {

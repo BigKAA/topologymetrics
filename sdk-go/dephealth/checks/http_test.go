@@ -78,7 +78,7 @@ func TestHTTPChecker_Check_UserAgent(t *testing.T) {
 	checker := NewHTTPChecker(WithHealthPath("/"))
 	_ = checker.Check(context.Background(), ep)
 
-	expected := "dephealth/" + Version
+	expected := "dephealth/" + dephealth.Version
 	if gotUA != expected {
 		t.Errorf("User-Agent = %q, expected %q", gotUA, expected)
 	}
@@ -168,7 +168,7 @@ func TestHTTPChecker_Check_TLSWithCert(t *testing.T) {
 
 	addr := net.JoinHostPort(host, port)
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, "https://"+addr+"/", nil)
-	req.Header.Set("User-Agent", "dephealth/"+Version)
+	req.Header.Set("User-Agent", "dephealth/"+dephealth.Version)
 	resp, err := client.Do(req)
 	if err != nil {
 		t.Fatalf("request with trusted certificate failed: %v", err)
