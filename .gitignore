@@ -28,7 +28,7 @@ conformance/stubs/http-stub/http-stub
 Thumbs.db
 
 # AI
-CLAUDE.md
+#CLAUDE.md
 .serena/
 
 # Python
@@ -70,4 +70,3 @@ docker-compose.override.yml
 .tasks
 .playwright-mcp
 
-plans/

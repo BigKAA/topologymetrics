@@ -2,8 +2,8 @@
 
 ## sdk-go
 
-- [ ] **[Important]** Implement separate export of individual checkers (allow users to import only the checkers they need instead of the entire package)
-- [ ] Create detailed SDK documentation covering all available functions, types, and usage examples
+- [x] **[Important]** Implement separate export of individual checkers (allow users to import only the checkers they need instead of the entire package) — v0.6.0
+- [x] Create detailed SDK documentation covering all available functions, types, and usage examples — v0.6.0
 - [ ] Implement LDAP checker
 - [ ] **[Low]** Implement S3 checker
 
