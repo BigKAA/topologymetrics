@@ -1,4 +1,4 @@
-package checks
+package kafkacheck
 
 import (
 	"context"
@@ -8,8 +8,8 @@ import (
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 )
 
-func TestKafkaChecker_Check_ConnectionRefused(t *testing.T) {
-	checker := NewKafkaChecker()
+func TestChecker_Check_ConnectionRefused(t *testing.T) {
+	checker := New()
 	ep := dephealth.Endpoint{Host: "127.0.0.1", Port: "1"}
 
 	err := checker.Check(context.Background(), ep)
@@ -18,11 +18,11 @@ func TestKafkaChecker_Check_ConnectionRefused(t *testing.T) {
 	}
 }
 
-func TestKafkaChecker_Check_ContextCanceled(t *testing.T) {
+func TestChecker_Check_ContextCanceled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	checker := NewKafkaChecker()
+	checker := New()
 	ep := dephealth.Endpoint{Host: "127.0.0.1", Port: "9092"}
 
 	err := checker.Check(ctx, ep)
@@ -31,11 +31,11 @@ func TestKafkaChecker_Check_ContextCanceled(t *testing.T) {
 	}
 }
 
-func TestKafkaChecker_Check_Timeout(t *testing.T) {
+func TestChecker_Check_Timeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
-	checker := NewKafkaChecker()
+	checker := New()
 	ep := dephealth.Endpoint{Host: "192.0.2.1", Port: "9092"} // TEST-NET-1
 
 	err := checker.Check(ctx, ep)
@@ -44,8 +44,8 @@ func TestKafkaChecker_Check_Timeout(t *testing.T) {
 	}
 }
 
-func TestKafkaChecker_Type(t *testing.T) {
-	checker := NewKafkaChecker()
+func TestChecker_Type(t *testing.T) {
+	checker := New()
 	if got := checker.Type(); got != "kafka" {
 		t.Errorf("Type() = %q, expected %q", got, "kafka")
 	}
