@@ -92,6 +92,26 @@ dh, _ := dephealth.New(
 )
 ```
 
+## Selective Imports
+
+By default, importing the `checks` package registers all checker factories:
+
+```go
+import _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks" // all checkers
+```
+
+To reduce binary size, import only the checkers you need:
+
+```go
+import (
+    _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/httpcheck"
+    _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/pgcheck"
+)
+```
+
+Available sub-packages: `tcpcheck`, `httpcheck`, `grpccheck`, `pgcheck`,
+`mysqlcheck`, `redischeck`, `amqpcheck`, `kafkacheck`.
+
 ## Authentication
 
 HTTP and gRPC checkers support Bearer token, Basic Auth, and custom headers/metadata:
