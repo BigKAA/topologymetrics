@@ -242,18 +242,18 @@ Integration tests for the public API.
 
 **Pre-merge checklist:**
 
-- [ ] All unit tests pass (including new dynamic endpoint tests)
-- [ ] `go test -race` passes
-- [ ] All linters pass
-- [ ] Backward compatibility verified (existing API unchanged)
-- [ ] Docs complete (EN + RU)
-- [ ] CHANGELOG updated
+- [x] All unit tests pass (including new dynamic endpoint tests)
+- [x] `go test -race` passes
+- [x] All linters pass
+- [x] Backward compatibility verified (existing API unchanged)
+- [x] Docs complete (EN + RU)
+- [x] CHANGELOG updated
 
 **Actions:**
 
-- Merge to master (or PR — ask user)
-- Tag: `sdk-go/v0.7.0`
-- GitHub Release: sdk-go/v0.7.0
-- Move this plan to `plans/archive/`
+- [x] Push to master (6 commits, phases 1-6)
+- [x] Tag: `sdk-go/v0.7.0`
+- [x] GitHub Release: <https://github.com/BigKAA/topologymetrics/releases/tag/sdk-go/v0.7.0>
+- [x] Move this plan to `plans/archive/`
 
-**Status:** not started
+**Status:** done
