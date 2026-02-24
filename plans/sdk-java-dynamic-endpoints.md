@@ -211,23 +211,24 @@ Integration tests for the public API.
 
 **Add to `dephealth-core/src/test/.../DepHealthTest.java`:**
 
-- [ ] `testAddEndpoint` — create DepHealthMonitor, start, addEndpoint, verify `health()`
-- [ ] `testAddEndpoint_InvalidName` — invalid dep name, throws `ValidationException`
-- [ ] `testAddEndpoint_InvalidType` — null type, throws exception
-- [ ] `testAddEndpoint_MissingHost` — empty host, throws `ValidationException`
-- [ ] `testAddEndpoint_ReservedLabel` — reserved label, throws `ValidationException`
-- [ ] `testRemoveEndpoint` — remove, verify gone from `health()`
-- [ ] `testUpdateEndpoint` — update, verify old gone and new present
-- [ ] `testUpdateEndpoint_MissingNewHost` — empty new host, throws `ValidationException`
-- [ ] `testUpdateEndpoint_NotFound` — throws `EndpointNotFoundException`
-- [ ] `testAddEndpoint_InheritsGlobalConfig` — verify dynamic endpoint uses global interval/timeout
+- [x] `testAddEndpoint` — create DepHealthMonitor, start, addEndpoint, verify `health()`
+- [x] `testAddEndpoint_InvalidName` — invalid dep name, throws `ValidationException`
+- [x] `testAddEndpoint_InvalidType` — null type, throws exception
+- [x] `testAddEndpoint_MissingHost` — empty host, throws `ValidationException`
+- [x] `testAddEndpoint_MissingPort` — empty port, throws `ValidationException`
+- [x] `testAddEndpoint_ReservedLabel` — reserved label, throws `ValidationException`
+- [x] `testRemoveEndpoint` — remove, verify gone from `health()`
+- [x] `testUpdateEndpoint` — update, verify old gone and new present
+- [x] `testUpdateEndpoint_MissingNewHost` — empty new host, throws `ValidationException`
+- [x] `testUpdateEndpoint_NotFound` — throws `EndpointNotFoundException`
+- [x] `testAddEndpoint_InheritsGlobalConfig` — verify dynamic endpoint uses global interval/timeout
 
 **Validation:**
 
-- [ ] `mvn test` passes (all tests)
-- [ ] Checkstyle passes
+- [x] `mvn test` passes (all tests)
+- [x] Checkstyle passes
 
-**Status:** not started
+**Status:** done
 
 ---
 
