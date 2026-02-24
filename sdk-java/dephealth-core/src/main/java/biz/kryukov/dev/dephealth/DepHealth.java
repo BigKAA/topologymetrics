@@ -80,6 +80,73 @@ public final class DepHealth {
     }
 
     /**
+     * Dynamically adds an endpoint at runtime.
+     *
+     * @param depName  dependency name (must match {@code [a-z][a-z0-9-]*}, max 63 chars)
+     * @param depType  dependency type (must not be null)
+     * @param critical whether this endpoint is critical
+     * @param ep       endpoint to add (host and port must be non-empty)
+     * @param checker  health checker for this endpoint
+     * @throws ValidationException   if any parameter fails validation
+     * @throws IllegalStateException if the scheduler is not running
+     */
+    public void addEndpoint(String depName, DependencyType depType,
+                            boolean critical, Endpoint ep, HealthChecker checker) {
+        Dependency.validateName(depName);
+        validateDepType(depType);
+        validateEndpoint(ep);
+        scheduler.addEndpoint(depName, depType, critical, ep, checker);
+    }
+
+    /**
+     * Dynamically removes an endpoint at runtime.
+     *
+     * @param depName dependency name
+     * @param host    endpoint host
+     * @param port    endpoint port
+     */
+    public void removeEndpoint(String depName, String host, String port) {
+        scheduler.removeEndpoint(depName, host, port);
+    }
+
+    /**
+     * Dynamically updates an endpoint at runtime (remove old + add new).
+     *
+     * @param depName  dependency name
+     * @param oldHost  old endpoint host
+     * @param oldPort  old endpoint port
+     * @param newEp    new endpoint (host and port must be non-empty)
+     * @param checker  health checker for the new endpoint
+     * @throws ValidationException         if new endpoint fails validation
+     * @throws EndpointNotFoundException   if the old endpoint does not exist
+     * @throws IllegalStateException       if the scheduler is not running
+     */
+    public void updateEndpoint(String depName, String oldHost, String oldPort,
+                               Endpoint newEp, HealthChecker checker) {
+        validateEndpoint(newEp);
+        scheduler.updateEndpoint(depName, oldHost, oldPort, newEp, checker);
+    }
+
+    private static void validateDepType(DependencyType depType) {
+        if (depType == null) {
+            throw new ValidationException("dependency type must not be null");
+        }
+    }
+
+    private static void validateEndpoint(Endpoint ep) {
+        if (ep == null) {
+            throw new ValidationException("endpoint must not be null");
+        }
+        if (ep.host() == null || ep.host().isEmpty()) {
+            throw new ValidationException("endpoint host must not be empty");
+        }
+        if (ep.port() == null || ep.port().isEmpty()) {
+            throw new ValidationException("endpoint port must not be empty");
+        }
+        Endpoint.validateLabels(ep.labels());
+    }
+
+    /**
      * Creates a builder with a required application name and logical group.
      *
      * @param name          unique application name ({@code name} label)

@@ -54,6 +54,26 @@ public final class Dependency {
         return value ? "yes" : "no";
     }
 
+    /**
+     * Validates that the dependency name matches the naming rules.
+     *
+     * @param name dependency name
+     * @throws ValidationException if the name is invalid
+     */
+    public static void validateName(String name) {
+        Objects.requireNonNull(name, "dependency name");
+        if (name.isEmpty() || name.length() > MAX_NAME_LENGTH) {
+            throw new ValidationException(
+                    "dependency name must be 1-" + MAX_NAME_LENGTH + " characters, got '"
+                            + name + "' (" + name.length() + " chars)");
+        }
+        if (!NAME_PATTERN.matcher(name).matches()) {
+            throw new ValidationException(
+                    "dependency name must match " + NAME_PATTERN.pattern()
+                            + ", got '" + name + "'");
+        }
+    }
+
     public static Builder builder(String name, DependencyType type) {
         return new Builder(name, type);
     }
@@ -99,15 +119,7 @@ public final class Dependency {
         }
 
         private void validate() {
-            if (name.isEmpty() || name.length() > MAX_NAME_LENGTH) {
-                throw new ValidationException(
-                        "dependency name must be 1-" + MAX_NAME_LENGTH + " characters, got '"
-                                + name + "' (" + name.length() + " chars)");
-            }
-            if (!NAME_PATTERN.matcher(name).matches()) {
-                throw new ValidationException(
-                        "dependency name must match " + NAME_PATTERN.pattern() + ", got '" + name + "'");
-            }
+            validateName(name);
             if (endpoints.isEmpty()) {
                 throw new ValidationException("dependency '" + name + "' must have at least one endpoint");
             }

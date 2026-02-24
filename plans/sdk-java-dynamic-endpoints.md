@@ -153,24 +153,24 @@ Thin wrappers with input validation, delegating to CheckScheduler.
 
 **Modify `dephealth-core/.../DepHealth.java`:**
 
-- [ ] Add `addEndpoint(String depName, DependencyType depType, boolean critical, Endpoint ep, HealthChecker checker)`
+- [x] Add `addEndpoint(String depName, DependencyType depType, boolean critical, Endpoint ep, HealthChecker checker)`
   - Validate `depName` via existing `Dependency.validateName()`
   - Validate `depType != null`
   - Validate `ep.host()` and `ep.port()` non-empty
   - Validate `ep.labels()` via existing label validation
   - Delegate to `scheduler.addEndpoint()`
-- [ ] Add `removeEndpoint(String depName, String host, String port)`
+- [x] Add `removeEndpoint(String depName, String host, String port)`
   - Passthrough to `scheduler.removeEndpoint()`
-- [ ] Add `updateEndpoint(String depName, String oldHost, String oldPort, Endpoint newEp, HealthChecker checker)`
+- [x] Add `updateEndpoint(String depName, String oldHost, String oldPort, Endpoint newEp, HealthChecker checker)`
   - Validate `newEp.host()`, `newEp.port()`, `newEp.labels()`
   - Delegate to `scheduler.updateEndpoint()`
 
 **Validation:**
 
-- [ ] `mvn compile` passes
-- [ ] Checkstyle passes
+- [x] `mvn compile` passes
+- [x] Checkstyle passes
 
-**Status:** not started
+**Status:** done
 
 ---
 
