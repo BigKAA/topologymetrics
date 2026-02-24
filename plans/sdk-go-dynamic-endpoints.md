@@ -129,24 +129,24 @@ Thin wrappers with input validation, delegating to Scheduler.
 
 **Modify `dephealth/dephealth.go`:**
 
-- [ ] Add `func (dh *DepHealth) AddEndpoint(depName, depType, critical, ep, checker) error`
+- [x] Add `func (dh *DepHealth) AddEndpoint(depName, depType, critical, ep, checker) error`
   - Validate `depName` via `ValidateName()`
   - Validate `depType` via `ValidTypes`
   - Validate `ep.Host != ""` and `ep.Port != ""`
   - Validate `ep.Labels` via `ValidateLabels()`
   - Delegate to `dh.scheduler.AddEndpoint()`
-- [ ] Add `func (dh *DepHealth) RemoveEndpoint(depName, host, port) error`
+- [x] Add `func (dh *DepHealth) RemoveEndpoint(depName, host, port) error`
   - Passthrough to `dh.scheduler.RemoveEndpoint()`
-- [ ] Add `func (dh *DepHealth) UpdateEndpoint(depName, oldHost, oldPort, newEp, checker) error`
+- [x] Add `func (dh *DepHealth) UpdateEndpoint(depName, oldHost, oldPort, newEp, checker) error`
   - Validate `newEp.Host`, `newEp.Port`, `newEp.Labels`
   - Delegate to `dh.scheduler.UpdateEndpoint()`
 
 **Validation:**
 
-- [ ] `make build` passes
-- [ ] `make lint` passes
+- [x] `make build` passes
+- [x] `make lint` passes (docker lint fails due to network, local golangci-lint passes)
 
-**Status:** not started
+**Status:** done
 
 ---
 

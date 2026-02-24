@@ -150,3 +150,49 @@ func (dh *DepHealth) Health() map[string]bool {
 func (dh *DepHealth) HealthDetails() map[string]EndpointStatus {
 	return dh.scheduler.HealthDetails()
 }
+
+// AddEndpoint dynamically adds a new health-checked endpoint at runtime.
+// The endpoint inherits the global check interval and timeout configured on the DepHealth instance.
+// If the endpoint already exists (same depName:host:port), the call is a no-op.
+func (dh *DepHealth) AddEndpoint(depName string, depType DependencyType, critical bool, ep Endpoint, checker HealthChecker) error {
+	if err := ValidateName(depName); err != nil {
+		return fmt.Errorf("dephealth: invalid dependency name: %w", err)
+	}
+	if !ValidTypes[depType] {
+		return fmt.Errorf("dephealth: unknown dependency type %q", depType)
+	}
+	if ep.Host == "" {
+		return fmt.Errorf("dephealth: missing host for endpoint")
+	}
+	if ep.Port == "" {
+		return fmt.Errorf("dephealth: missing port for endpoint")
+	}
+	if err := ValidateLabels(ep.Labels); err != nil {
+		return fmt.Errorf("dephealth: %w", err)
+	}
+	return dh.scheduler.AddEndpoint(depName, depType, critical, ep, checker)
+}
+
+// RemoveEndpoint dynamically removes a health-checked endpoint at runtime.
+// The endpoint's goroutine is cancelled and its metrics are deleted.
+// If the endpoint does not exist, the call is a no-op.
+func (dh *DepHealth) RemoveEndpoint(depName, host, port string) error {
+	return dh.scheduler.RemoveEndpoint(depName, host, port)
+}
+
+// UpdateEndpoint atomically replaces an existing endpoint with a new one.
+// The old endpoint's goroutine is cancelled and its metrics are deleted;
+// a new goroutine is started for the new endpoint.
+// Returns ErrEndpointNotFound if the old endpoint does not exist.
+func (dh *DepHealth) UpdateEndpoint(depName, oldHost, oldPort string, newEp Endpoint, checker HealthChecker) error {
+	if newEp.Host == "" {
+		return fmt.Errorf("dephealth: missing host for new endpoint")
+	}
+	if newEp.Port == "" {
+		return fmt.Errorf("dephealth: missing port for new endpoint")
+	}
+	if err := ValidateLabels(newEp.Labels); err != nil {
+		return fmt.Errorf("dephealth: %w", err)
+	}
+	return dh.scheduler.UpdateEndpoint(depName, oldHost, oldPort, newEp, checker)
+}
