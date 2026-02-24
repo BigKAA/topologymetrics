@@ -79,11 +79,21 @@ func New(name string, group string, opts ...Option) (*DepHealth, error) {
 		return nil, fmt.Errorf("dephealth: metrics: %w", err)
 	}
 
+	// Build global check config: user overrides > defaults.
+	globalCfg := DefaultCheckConfig()
+	if cfg.interval > 0 {
+		globalCfg.Interval = cfg.interval
+	}
+	if cfg.timeout > 0 {
+		globalCfg.Timeout = cfg.timeout
+	}
+
 	// Create Scheduler.
 	var schedOpts []SchedulerOption
 	if cfg.logger != nil {
 		schedOpts = append(schedOpts, WithSchedulerLogger(cfg.logger))
 	}
+	schedOpts = append(schedOpts, WithGlobalCheckConfig(globalCfg))
 	sched := NewScheduler(metrics, schedOpts...)
 
 	// Register all dependencies.

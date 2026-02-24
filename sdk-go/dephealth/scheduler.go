@@ -11,8 +11,9 @@ import (
 
 // Sentinel errors for the scheduler.
 var (
-	ErrAlreadyStarted = errors.New("scheduler already started")
-	ErrNotStarted     = errors.New("scheduler not started")
+	ErrAlreadyStarted   = errors.New("scheduler already started")
+	ErrNotStarted       = errors.New("scheduler not started")
+	ErrEndpointNotFound = errors.New("endpoint not found")
 )
 
 // endpointState holds the health check state for a specific endpoint.
@@ -35,15 +36,20 @@ type endpointState struct {
 	port     string
 	critical bool
 	labels   map[string]string
+
+	// Per-endpoint cancel function for dynamic removal.
+	cancel context.CancelFunc
 }
 
 // Scheduler manages periodic execution of health checks.
 type Scheduler struct {
-	deps    []scheduledDep
-	metrics *MetricsExporter
-	logger  *slog.Logger
+	deps         []scheduledDep
+	metrics      *MetricsExporter
+	logger       *slog.Logger
+	globalConfig CheckConfig
 
 	states  map[string]*endpointState // key: "name:host:port"
+	ctx     context.Context
 	cancel  context.CancelFunc
 	wg      sync.WaitGroup
 	started bool
@@ -61,13 +67,21 @@ type scheduledDep struct {
 type SchedulerOption func(*schedulerConfig)
 
 type schedulerConfig struct {
-	logger *slog.Logger
+	logger       *slog.Logger
+	globalConfig *CheckConfig
 }
 
 // WithSchedulerLogger sets the logger for the scheduler.
 func WithSchedulerLogger(l *slog.Logger) SchedulerOption {
 	return func(c *schedulerConfig) {
 		c.logger = l
+	}
+}
+
+// WithGlobalCheckConfig sets the global check config for dynamically added endpoints.
+func WithGlobalCheckConfig(cfg CheckConfig) SchedulerOption {
+	return func(c *schedulerConfig) {
+		c.globalConfig = &cfg
 	}
 }
 
@@ -81,9 +95,15 @@ func NewScheduler(metrics *MetricsExporter, opts ...SchedulerOption) *Scheduler 
 		o(&cfg)
 	}
 
+	globalCfg := DefaultCheckConfig()
+	if cfg.globalConfig != nil {
+		globalCfg = *cfg.globalConfig
+	}
+
 	return &Scheduler{
-		metrics: metrics,
-		logger:  cfg.logger,
+		metrics:      metrics,
+		logger:       cfg.logger,
+		globalConfig: globalCfg,
 	}
 }
 
@@ -100,6 +120,7 @@ func (s *Scheduler) Start(ctx context.Context) error {
 	s.started = true
 
 	ctx, s.cancel = context.WithCancel(ctx)
+	s.ctx = ctx
 
 	s.states = make(map[string]*endpointState)
 	for _, sd := range s.deps {
@@ -110,6 +131,7 @@ func (s *Scheduler) Start(ctx context.Context) error {
 			for k, v := range ep.Labels {
 				labels[k] = v
 			}
+			epCtx, epCancel := context.WithCancel(ctx)
 			st := &endpointState{
 				lastStatus: StatusUnknown,
 				lastDetail: "unknown",
@@ -119,10 +141,11 @@ func (s *Scheduler) Start(ctx context.Context) error {
 				port:       ep.Port,
 				critical:   critical,
 				labels:     labels,
+				cancel:     epCancel,
 			}
 			s.states[key] = st
 			s.wg.Add(1)
-			go s.runEndpointLoop(ctx, sd.dep, ep, sd.checker, st)
+			go s.runEndpointLoop(epCtx, sd.dep, ep, sd.checker, st)
 		}
 	}
 
@@ -150,15 +173,14 @@ func (s *Scheduler) Stop() {
 // Endpoints in UNKNOWN state (before first check) are not included in the result.
 func (s *Scheduler) Health() map[string]bool {
 	s.mu.Lock()
-	states := s.states
-	s.mu.Unlock()
+	defer s.mu.Unlock()
 
-	if states == nil {
+	if s.states == nil {
 		return nil
 	}
 
-	result := make(map[string]bool, len(states))
-	for key, st := range states {
+	result := make(map[string]bool, len(s.states))
+	for key, st := range s.states {
 		st.mu.Lock()
 		if st.healthy != nil {
 			result[key] = *st.healthy
@@ -174,15 +196,14 @@ func (s *Scheduler) Health() map[string]bool {
 // Returns nil before Start() is called.
 func (s *Scheduler) HealthDetails() map[string]EndpointStatus {
 	s.mu.Lock()
-	states := s.states
-	s.mu.Unlock()
+	defer s.mu.Unlock()
 
-	if states == nil {
+	if s.states == nil {
 		return nil
 	}
 
-	result := make(map[string]EndpointStatus, len(states))
-	for key, st := range states {
+	result := make(map[string]EndpointStatus, len(s.states))
+	for key, st := range s.states {
 		st.mu.Lock()
 		es := EndpointStatus{
 			Healthy:       copyBoolPtr(st.healthy),
