@@ -93,7 +93,7 @@ Implement the three core methods on `Scheduler`.
 
 **Add to `dephealth/scheduler.go`:**
 
-- [ ] `Scheduler.AddEndpoint(depName, depType, critical, ep, checker) error`
+- [x] `Scheduler.AddEndpoint(depName, depType, critical, ep, checker) error`
   - Lock `s.mu`
   - Check `started` and `!stopped`, else return `ErrNotStarted`
   - Compute key `depName:host:port`, return nil if exists (idempotent)
@@ -101,13 +101,13 @@ Implement the three core methods on `Scheduler`.
   - Create `endpointState` with static fields
   - Derive child context `context.WithCancel(s.ctx)`, store cancel in state
   - Insert into `s.states`, `s.wg.Add(1)`, launch `runEndpointLoop`
-- [ ] `Scheduler.RemoveEndpoint(depName, host, port) error`
+- [x] `Scheduler.RemoveEndpoint(depName, host, port) error`
   - Lock `s.mu`
   - Check `started`, else return `ErrNotStarted`
   - Find state by key, return nil if not found (idempotent)
   - Call `st.cancel()`, `delete(s.states, key)`
   - Build minimal `Dependency`/`Endpoint` from state, call `s.metrics.DeleteMetrics()`
-- [ ] `Scheduler.UpdateEndpoint(depName, oldHost, oldPort, newEp, checker) error`
+- [x] `Scheduler.UpdateEndpoint(depName, oldHost, oldPort, newEp, checker) error`
   - Lock `s.mu`
   - Check `started` and `!stopped`
   - Find old state, return `ErrEndpointNotFound` if missing
@@ -116,10 +116,10 @@ Implement the three core methods on `Scheduler`.
 
 **Validation:**
 
-- [ ] `make build` passes
-- [ ] `make lint` passes
+- [x] `make build` passes
+- [x] `make lint` passes (docker lint fails due to network, local golangci-lint passes)
 
-**Status:** not started
+**Status:** done
 
 ---
 

@@ -382,6 +382,166 @@ func (s *Scheduler) executeCheck(
 	}
 }
 
+// AddEndpoint dynamically adds a new endpoint to the running scheduler.
+// It creates a new health check goroutine using the global check config.
+// If the endpoint already exists (same depName:host:port), the call is a no-op (idempotent).
+// Returns ErrNotStarted if the scheduler has not been started or has been stopped.
+func (s *Scheduler) AddEndpoint(depName string, depType DependencyType, critical bool, ep Endpoint, checker HealthChecker) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if !s.started || s.stopped {
+		return ErrNotStarted
+	}
+
+	key := depName + ":" + ep.Host + ":" + ep.Port
+	if _, exists := s.states[key]; exists {
+		return nil // idempotent
+	}
+
+	dep := Dependency{
+		Name:      depName,
+		Type:      depType,
+		Critical:  &critical,
+		Endpoints: []Endpoint{ep},
+		Config:    s.globalConfig,
+	}
+
+	labels := make(map[string]string, len(ep.Labels))
+	for k, v := range ep.Labels {
+		labels[k] = v
+	}
+
+	epCtx, epCancel := context.WithCancel(s.ctx)
+	st := &endpointState{
+		lastStatus: StatusUnknown,
+		lastDetail: "unknown",
+		depName:    depName,
+		depType:    depType,
+		host:       ep.Host,
+		port:       ep.Port,
+		critical:   critical,
+		labels:     labels,
+		cancel:     epCancel,
+	}
+
+	s.states[key] = st
+	s.wg.Add(1)
+	go s.runEndpointLoop(epCtx, dep, ep, checker, st)
+
+	return nil
+}
+
+// RemoveEndpoint dynamically removes an endpoint from the running scheduler.
+// It cancels the health check goroutine and deletes associated metrics.
+// If the endpoint does not exist, the call is a no-op (idempotent).
+// Returns ErrNotStarted if the scheduler has not been started.
+func (s *Scheduler) RemoveEndpoint(depName, host, port string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if !s.started {
+		return ErrNotStarted
+	}
+
+	key := depName + ":" + host + ":" + port
+	st, exists := s.states[key]
+	if !exists {
+		return nil // idempotent
+	}
+
+	st.cancel()
+	delete(s.states, key)
+
+	// Build minimal Dependency/Endpoint for metrics cleanup.
+	dep := Dependency{
+		Name:     st.depName,
+		Type:     st.depType,
+		Critical: &st.critical,
+	}
+	ep := Endpoint{
+		Host:   st.host,
+		Port:   st.port,
+		Labels: st.labels,
+	}
+	s.metrics.DeleteMetrics(dep, ep)
+
+	return nil
+}
+
+// UpdateEndpoint atomically replaces an endpoint with a new one.
+// The old endpoint's goroutine is cancelled and its metrics are deleted.
+// A new goroutine is started for the new endpoint.
+// Returns ErrEndpointNotFound if the old endpoint does not exist.
+// Returns ErrNotStarted if the scheduler has not been started or has been stopped.
+func (s *Scheduler) UpdateEndpoint(depName, oldHost, oldPort string, newEp Endpoint, checker HealthChecker) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if !s.started || s.stopped {
+		return ErrNotStarted
+	}
+
+	oldKey := depName + ":" + oldHost + ":" + oldPort
+	oldSt, exists := s.states[oldKey]
+	if !exists {
+		return ErrEndpointNotFound
+	}
+
+	// Cancel old goroutine and delete old state/metrics.
+	oldSt.cancel()
+	delete(s.states, oldKey)
+
+	oldDep := Dependency{
+		Name:     oldSt.depName,
+		Type:     oldSt.depType,
+		Critical: &oldSt.critical,
+	}
+	oldEpObj := Endpoint{
+		Host:   oldSt.host,
+		Port:   oldSt.port,
+		Labels: oldSt.labels,
+	}
+	s.metrics.DeleteMetrics(oldDep, oldEpObj)
+
+	// Create new endpoint state.
+	critical := oldSt.critical
+	depType := oldSt.depType
+
+	dep := Dependency{
+		Name:      depName,
+		Type:      depType,
+		Critical:  &critical,
+		Endpoints: []Endpoint{newEp},
+		Config:    s.globalConfig,
+	}
+
+	labels := make(map[string]string, len(newEp.Labels))
+	for k, v := range newEp.Labels {
+		labels[k] = v
+	}
+
+	epCtx, epCancel := context.WithCancel(s.ctx)
+	newSt := &endpointState{
+		lastStatus: StatusUnknown,
+		lastDetail: "unknown",
+		depName:    depName,
+		depType:    depType,
+		host:       newEp.Host,
+		port:       newEp.Port,
+		critical:   critical,
+		labels:     labels,
+		cancel:     epCancel,
+	}
+
+	newKey := depName + ":" + newEp.Host + ":" + newEp.Port
+	s.states[newKey] = newSt
+	s.wg.Add(1)
+	go s.runEndpointLoop(epCtx, dep, newEp, checker, newSt)
+
+	return nil
+}
+
 // safeCheck calls checker.Check with panic recovery.
 func (s *Scheduler) safeCheck(ctx context.Context, checker HealthChecker, ep Endpoint) (err error) {
 	defer func() {
