@@ -15,7 +15,7 @@ The core package providing dependency health monitoring with Prometheus metrics.
 #### Version
 
 ```go
-const Version = "0.6.0"
+const Version = "0.7.0"
 ```
 
 SDK version used in User-Agent headers.
@@ -87,6 +87,7 @@ var (
     ErrUnhealthy         = errors.New("dependency unhealthy")
     ErrAlreadyStarted    = errors.New("scheduler already started")
     ErrNotStarted        = errors.New("scheduler not started")
+    ErrEndpointNotFound  = errors.New("endpoint not found")
 )
 ```
 
@@ -142,6 +143,9 @@ Main SDK entry point. Combines metrics export and check scheduling.
 | `Stop` | `()` | Stop all checks and clean up |
 | `Health` | `() map[string]bool` | Quick health map (key: `dep/host:port`) |
 | `HealthDetails` | `() map[string]EndpointStatus` | Detailed status per endpoint |
+| `AddEndpoint` | `(depName string, depType DependencyType, critical bool, ep Endpoint, checker HealthChecker) error` | Add endpoint at runtime |
+| `RemoveEndpoint` | `(depName, host, port string) error` | Remove endpoint at runtime |
+| `UpdateEndpoint` | `(depName, oldHost, oldPort string, newEp Endpoint, checker HealthChecker) error` | Replace endpoint atomically |
 
 #### Endpoint
 
@@ -874,6 +878,79 @@ Creates an `Option` for monitoring Redis via an existing `*redis.Client`.
 Host and port are automatically extracted from `client.Options().Addr`.
 Additional `DependencyOption` values (`Critical`, `CheckInterval`, etc.)
 can be provided.
+
+---
+
+## Dynamic Endpoint Management
+
+Methods for adding, removing, and updating endpoints at runtime on a
+running `DepHealth` instance. All methods are thread-safe.
+
+### AddEndpoint
+
+```go
+func (dh *DepHealth) AddEndpoint(depName string, depType DependencyType,
+    critical bool, ep Endpoint, checker HealthChecker) error
+```
+
+Adds a new endpoint to a running `DepHealth` instance. A health-check
+goroutine starts immediately using the global check interval and timeout.
+
+**Validation:** `depName` via `ValidateName()`, `depType` against `ValidTypes`,
+`ep.Host` and `ep.Port` must be non-empty, `ep.Labels` via `ValidateLabels()`.
+
+**Idempotent:** if an endpoint with the same `depName:host:port` key already
+exists, returns `nil` without modification.
+
+**Errors:**
+
+| Condition | Error |
+| --- | --- |
+| Scheduler not started or already stopped | `ErrNotStarted` |
+| Invalid dependency name | validation error |
+| Unknown dependency type | `"unknown dependency type"` |
+| Missing host or port | `"missing host/port for endpoint"` |
+| Reserved label name | `InvalidLabelError` |
+
+### RemoveEndpoint
+
+```go
+func (dh *DepHealth) RemoveEndpoint(depName, host, port string) error
+```
+
+Removes an endpoint from a running `DepHealth` instance. Cancels the
+health-check goroutine and deletes all associated Prometheus metrics.
+
+**Idempotent:** if no endpoint with the given key exists, returns `nil`.
+
+**Errors:**
+
+| Condition | Error |
+| --- | --- |
+| Scheduler not started | `ErrNotStarted` |
+
+### UpdateEndpoint
+
+```go
+func (dh *DepHealth) UpdateEndpoint(depName, oldHost, oldPort string,
+    newEp Endpoint, checker HealthChecker) error
+```
+
+Atomically replaces an existing endpoint with a new one. The old endpoint's
+goroutine is cancelled and its metrics are deleted; a new goroutine is
+started for the new endpoint.
+
+**Validation:** `newEp.Host` and `newEp.Port` must be non-empty,
+`newEp.Labels` via `ValidateLabels()`.
+
+**Errors:**
+
+| Condition | Error |
+| --- | --- |
+| Scheduler not started or already stopped | `ErrNotStarted` |
+| Old endpoint not found | `ErrEndpointNotFound` |
+| Missing new host or port | `"missing host/port for new endpoint"` |
+| Reserved label name | `InvalidLabelError` |
 
 ---
 

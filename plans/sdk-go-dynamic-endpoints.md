@@ -212,29 +212,29 @@ Integration tests for the public API.
 
 **Version bump:**
 
-- [ ] `dephealth/version.go` → `Version = "0.7.0"`
+- [x] `dephealth/version.go` → `Version = "0.7.0"`
 
 **Documentation (EN):**
 
-- [ ] Update `sdk-go/docs/api-reference.md` — add `AddEndpoint`, `RemoveEndpoint`, `UpdateEndpoint` to API reference
-- [ ] Update `sdk-go/README.md` — add "Dynamic Endpoints" section with usage example
-- [ ] Create `docs/migration/v060-to-v070.md` — migration guide
+- [x] Update `sdk-go/docs/api-reference.md` — add `AddEndpoint`, `RemoveEndpoint`, `UpdateEndpoint` to API reference
+- [x] Update `sdk-go/README.md` — add "Dynamic Endpoints" section with usage example
+- [x] Create `docs/migration/v060-to-v070.md` — migration guide
 
 **Documentation (RU):**
 
-- [ ] Update `sdk-go/docs/api-reference.ru.md` — same as EN
-- [ ] Create `docs/migration/v060-to-v070.ru.md` — migration guide
+- [x] Update `sdk-go/docs/api-reference.ru.md` — same as EN
+- [x] Create `docs/migration/v060-to-v070.ru.md` — migration guide
 
 **Changelog:**
 
-- [ ] Update `CHANGELOG.md` — add `[0.7.0]` section
+- [x] Update `CHANGELOG.md` — add `[0.7.0]` section
 
 **Validation:**
 
-- [ ] `make build && make test && make lint` — all pass
-- [ ] `markdownlint` on all new/changed `.md` files — 0 issues
+- [x] `make build && make test && make lint` — all pass
+- [x] `markdownlint` on all new/changed `.md` files — 0 issues
 
-**Status:** not started
+**Status:** done
 
 ---
 

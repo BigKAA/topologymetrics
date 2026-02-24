@@ -103,6 +103,34 @@ for key, ep := range details {
 }
 ```
 
+## Dynamic Endpoints
+
+Add, remove, or update monitored endpoints at runtime on a running
+`DepHealth` instance. Useful for applications that discover dependencies
+dynamically (e.g., storage elements registered via REST API).
+
+```go
+import "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/httpcheck"
+
+// Add a new endpoint after Start()
+err := dh.AddEndpoint("api-backend", dephealth.TypeHTTP, true,
+    dephealth.Endpoint{Host: "backend-2.svc", Port: "8080"},
+    httpcheck.New(),
+)
+
+// Remove an endpoint (cancels its goroutine, deletes metrics)
+err = dh.RemoveEndpoint("api-backend", "backend-2.svc", "8080")
+
+// Atomically replace an endpoint with a new one
+err = dh.UpdateEndpoint("api-backend", "backend-1.svc", "8080",
+    dephealth.Endpoint{Host: "backend-3.svc", Port: "8080"},
+    httpcheck.New(),
+)
+```
+
+All three methods are thread-safe and idempotent (`AddEndpoint` ignores
+duplicates, `RemoveEndpoint` ignores missing endpoints).
+
 ## Connection Pool Integration
 
 ```go
@@ -177,6 +205,7 @@ See [Authentication](docs/authentication.md) for all options.
 | [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions |
 | [Quick Start Guide](../docs/quickstart/go.md) | Extended examples with environment variables |
 | [Migration v0.5 to v0.6](../docs/migration/v050-to-v060.md) | Migration guide for v0.6.0 split checkers |
+| [Migration v0.6 to v0.7](../docs/migration/v060-to-v070.md) | Migration guide for v0.7.0 dynamic endpoints |
 
 ## License
 

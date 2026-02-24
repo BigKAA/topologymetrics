@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-02-24 (Go SDK only)
+
+Dynamic endpoint management: add, remove, and update monitored endpoints
+at runtime on a running `DepHealth` instance.
+
+### Added
+
+- **Go SDK**: `DepHealth.AddEndpoint()` — add a monitored endpoint after `Start()`
+- **Go SDK**: `DepHealth.RemoveEndpoint()` — remove an endpoint (cancels goroutine,
+  deletes metrics)
+- **Go SDK**: `DepHealth.UpdateEndpoint()` — atomically replace an endpoint
+- **Go SDK**: `ErrEndpointNotFound` sentinel error
+- **Go SDK**: Per-endpoint cancellation via `context.WithCancel`
+- **Go SDK**: `WithGlobalCheckConfig` scheduler option
+- Migration guide from v0.6.0 to v0.7.0
+
+### Fixed
+
+- **Go SDK**: `Health()` and `HealthDetails()` now hold the mutex during entire
+  map iteration, preventing data races with concurrent endpoint mutations
+
 ## [0.6.0] - 2026-02-22 (Go SDK only)
 
 Split the `checks` package into individual sub-packages so users can import
@@ -324,6 +345,8 @@ verifying cross-language compatibility.
 - SDK comparison table
 - CONTRIBUTING.md with development workflow
 
+[0.7.0]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-go/v0.7.0
+[0.6.0]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-go/v0.6.0
 [0.5.0]: https://github.com/BigKAA/topologymetrics/releases/tag/v0.5.0
 [0.4.2]: https://github.com/BigKAA/topologymetrics/releases/tag/v0.4.2
 [0.4.1]: https://github.com/BigKAA/topologymetrics/releases/tag/v0.4.1

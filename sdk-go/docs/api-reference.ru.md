@@ -15,7 +15,7 @@
 #### Version
 
 ```go
-const Version = "0.6.0"
+const Version = "0.7.0"
 ```
 
 Версия SDK, используется в заголовках User-Agent.
@@ -87,6 +87,7 @@ var (
     ErrUnhealthy         = errors.New("dependency unhealthy")
     ErrAlreadyStarted    = errors.New("scheduler already started")
     ErrNotStarted        = errors.New("scheduler not started")
+    ErrEndpointNotFound  = errors.New("endpoint not found")
 )
 ```
 
@@ -142,6 +143,9 @@ type DepHealth struct{ /* приватные поля */ }
 | `Stop` | `()` | Остановить проверки и освободить ресурсы |
 | `Health` | `() map[string]bool` | Быстрая карта здоровья (ключ: `dep/host:port`) |
 | `HealthDetails` | `() map[string]EndpointStatus` | Детальный статус по каждому эндпоинту |
+| `AddEndpoint` | `(depName string, depType DependencyType, critical bool, ep Endpoint, checker HealthChecker) error` | Добавить эндпоинт в рантайме |
+| `RemoveEndpoint` | `(depName, host, port string) error` | Удалить эндпоинт в рантайме |
+| `UpdateEndpoint` | `(depName, oldHost, oldPort string, newEp Endpoint, checker HealthChecker) error` | Заменить эндпоинт атомарно |
 
 #### Endpoint
 
@@ -879,6 +883,80 @@ func FromClient(name string, client *redis.Client, opts ...dephealth.DependencyO
 Host и port автоматически извлекаются из `client.Options().Addr`.
 Дополнительные `DependencyOption` (`Critical`, `CheckInterval` и т.д.)
 можно передать через `opts`.
+
+---
+
+## Динамическое управление эндпоинтами
+
+Методы для добавления, удаления и обновления эндпоинтов в рантайме
+на работающем экземпляре `DepHealth`. Все методы потокобезопасны.
+
+### AddEndpoint
+
+```go
+func (dh *DepHealth) AddEndpoint(depName string, depType DependencyType,
+    critical bool, ep Endpoint, checker HealthChecker) error
+```
+
+Добавляет новый эндпоинт к работающему экземпляру `DepHealth`. Горутина
+проверки здоровья запускается немедленно с глобальным интервалом и тайм-аутом.
+
+**Валидация:** `depName` через `ValidateName()`, `depType` по `ValidTypes`,
+`ep.Host` и `ep.Port` не должны быть пустыми, `ep.Labels` через `ValidateLabels()`.
+
+**Идемпотентность:** если эндпоинт с таким же ключом `depName:host:port` уже
+существует, возвращает `nil` без изменений.
+
+**Ошибки:**
+
+| Условие | Ошибка |
+| --- | --- |
+| Планировщик не запущен или уже остановлен | `ErrNotStarted` |
+| Невалидное имя зависимости | ошибка валидации |
+| Неизвестный тип зависимости | `"unknown dependency type"` |
+| Отсутствует host или port | `"missing host/port for endpoint"` |
+| Зарезервированное имя метки | `InvalidLabelError` |
+
+### RemoveEndpoint
+
+```go
+func (dh *DepHealth) RemoveEndpoint(depName, host, port string) error
+```
+
+Удаляет эндпоинт из работающего экземпляра `DepHealth`. Отменяет горутину
+проверки и удаляет все связанные метрики Prometheus.
+
+**Идемпотентность:** если эндпоинт с указанным ключом не существует,
+возвращает `nil`.
+
+**Ошибки:**
+
+| Условие | Ошибка |
+| --- | --- |
+| Планировщик не запущен | `ErrNotStarted` |
+
+### UpdateEndpoint
+
+```go
+func (dh *DepHealth) UpdateEndpoint(depName, oldHost, oldPort string,
+    newEp Endpoint, checker HealthChecker) error
+```
+
+Атомарно заменяет существующий эндпоинт новым. Горутина старого эндпоинта
+отменяется, его метрики удаляются; для нового эндпоинта запускается новая
+горутина.
+
+**Валидация:** `newEp.Host` и `newEp.Port` не должны быть пустыми,
+`newEp.Labels` через `ValidateLabels()`.
+
+**Ошибки:**
+
+| Условие | Ошибка |
+| --- | --- |
+| Планировщик не запущен или уже остановлен | `ErrNotStarted` |
+| Старый эндпоинт не найден | `ErrEndpointNotFound` |
+| Отсутствует host или port нового эндпоинта | `"missing host/port for new endpoint"` |
+| Зарезервированное имя метки | `InvalidLabelError` |
 
 ---
 
