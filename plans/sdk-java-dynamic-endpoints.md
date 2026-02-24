@@ -181,27 +181,27 @@ Unit tests for the three new CheckScheduler methods. Use existing test patterns
 
 **Add to `dephealth-core/src/test/.../CheckSchedulerTest.java`:**
 
-- [ ] `testAddEndpoint` — add endpoint after start, wait via latch, verify `health()` includes it
-- [ ] `testAddEndpoint_Idempotent` — add same endpoint twice, verify no error, single entry
-- [ ] `testAddEndpoint_BeforeStart` — throws `IllegalStateException`
-- [ ] `testAddEndpoint_AfterStop` — throws `IllegalStateException`
-- [ ] `testAddEndpoint_Metrics` — verify health gauge appears with correct labels in `SimpleMeterRegistry`
-- [ ] `testRemoveEndpoint` — remove after start, verify disappears from `health()`
-- [ ] `testRemoveEndpoint_Idempotent` — remove non-existent, no error
-- [ ] `testRemoveEndpoint_MetricsDeleted` — verify all metric series removed from registry
-- [ ] `testRemoveEndpoint_BeforeStart` — throws `IllegalStateException`
-- [ ] `testUpdateEndpoint` — update, verify old gone and new appears in `health()`
-- [ ] `testUpdateEndpoint_NotFound` — throws `EndpointNotFoundException`
-- [ ] `testUpdateEndpoint_MetricsSwap` — old metrics deleted, new metrics present
-- [ ] `testStopAfterDynamicAdd` — add endpoint, then `stop()`, verify clean shutdown
-- [ ] `testConcurrentAddRemoveHealth` — run Add/Remove/Health in parallel threads, no `ConcurrentModificationException`
+- [x] `testAddEndpoint` — add endpoint after start, wait via latch, verify `health()` includes it
+- [x] `testAddEndpoint_Idempotent` — add same endpoint twice, verify no error, single entry
+- [x] `testAddEndpoint_BeforeStart` — throws `IllegalStateException`
+- [x] `testAddEndpoint_AfterStop` — throws `IllegalStateException`
+- [x] `testAddEndpoint_Metrics` — verify health gauge appears with correct labels in `SimpleMeterRegistry`
+- [x] `testRemoveEndpoint` — remove after start, verify disappears from `health()`
+- [x] `testRemoveEndpoint_Idempotent` — remove non-existent, no error
+- [x] `testRemoveEndpoint_MetricsDeleted` — verify all metric series removed from registry
+- [x] `testRemoveEndpoint_BeforeStart` — throws `IllegalStateException`
+- [x] `testUpdateEndpoint` — update, verify old gone and new appears in `health()`
+- [x] `testUpdateEndpoint_NotFound` — throws `EndpointNotFoundException`
+- [x] `testUpdateEndpoint_MetricsSwap` — old metrics deleted, new metrics present
+- [x] `testStopAfterDynamicAdd` — add endpoint, then `stop()`, verify clean shutdown
+- [x] `testConcurrentAddRemoveHealth` — run Add/Remove/Health in parallel threads, no `ConcurrentModificationException`
 
 **Validation:**
 
-- [ ] `mvn test` passes (all tests)
-- [ ] No concurrency warnings or flaky tests
+- [x] `mvn test` passes (all tests)
+- [x] No concurrency warnings or flaky tests
 
-**Status:** not started
+**Status:** done
 
 ---
 
