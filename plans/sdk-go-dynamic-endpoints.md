@@ -157,28 +157,28 @@ Unit tests for the three new Scheduler methods. Use existing test patterns
 
 **Add to `dephealth/scheduler_test.go`:**
 
-- [ ] `TestScheduler_AddEndpoint` — add endpoint after Start, wait, verify Health() includes it
-- [ ] `TestScheduler_AddEndpoint_Idempotent` — add same endpoint twice, verify no error, single entry
-- [ ] `TestScheduler_AddEndpoint_BeforeStart` — returns `ErrNotStarted`
-- [ ] `TestScheduler_AddEndpoint_AfterStop` — returns `ErrNotStarted`
-- [ ] `TestScheduler_AddEndpoint_Metrics` — verify health gauge appears with correct labels
-- [ ] `TestScheduler_RemoveEndpoint` — remove after Start, verify disappears from Health()
-- [ ] `TestScheduler_RemoveEndpoint_Idempotent` — remove non-existent, returns nil
-- [ ] `TestScheduler_RemoveEndpoint_MetricsDeleted` — verify health/latency/status metrics gone
-- [ ] `TestScheduler_RemoveEndpoint_BeforeStart` — returns `ErrNotStarted`
-- [ ] `TestScheduler_UpdateEndpoint` — update, verify old gone and new appears in Health()
-- [ ] `TestScheduler_UpdateEndpoint_NotFound` — returns `ErrEndpointNotFound`
-- [ ] `TestScheduler_UpdateEndpoint_MetricsSwap` — old metrics deleted, new metrics present
-- [ ] `TestScheduler_StopAfterDynamicAdd` — add endpoint, then Stop(), verify no goroutine leak
-- [ ] `TestScheduler_ConcurrentAddRemoveHealth` — run Add/Remove/Health in parallel goroutines with `-race`
+- [x] `TestScheduler_AddEndpoint` — add endpoint after Start, wait, verify Health() includes it
+- [x] `TestScheduler_AddEndpoint_Idempotent` — add same endpoint twice, verify no error, single entry
+- [x] `TestScheduler_AddEndpoint_BeforeStart` — returns `ErrNotStarted`
+- [x] `TestScheduler_AddEndpoint_AfterStop` — returns `ErrNotStarted`
+- [x] `TestScheduler_AddEndpoint_Metrics` — verify health gauge appears with correct labels
+- [x] `TestScheduler_RemoveEndpoint` — remove after Start, verify disappears from Health()
+- [x] `TestScheduler_RemoveEndpoint_Idempotent` — remove non-existent, returns nil
+- [x] `TestScheduler_RemoveEndpoint_MetricsDeleted` — verify health/latency/status metrics gone
+- [x] `TestScheduler_RemoveEndpoint_BeforeStart` — returns `ErrNotStarted`
+- [x] `TestScheduler_UpdateEndpoint` — update, verify old gone and new appears in Health()
+- [x] `TestScheduler_UpdateEndpoint_NotFound` — returns `ErrEndpointNotFound`
+- [x] `TestScheduler_UpdateEndpoint_MetricsSwap` — old metrics deleted, new metrics present
+- [x] `TestScheduler_StopAfterDynamicAdd` — add endpoint, then Stop(), verify no goroutine leak
+- [x] `TestScheduler_ConcurrentAddRemoveHealth` — run Add/Remove/Health in parallel goroutines with `-race`
 
 **Validation:**
 
-- [ ] `make test` passes (all tests, including new ones)
-- [ ] `make test` with `-race` passes (critical for concurrency tests)
-- [ ] `make lint` passes
+- [x] `make test` passes (all tests, including new ones)
+- [x] `make test` with `-race` passes (critical for concurrency tests)
+- [x] `make lint` passes
 
-**Status:** not started
+**Status:** done
 
 ---
 
@@ -188,22 +188,23 @@ Integration tests for the public API.
 
 **Add to `dephealth/dephealth_test.go`:**
 
-- [ ] `TestDepHealth_AddEndpoint` — create DepHealth, Start, AddEndpoint, verify Health()
-- [ ] `TestDepHealth_AddEndpoint_InvalidName` — invalid dep name, returns validation error
-- [ ] `TestDepHealth_AddEndpoint_InvalidType` — unknown type, returns error
-- [ ] `TestDepHealth_AddEndpoint_MissingHost` — empty host, returns error
-- [ ] `TestDepHealth_AddEndpoint_ReservedLabel` — reserved label, returns error
-- [ ] `TestDepHealth_RemoveEndpoint` — remove, verify gone from Health()
-- [ ] `TestDepHealth_UpdateEndpoint` — update, verify old gone and new present
-- [ ] `TestDepHealth_UpdateEndpoint_MissingNewHost` — empty new host, returns error
-- [ ] `TestDepHealth_AddEndpoint_InheritsGlobalConfig` — verify dynamic endpoint uses global interval/timeout
+- [x] `TestDepHealth_AddEndpoint` — create DepHealth, Start, AddEndpoint, verify Health()
+- [x] `TestDepHealth_AddEndpoint_InvalidName` — invalid dep name, returns validation error
+- [x] `TestDepHealth_AddEndpoint_InvalidType` — unknown type, returns error
+- [x] `TestDepHealth_AddEndpoint_MissingHost` — empty host, returns error
+- [x] `TestDepHealth_AddEndpoint_ReservedLabel` — reserved label, returns error
+- [x] `TestDepHealth_RemoveEndpoint` — remove, verify gone from Health()
+- [x] `TestDepHealth_UpdateEndpoint` — update, verify old gone and new present
+- [x] `TestDepHealth_UpdateEndpoint_MissingNewHost` — empty new host, returns error
+- [x] `TestDepHealth_UpdateEndpoint_NotFound` — returns ErrEndpointNotFound
+- [x] `TestDepHealth_AddEndpoint_InheritsGlobalConfig` — verify dynamic endpoint uses global interval/timeout
 
 **Validation:**
 
-- [ ] `make test` passes
-- [ ] `make lint` passes
+- [x] `make test` with `-race` passes
+- [x] `make lint` passes (golangci-lint: 0 issues)
 
-**Status:** not started
+**Status:** done
 
 ---
 

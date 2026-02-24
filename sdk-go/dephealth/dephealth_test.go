@@ -2,6 +2,7 @@ package dephealth
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -681,5 +682,264 @@ func TestNew_CheckerWrappers(t *testing.T) {
 	}
 	if gotConfig.HTTPTLSSkipVerify == nil || !*gotConfig.HTTPTLSSkipVerify {
 		t.Error("expected TLSSkipVerify=true")
+	}
+}
+
+// --- Dynamic endpoint tests (Phase 5) ---
+
+// newTestDepHealth creates a DepHealth with a fast global config for dynamic endpoint tests.
+// It overrides the scheduler's globalConfig to use fast intervals and zero initial delay.
+func newTestDepHealth(t *testing.T) *DepHealth {
+	t.Helper()
+	reg := prometheus.NewRegistry()
+	dh, err := New("test-app", "test-group",
+		WithRegisterer(reg),
+	)
+	if err != nil {
+		t.Fatalf("failed to create DepHealth: %v", err)
+	}
+	// Override globalConfig for fast test execution.
+	dh.scheduler.globalConfig = CheckConfig{
+		Interval:         100 * time.Millisecond,
+		Timeout:          50 * time.Millisecond,
+		InitialDelay:     0,
+		FailureThreshold: DefaultFailureThreshold,
+		SuccessThreshold: DefaultSuccessThreshold,
+	}
+	return dh
+}
+
+func TestDepHealth_AddEndpoint(t *testing.T) {
+	dh := newTestDepHealth(t)
+
+	if err := dh.Start(context.Background()); err != nil {
+		t.Fatalf("Start error: %v", err)
+	}
+	defer dh.Stop()
+
+	checker := &mockChecker{}
+	ep := Endpoint{Host: "10.0.0.1", Port: "5432"}
+	err := dh.AddEndpoint("pg-main", TypePostgres, true, ep, checker)
+	if err != nil {
+		t.Fatalf("AddEndpoint error: %v", err)
+	}
+
+	// Wait for the first check to complete.
+	time.Sleep(200 * time.Millisecond)
+
+	health := dh.Health()
+	key := "pg-main:10.0.0.1:5432"
+	val, ok := health[key]
+	if !ok {
+		t.Fatalf("key %q not found in Health()", key)
+	}
+	if !val {
+		t.Errorf("expected healthy=true for %q", key)
+	}
+}
+
+func TestDepHealth_AddEndpoint_InvalidName(t *testing.T) {
+	dh := newTestDepHealth(t)
+
+	if err := dh.Start(context.Background()); err != nil {
+		t.Fatalf("Start error: %v", err)
+	}
+	defer dh.Stop()
+
+	ep := Endpoint{Host: "10.0.0.1", Port: "5432"}
+	err := dh.AddEndpoint("INVALID_NAME", TypePostgres, false, ep, &mockChecker{})
+	if err == nil {
+		t.Fatal("expected error for invalid dependency name")
+	}
+	if !strings.Contains(err.Error(), "invalid dependency name") {
+		t.Errorf("expected 'invalid dependency name' in error, got: %v", err)
+	}
+}
+
+func TestDepHealth_AddEndpoint_InvalidType(t *testing.T) {
+	dh := newTestDepHealth(t)
+
+	if err := dh.Start(context.Background()); err != nil {
+		t.Fatalf("Start error: %v", err)
+	}
+	defer dh.Stop()
+
+	ep := Endpoint{Host: "10.0.0.1", Port: "5432"}
+	err := dh.AddEndpoint("my-dep", DependencyType("unknown-type"), false, ep, &mockChecker{})
+	if err == nil {
+		t.Fatal("expected error for unknown dependency type")
+	}
+	if !strings.Contains(err.Error(), "unknown dependency type") {
+		t.Errorf("expected 'unknown dependency type' in error, got: %v", err)
+	}
+}
+
+func TestDepHealth_AddEndpoint_MissingHost(t *testing.T) {
+	dh := newTestDepHealth(t)
+
+	if err := dh.Start(context.Background()); err != nil {
+		t.Fatalf("Start error: %v", err)
+	}
+	defer dh.Stop()
+
+	ep := Endpoint{Host: "", Port: "5432"}
+	err := dh.AddEndpoint("my-dep", TypePostgres, false, ep, &mockChecker{})
+	if err == nil {
+		t.Fatal("expected error for missing host")
+	}
+	if !strings.Contains(err.Error(), "missing host") {
+		t.Errorf("expected 'missing host' in error, got: %v", err)
+	}
+}
+
+func TestDepHealth_AddEndpoint_ReservedLabel(t *testing.T) {
+	dh := newTestDepHealth(t)
+
+	if err := dh.Start(context.Background()); err != nil {
+		t.Fatalf("Start error: %v", err)
+	}
+	defer dh.Stop()
+
+	ep := Endpoint{
+		Host:   "10.0.0.1",
+		Port:   "5432",
+		Labels: map[string]string{"dependency": "bad-value"},
+	}
+	err := dh.AddEndpoint("my-dep", TypePostgres, false, ep, &mockChecker{})
+	if err == nil {
+		t.Fatal("expected error for reserved label")
+	}
+	if !strings.Contains(err.Error(), "reserved label") {
+		t.Errorf("expected 'reserved label' in error, got: %v", err)
+	}
+}
+
+func TestDepHealth_RemoveEndpoint(t *testing.T) {
+	dh := newTestDepHealth(t)
+
+	if err := dh.Start(context.Background()); err != nil {
+		t.Fatalf("Start error: %v", err)
+	}
+	defer dh.Stop()
+
+	checker := &mockChecker{}
+	ep := Endpoint{Host: "10.0.0.1", Port: "5432"}
+	_ = dh.AddEndpoint("pg-main", TypePostgres, false, ep, checker)
+	time.Sleep(200 * time.Millisecond)
+
+	// Verify it exists.
+	health := dh.Health()
+	if _, ok := health["pg-main:10.0.0.1:5432"]; !ok {
+		t.Fatal("endpoint should exist before removal")
+	}
+
+	// Remove it.
+	err := dh.RemoveEndpoint("pg-main", "10.0.0.1", "5432")
+	if err != nil {
+		t.Fatalf("RemoveEndpoint error: %v", err)
+	}
+
+	health = dh.Health()
+	if _, ok := health["pg-main:10.0.0.1:5432"]; ok {
+		t.Error("endpoint should be gone after RemoveEndpoint")
+	}
+}
+
+func TestDepHealth_UpdateEndpoint(t *testing.T) {
+	dh := newTestDepHealth(t)
+
+	if err := dh.Start(context.Background()); err != nil {
+		t.Fatalf("Start error: %v", err)
+	}
+	defer dh.Stop()
+
+	checker := &mockChecker{}
+	oldEp := Endpoint{Host: "10.0.0.1", Port: "5432"}
+	_ = dh.AddEndpoint("pg-main", TypePostgres, false, oldEp, checker)
+	time.Sleep(200 * time.Millisecond)
+
+	// Update to new endpoint.
+	newEp := Endpoint{Host: "10.0.0.2", Port: "5433"}
+	err := dh.UpdateEndpoint("pg-main", "10.0.0.1", "5432", newEp, checker)
+	if err != nil {
+		t.Fatalf("UpdateEndpoint error: %v", err)
+	}
+
+	time.Sleep(200 * time.Millisecond)
+
+	health := dh.Health()
+
+	// Old endpoint should be gone.
+	if _, ok := health["pg-main:10.0.0.1:5432"]; ok {
+		t.Error("old endpoint should be gone after UpdateEndpoint")
+	}
+
+	// New endpoint should be present and healthy.
+	newKey := "pg-main:10.0.0.2:5433"
+	val, ok := health[newKey]
+	if !ok {
+		t.Fatalf("new endpoint %q not found in Health()", newKey)
+	}
+	if !val {
+		t.Errorf("expected healthy=true for new endpoint %q", newKey)
+	}
+}
+
+func TestDepHealth_UpdateEndpoint_MissingNewHost(t *testing.T) {
+	dh := newTestDepHealth(t)
+
+	if err := dh.Start(context.Background()); err != nil {
+		t.Fatalf("Start error: %v", err)
+	}
+	defer dh.Stop()
+
+	newEp := Endpoint{Host: "", Port: "5433"}
+	err := dh.UpdateEndpoint("pg-main", "10.0.0.1", "5432", newEp, &mockChecker{})
+	if err == nil {
+		t.Fatal("expected error for missing host in new endpoint")
+	}
+	if !strings.Contains(err.Error(), "missing host") {
+		t.Errorf("expected 'missing host' in error, got: %v", err)
+	}
+}
+
+func TestDepHealth_UpdateEndpoint_NotFound(t *testing.T) {
+	dh := newTestDepHealth(t)
+
+	if err := dh.Start(context.Background()); err != nil {
+		t.Fatalf("Start error: %v", err)
+	}
+	defer dh.Stop()
+
+	newEp := Endpoint{Host: "10.0.0.2", Port: "5433"}
+	err := dh.UpdateEndpoint("no-such-dep", "10.0.0.1", "5432", newEp, &mockChecker{})
+	if !errors.Is(err, ErrEndpointNotFound) {
+		t.Errorf("expected ErrEndpointNotFound, got: %v", err)
+	}
+}
+
+func TestDepHealth_AddEndpoint_InheritsGlobalConfig(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	dh, err := New("test-app", "test-group",
+		WithRegisterer(reg),
+		WithCheckInterval(7*time.Second),
+		WithTimeout(3*time.Second),
+	)
+	if err != nil {
+		t.Fatalf("failed to create DepHealth: %v", err)
+	}
+
+	if err := dh.Start(context.Background()); err != nil {
+		t.Fatalf("Start error: %v", err)
+	}
+	defer dh.Stop()
+
+	// Verify globalConfig was inherited by the scheduler.
+	got := dh.scheduler.globalConfig
+	if got.Interval != 7*time.Second {
+		t.Errorf("expected globalConfig.Interval=7s, got %v", got.Interval)
+	}
+	if got.Timeout != 3*time.Second {
+		t.Errorf("expected globalConfig.Timeout=3s, got %v", got.Timeout)
 	}
 }
