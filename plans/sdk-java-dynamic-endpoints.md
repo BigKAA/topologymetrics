@@ -97,7 +97,7 @@ Prepare `CheckScheduler` for dynamic mutations without changing the public API y
 
 - [x] `mvn compile` passes
 - [x] `mvn test` passes (existing tests, no behavioral change)
-- [ ] Checkstyle/SpotBugs pass (if configured)
+- [x] Checkstyle/SpotBugs pass
 
 **Status:** done
 
