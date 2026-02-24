@@ -236,30 +236,29 @@ Integration tests for the public API.
 
 **Version bump:**
 
-- [ ] Parent `pom.xml` → `<version>0.6.0</version>`
-- [ ] All child modules inherit version
+- [x] Parent `pom.xml` → `<version>0.6.0</version>`
+- [x] All child modules inherit version
 
 **Documentation (EN):**
 
-- [ ] Update `sdk-java/docs/api-reference.md` — add `addEndpoint`, `removeEndpoint`, `updateEndpoint`
-- [ ] Update `sdk-java/README.md` — add "Dynamic Endpoints" section with usage example
-- [ ] Create `docs/migration/sdk-java-v050-to-v060.md` — migration guide
+- [x] Update `docs/migration/java.md` — add v0.6.0 migration section
+- [x] Create `docs/migration/sdk-java-v050-to-v060.md` — migration guide
 
 **Documentation (RU):**
 
-- [ ] Update `sdk-java/docs/api-reference.ru.md` — same as EN
-- [ ] Create `docs/migration/sdk-java-v050-to-v060.ru.md` — migration guide
+- [x] Update `docs/migration/java.ru.md` — add v0.6.0 migration section
+- [x] Create `docs/migration/sdk-java-v050-to-v060.ru.md` — migration guide
 
 **Changelog:**
 
-- [ ] Update `CHANGELOG.md` — add `[sdk-java 0.6.0]` section
+- [x] Update `CHANGELOG.md` — add `[sdk-java 0.6.0]` section
 
 **Validation:**
 
-- [ ] `mvn compile && mvn test` — all pass
-- [ ] `markdownlint` on all new/changed `.md` files — 0 issues
+- [x] `mvn compile && mvn test` — all pass
+- [x] `markdownlint` on all new/changed `.md` files — 0 issues
 
-**Status:** not started
+**Status:** done
 
 ---
 
@@ -279,6 +278,7 @@ Integration tests for the public API.
 - Merge to master (or PR — ask user)
 - Tag: `sdk-java/v0.6.0`
 - GitHub Release: sdk-java/v0.6.0
+- Publish to maven central
 - Move this plan to `plans/archive/`
 
 **Status:** not started

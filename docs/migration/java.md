@@ -5,6 +5,44 @@
 Step-by-step instructions for adding dependency monitoring
 to a running microservice.
 
+## Migration to v0.6.0
+
+### New: Dynamic Endpoint Management
+
+v0.6.0 adds three methods for managing endpoints at runtime. No existing API
+changes — this is a purely additive feature.
+
+```java
+// Add a new endpoint after start()
+depHealth.addEndpoint("api-backend", DependencyType.HTTP, true,
+    new Endpoint("backend-2.svc", "8080"),
+    new HttpHealthChecker());
+
+// Remove an endpoint (idempotent)
+depHealth.removeEndpoint("api-backend", "backend-2.svc", "8080");
+
+// Replace an endpoint atomically
+depHealth.updateEndpoint("api-backend", "backend-1.svc", "8080",
+    new Endpoint("backend-3.svc", "8080"),
+    new HttpHealthChecker());
+```
+
+Key behaviors:
+
+- **Thread-safe** — all three methods are synchronized.
+- **Idempotent** — `addEndpoint` is no-op if endpoint exists;
+  `removeEndpoint` is no-op if endpoint is not found.
+- Dynamic endpoints inherit the global check interval and timeout.
+- `removeEndpoint` / `updateEndpoint` delete all Prometheus metrics for
+  the old endpoint.
+- `updateEndpoint` throws `EndpointNotFoundException` if the old endpoint
+  does not exist.
+
+For the full migration guide, see
+[Java SDK v0.5.0 to v0.6.0](sdk-java-v050-to-v060.md).
+
+---
+
 ## Migration to v0.5.0
 
 ### Breaking: mandatory `group` parameter
@@ -12,6 +50,7 @@ to a running microservice.
 v0.5.0 adds a mandatory `group` parameter (logical grouping: team, subsystem, project).
 
 Programmatic API:
+
 ```java
 // v0.4.x
 DepHealth dh = DepHealth.builder("my-service", meterRegistry)
@@ -25,6 +64,7 @@ DepHealth dh = DepHealth.builder("my-service", "my-team", meterRegistry)
 ```
 
 Spring Boot YAML:
+
 ```yaml
 # v0.5.0 — add group
 dephealth:

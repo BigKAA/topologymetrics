@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [sdk-java 0.6.0] - 2026-02-24
+
+Dynamic endpoint management: add, remove, and update monitored endpoints
+at runtime on a running `DepHealth` instance.
+
+### Added
+
+- **Java SDK**: `DepHealth.addEndpoint()` — add a monitored endpoint after `start()`
+- **Java SDK**: `DepHealth.removeEndpoint()` — remove an endpoint (cancels scheduled
+  task, deletes metrics)
+- **Java SDK**: `DepHealth.updateEndpoint()` — atomically replace an endpoint
+- **Java SDK**: `EndpointNotFoundException` exception
+- **Java SDK**: Per-endpoint `ScheduledFuture` tracking for cancellation
+- **Java SDK**: `ConcurrentHashMap` for thread-safe health iteration
+- **Java SDK**: `MetricsExporter.deleteMetrics()` for full metric cleanup
+- Migration guide from Java SDK v0.5.0 to v0.6.0
+
 ## [0.7.0] - 2026-02-24 (Go SDK only)
 
 Dynamic endpoint management: add, remove, and update monitored endpoints
@@ -345,6 +362,7 @@ verifying cross-language compatibility.
 - SDK comparison table
 - CONTRIBUTING.md with development workflow
 
+[sdk-java 0.6.0]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-java/v0.6.0
 [0.7.0]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-go/v0.7.0
 [0.6.0]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-go/v0.6.0
 [0.5.0]: https://github.com/BigKAA/topologymetrics/releases/tag/v0.5.0

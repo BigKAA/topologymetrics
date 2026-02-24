@@ -5,6 +5,44 @@
 Пошаговая инструкция по добавлению мониторинга зависимостей
 в работающий микросервис.
 
+## Миграция на v0.6.0
+
+### Новое: динамическое управление эндпоинтами
+
+В v0.6.0 добавлены три метода для управления эндпоинтами в рантайме. Изменений
+в существующем API нет — это чисто аддитивная функция.
+
+```java
+// Добавить новый эндпоинт после start()
+depHealth.addEndpoint("api-backend", DependencyType.HTTP, true,
+    new Endpoint("backend-2.svc", "8080"),
+    new HttpHealthChecker());
+
+// Удалить эндпоинт (идемпотентно)
+depHealth.removeEndpoint("api-backend", "backend-2.svc", "8080");
+
+// Заменить эндпоинт атомарно
+depHealth.updateEndpoint("api-backend", "backend-1.svc", "8080",
+    new Endpoint("backend-3.svc", "8080"),
+    new HttpHealthChecker());
+```
+
+Ключевые особенности:
+
+- **Потокобезопасность** — все три метода синхронизированы.
+- **Идемпотентность** — `addEndpoint` не делает ничего, если эндпоинт
+  существует; `removeEndpoint` не делает ничего, если эндпоинт не найден.
+- Динамические эндпоинты наследуют глобальный интервал и тайм-аут.
+- `removeEndpoint` / `updateEndpoint` удаляют все метрики Prometheus
+  для старого эндпоинта.
+- `updateEndpoint` выбрасывает `EndpointNotFoundException`, если старый
+  эндпоинт не существует.
+
+Полное руководство по миграции:
+[Java SDK v0.5.0 → v0.6.0](sdk-java-v050-to-v060.ru.md).
+
+---
+
 ## Миграция на v0.5.0
 
 ### Обязательный параметр `group`
@@ -12,6 +50,7 @@
 v0.5.0 добавляет обязательный параметр `group` (логическая группировка: команда, подсистема, проект).
 
 Программный API:
+
 ```java
 // v0.4.x
 DepHealth dh = DepHealth.builder("my-service", meterRegistry)
@@ -25,6 +64,7 @@ DepHealth dh = DepHealth.builder("my-service", "my-team", meterRegistry)
 ```
 
 Spring Boot YAML:
+
 ```yaml
 # v0.5.0 — добавьте group
 dephealth:
