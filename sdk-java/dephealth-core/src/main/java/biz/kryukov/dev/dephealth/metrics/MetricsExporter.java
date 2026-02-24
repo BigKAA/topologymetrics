@@ -183,6 +183,47 @@ public final class MetricsExporter {
     }
 
     /**
+     * Deletes all metric series for the given dependency endpoint.
+     * Removes health gauge, latency summary, all 8 status gauges, and status detail gauge.
+     */
+    public void deleteMetrics(Dependency dep, Endpoint ep) {
+        String key = metricKey(dep.name(), ep);
+
+        // Remove health gauge
+        AtomicReference<Double> healthRef = healthValues.remove(key);
+        if (healthRef != null) {
+            Tags tags = buildTags(dep, ep);
+            registry.find(HEALTH_METRIC).tags(tags).meters()
+                    .forEach(registry::remove);
+        }
+
+        // Remove latency distribution summary
+        DistributionSummary summary = latencySummaries.remove(key);
+        if (summary != null) {
+            registry.remove(summary);
+        }
+
+        // Remove all 8 status gauges
+        AtomicReference<Double>[] statusRefs = statusValues.remove(key);
+        if (statusRefs != null) {
+            Tags baseTags = buildTags(dep, ep);
+            for (String cat : StatusCategory.ALL) {
+                Tags tags = baseTags.and("status", cat);
+                registry.find(STATUS_METRIC).tags(tags).meters()
+                        .forEach(registry::remove);
+            }
+        }
+
+        // Remove status detail gauge
+        Meter detailMeter = detailMeters.remove(key);
+        if (detailMeter != null) {
+            registry.remove(detailMeter);
+        }
+        detailValues.remove(key);
+        prevDetails.remove(key);
+    }
+
+    /**
      * Builds tags in order: name, group, dependency, type, host, port, critical, custom (alphabetical).
      */
     Tags buildTags(Dependency dep, Endpoint ep) {

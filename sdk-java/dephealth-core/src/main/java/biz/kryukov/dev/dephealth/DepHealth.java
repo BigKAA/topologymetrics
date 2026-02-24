@@ -392,13 +392,37 @@ public final class DepHealth {
 
             MetricsExporter metricsExporter = new MetricsExporter(
                     meterRegistry, instanceName, instanceGroup, customLabelKeys);
-            CheckScheduler scheduler = new CheckScheduler(metricsExporter);
+
+            // Compute global config for dynamic endpoints
+            CheckConfig globalCfg = buildGlobalConfig();
+
+            CheckScheduler scheduler = new CheckScheduler(metricsExporter, globalCfg);
 
             for (DependencyEntry entry : entries) {
                 buildAndRegister(entry, scheduler);
             }
 
             return new DepHealth(scheduler);
+        }
+
+        /**
+         * Builds the global CheckConfig from builder-level interval/timeout with defaults.
+         * Applies the same timeout-capping logic as per-dependency config resolution.
+         */
+        private CheckConfig buildGlobalConfig() {
+            Duration interval = globalInterval != null
+                    ? globalInterval : CheckConfig.DEFAULT_INTERVAL;
+            Duration timeout = globalTimeout != null
+                    ? globalTimeout : CheckConfig.DEFAULT_TIMEOUT;
+            // Ensure timeout < interval (same logic as resolveTimeout)
+            if (timeout.compareTo(interval) >= 0) {
+                timeout = Duration.ofMillis(interval.toMillis() - 1);
+            }
+            return CheckConfig.builder()
+                    .interval(interval)
+                    .timeout(timeout)
+                    .initialDelay(Duration.ZERO)
+                    .build();
         }
 
         /**

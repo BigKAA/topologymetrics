@@ -7,6 +7,7 @@ import biz.kryukov.dev.dephealth.StatusCategory;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
+import java.util.concurrent.ScheduledFuture;
 
 /**
  * Thread-safe endpoint state: healthy/unhealthy, consecutive success/failure counters,
@@ -23,6 +24,9 @@ public final class EndpointState {
     private String lastDetail;
     private Duration lastLatency;
     private Instant lastCheckedAt;
+
+    // Scheduled future for cancellation (used by dynamic endpoint management).
+    private ScheduledFuture<?> future;
 
     // Static fields set at state creation time.
     private String depName;
@@ -93,6 +97,20 @@ public final class EndpointState {
         this.lastDetail = detail;
         this.lastLatency = latency;
         this.lastCheckedAt = Instant.now();
+    }
+
+    /**
+     * Returns the scheduled future for this endpoint's periodic check.
+     */
+    synchronized ScheduledFuture<?> future() {
+        return future;
+    }
+
+    /**
+     * Sets the scheduled future for this endpoint's periodic check.
+     */
+    synchronized void setFuture(ScheduledFuture<?> future) {
+        this.future = future;
     }
 
     /**

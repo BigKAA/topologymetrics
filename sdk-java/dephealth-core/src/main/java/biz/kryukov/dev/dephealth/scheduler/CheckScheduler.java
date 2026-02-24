@@ -17,39 +17,53 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Scheduler for periodic dependency health checks.
+ *
+ * <p>Supports both static dependencies (registered before start via {@link #addDependency})
+ * and dynamic endpoints (added/removed/updated at runtime after start).
  */
 public final class CheckScheduler {
 
     private static final Logger LOG = LoggerFactory.getLogger(CheckScheduler.class);
+    private static final int MIN_CORE_POOL_SIZE = 1;
 
     private final MetricsExporter metrics;
+    private final CheckConfig globalConfig;
     private final Logger logger;
     private final List<ScheduledDep> deps = new ArrayList<>();
-    private final Map<String, EndpointState> states = new LinkedHashMap<>();
+    private final Map<String, EndpointState> states = new ConcurrentHashMap<>();
 
-    private ScheduledExecutorService executor;
-    private final List<ScheduledFuture<?>> futures = new ArrayList<>();
+    private ScheduledThreadPoolExecutor executor;
     private volatile boolean started;
     private volatile boolean stopped;
 
-    public CheckScheduler(MetricsExporter metrics) {
-        this(metrics, LOG);
+    public CheckScheduler(MetricsExporter metrics, CheckConfig globalConfig) {
+        this(metrics, globalConfig, LOG);
     }
 
-    public CheckScheduler(MetricsExporter metrics, Logger logger) {
+    public CheckScheduler(MetricsExporter metrics, CheckConfig globalConfig, Logger logger) {
         this.metrics = metrics;
+        this.globalConfig = globalConfig;
         this.logger = logger;
     }
 
     /**
-     * Registers a dependency for periodic checking.
+     * Returns the global check configuration used for dynamic endpoints.
+     */
+    public CheckConfig globalConfig() {
+        return globalConfig;
+    }
+
+    /**
+     * Registers a dependency for periodic checking (before start).
      */
     public void addDependency(Dependency dependency, HealthChecker checker) {
         if (started) {
@@ -77,34 +91,34 @@ public final class CheckScheduler {
         }
         started = true;
 
-        if (deps.isEmpty()) {
-            logger.info("dephealth: scheduler started, 0 dependencies, 0 endpoints");
-            return;
-        }
-
-        int threadCount = Math.max(1, deps.stream()
+        int threadCount = Math.max(MIN_CORE_POOL_SIZE, deps.stream()
                 .mapToInt(d -> d.dependency.endpoints().size())
                 .sum());
 
-        executor = Executors.newScheduledThreadPool(threadCount, r -> {
+        executor = new ScheduledThreadPoolExecutor(threadCount, r -> {
             Thread t = new Thread(r, "dephealth-scheduler");
             t.setDaemon(true);
             return t;
         });
 
+        if (deps.isEmpty()) {
+            logger.info("dephealth: scheduler started, 0 dependencies, 0 endpoints");
+            return;
+        }
+
         for (ScheduledDep dep : deps) {
             for (Endpoint ep : dep.dependency.endpoints()) {
                 CheckConfig config = dep.dependency.config();
-                long initialDelay = config.initialDelay().toMillis();
-                long interval = config.interval().toMillis();
+                String key = stateKey(dep.dependency.name(), ep);
+                EndpointState state = states.get(key);
 
                 ScheduledFuture<?> future = executor.scheduleAtFixedRate(
                         () -> runCheck(dep.dependency, dep.checker, ep, config),
-                        initialDelay,
-                        interval,
+                        config.initialDelay().toMillis(),
+                        config.interval().toMillis(),
                         TimeUnit.MILLISECONDS
                 );
-                futures.add(future);
+                state.setFuture(future);
             }
         }
 
@@ -121,8 +135,11 @@ public final class CheckScheduler {
         }
         stopped = true;
 
-        for (ScheduledFuture<?> f : futures) {
-            f.cancel(false);
+        for (EndpointState state : states.values()) {
+            ScheduledFuture<?> f = state.future();
+            if (f != null) {
+                f.cancel(false);
+            }
         }
         if (executor != null) {
             executor.shutdown();
@@ -168,6 +185,9 @@ public final class CheckScheduler {
                           CheckConfig config) {
         String key = stateKey(dep.name(), ep);
         EndpointState state = states.get(key);
+        if (state == null) {
+            return;
+        }
         long startNs = System.nanoTime();
 
         try {
@@ -238,8 +258,12 @@ public final class CheckScheduler {
         }
     }
 
-    private static String stateKey(String name, Endpoint ep) {
+    static String stateKey(String name, Endpoint ep) {
         return name + ":" + ep.host() + ":" + ep.port();
+    }
+
+    static String stateKey(String name, String host, String port) {
+        return name + ":" + host + ":" + port;
     }
 
     private record ScheduledDep(Dependency dependency, HealthChecker checker) {}

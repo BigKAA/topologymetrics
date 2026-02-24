@@ -70,26 +70,24 @@ Prepare `CheckScheduler` for dynamic mutations without changing the public API y
 
 **Modify `dephealth-core/.../scheduler/CheckScheduler.java`:**
 
-- [ ] Add `CheckConfig globalConfig` field (stored at construction, used for dynamic endpoints)
-- [ ] Change `states` from `HashMap` to `ConcurrentHashMap<String, EndpointState>`
-- [ ] Add `ScheduledFuture<?>` field to `EndpointState` (or a parallel `Map<String, ScheduledFuture<?>>`)
-- [ ] In `start()`: store each `scheduleAtFixedRate()` result in the state/map
-- [ ] Switch `ScheduledExecutorService` from fixed-size to `Executors.newScheduledThreadPool()`
-  with a core pool size that can grow (or use `ScheduledThreadPoolExecutor` with
-  `setCorePoolSize()` for dynamic resizing)
-- [ ] Synchronize `health()` and `healthDetails()` — since `ConcurrentHashMap` iteration
-  is weakly consistent, this is safe; but add explicit `synchronized` on state mutations
-  to prevent torn reads during add/remove
+- [x] Add `CheckConfig globalConfig` field (stored at construction, used for dynamic endpoints)
+- [x] Change `states` from `HashMap` to `ConcurrentHashMap<String, EndpointState>`
+- [x] Add `ScheduledFuture<?>` field to `EndpointState` (or a parallel `Map<String, ScheduledFuture<?>>`)
+- [x] In `start()`: store each `scheduleAtFixedRate()` result in the state/map
+- [x] Switch `ScheduledExecutorService` from fixed-size to `ScheduledThreadPoolExecutor`
+  (supports dynamic resizing via `setCorePoolSize()`)
+- [x] Use `ConcurrentHashMap` for `states` — iteration is weakly consistent, safe for
+  `health()` and `healthDetails()`; `runCheck()` guards against removed states with null check
 
 **Modify `dephealth-core/.../DepHealth.java`:**
 
-- [ ] In `builder().build()`: compute `globalConfig` from builder-level interval/timeout/thresholds
-  with defaults from `CheckConfig.defaults()`
-- [ ] Pass `globalConfig` to `CheckScheduler` constructor
+- [x] In `builder().build()`: compute `globalConfig` from builder-level interval/timeout/thresholds
+  with defaults from `CheckConfig.defaults()` (includes timeout-capping logic)
+- [x] Pass `globalConfig` to `CheckScheduler` constructor
 
 **Modify `dephealth-core/.../metrics/MetricsExporter.java`:**
 
-- [ ] Add `deleteMetrics(Dependency dep, Endpoint ep)` method:
+- [x] Add `deleteMetrics(Dependency dep, Endpoint ep)` method:
   - Remove `app_dependency_health` gauge via `registry.remove()`
   - Remove `app_dependency_latency_seconds` distribution summary
   - Remove all 8 `app_dependency_status` gauges (one per category)
@@ -97,11 +95,11 @@ Prepare `CheckScheduler` for dynamic mutations without changing the public API y
 
 **Validation:**
 
-- [ ] `mvn compile` passes
-- [ ] `mvn test` passes (existing tests, no behavioral change)
+- [x] `mvn compile` passes
+- [x] `mvn test` passes (existing tests, no behavioral change)
 - [ ] Checkstyle/SpotBugs pass (if configured)
 
-**Status:** not started
+**Status:** done
 
 ---
 
