@@ -3,7 +3,9 @@ package biz.kryukov.dev.dephealth.scheduler;
 import biz.kryukov.dev.dephealth.CheckConfig;
 import biz.kryukov.dev.dephealth.CheckResult;
 import biz.kryukov.dev.dephealth.Dependency;
+import biz.kryukov.dev.dephealth.DependencyType;
 import biz.kryukov.dev.dephealth.Endpoint;
+import biz.kryukov.dev.dephealth.EndpointNotFoundException;
 import biz.kryukov.dev.dephealth.EndpointStatus;
 import biz.kryukov.dev.dephealth.ErrorClassifier;
 import biz.kryukov.dev.dephealth.HealthChecker;
@@ -177,6 +179,145 @@ public final class CheckScheduler {
             result.put(entry.getKey(), entry.getValue().toEndpointStatus());
         }
         return result;
+    }
+
+    /**
+     * Dynamically adds an endpoint after the scheduler has started.
+     * Idempotent: silently returns if the endpoint already exists.
+     *
+     * @throws IllegalStateException if the scheduler is not running
+     */
+    public synchronized void addEndpoint(String depName, DependencyType depType,
+                                          boolean critical, Endpoint ep,
+                                          HealthChecker checker) {
+        if (!started || stopped) {
+            throw new IllegalStateException(
+                    "Cannot add endpoint: scheduler must be started and not stopped");
+        }
+
+        String key = stateKey(depName, ep);
+        if (states.containsKey(key)) {
+            return; // idempotent
+        }
+
+        Dependency dep = Dependency.builder(depName, depType)
+                .critical(critical)
+                .endpoint(ep)
+                .config(globalConfig)
+                .build();
+
+        EndpointState state = new EndpointState();
+        state.setStaticFields(depName, depType, ep.host(), ep.port(), critical, ep.labels());
+        states.put(key, state);
+
+        ScheduledFuture<?> future = executor.scheduleAtFixedRate(
+                () -> runCheck(dep, checker, ep, globalConfig),
+                globalConfig.initialDelay().toMillis(),
+                globalConfig.interval().toMillis(),
+                TimeUnit.MILLISECONDS
+        );
+        state.setFuture(future);
+
+        logger.info("dephealth: added dynamic endpoint {}:{}", depName, ep);
+    }
+
+    /**
+     * Dynamically removes an endpoint after the scheduler has started.
+     * Idempotent: silently returns if the endpoint does not exist.
+     *
+     * @throws IllegalStateException if the scheduler has not been started
+     */
+    public synchronized void removeEndpoint(String depName, String host, String port) {
+        if (!started) {
+            throw new IllegalStateException(
+                    "Cannot remove endpoint: scheduler must be started");
+        }
+
+        String key = stateKey(depName, host, port);
+        EndpointState state = states.remove(key);
+        if (state == null) {
+            return; // idempotent
+        }
+
+        ScheduledFuture<?> f = state.future();
+        if (f != null) {
+            f.cancel(false);
+        }
+
+        Endpoint ep = new Endpoint(host, port, state.toEndpointStatus().labels());
+        Dependency dep = Dependency.builder(depName, state.toEndpointStatus().type())
+                .critical(state.toEndpointStatus().critical())
+                .endpoint(ep)
+                .config(globalConfig)
+                .build();
+        metrics.deleteMetrics(dep, ep);
+
+        logger.info("dephealth: removed dynamic endpoint {}:{}:{}", depName, host, port);
+    }
+
+    /**
+     * Dynamically updates an endpoint (remove old + add new).
+     *
+     * @throws IllegalStateException       if the scheduler is not running
+     * @throws EndpointNotFoundException   if the old endpoint does not exist
+     */
+    public synchronized void updateEndpoint(String depName, String oldHost, String oldPort,
+                                             Endpoint newEp, HealthChecker checker) {
+        if (!started || stopped) {
+            throw new IllegalStateException(
+                    "Cannot update endpoint: scheduler must be started and not stopped");
+        }
+
+        String oldKey = stateKey(depName, oldHost, oldPort);
+        EndpointState oldState = states.get(oldKey);
+        if (oldState == null) {
+            throw new EndpointNotFoundException(depName, oldHost, oldPort);
+        }
+
+        // Extract info from old state before removal
+        EndpointStatus oldStatus = oldState.toEndpointStatus();
+        DependencyType depType = oldStatus.type();
+        boolean critical = oldStatus.critical();
+
+        // Cancel old check
+        ScheduledFuture<?> oldFuture = oldState.future();
+        if (oldFuture != null) {
+            oldFuture.cancel(false);
+        }
+
+        // Remove old state and metrics
+        states.remove(oldKey);
+        Endpoint oldEp = new Endpoint(oldHost, oldPort, oldStatus.labels());
+        Dependency oldDep = Dependency.builder(depName, depType)
+                .critical(critical)
+                .endpoint(oldEp)
+                .config(globalConfig)
+                .build();
+        metrics.deleteMetrics(oldDep, oldEp);
+
+        // Create new state and schedule
+        Dependency newDep = Dependency.builder(depName, depType)
+                .critical(critical)
+                .endpoint(newEp)
+                .config(globalConfig)
+                .build();
+
+        String newKey = stateKey(depName, newEp);
+        EndpointState newState = new EndpointState();
+        newState.setStaticFields(depName, depType, newEp.host(), newEp.port(),
+                critical, newEp.labels());
+        states.put(newKey, newState);
+
+        ScheduledFuture<?> newFuture = executor.scheduleAtFixedRate(
+                () -> runCheck(newDep, checker, newEp, globalConfig),
+                globalConfig.initialDelay().toMillis(),
+                globalConfig.interval().toMillis(),
+                TimeUnit.MILLISECONDS
+        );
+        newState.setFuture(newFuture);
+
+        logger.info("dephealth: updated dynamic endpoint {}:{}:{} -> {}",
+                depName, oldHost, oldPort, newEp);
     }
 
     private void runCheck(Dependency dep, HealthChecker checker, Endpoint ep,

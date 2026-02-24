@@ -109,7 +109,7 @@ Implement the three core methods on `CheckScheduler`.
 
 **Add to `dephealth-core/.../scheduler/CheckScheduler.java`:**
 
-- [ ] `addEndpoint(String depName, DependencyType depType, boolean critical, Endpoint ep, HealthChecker checker)`
+- [x] `addEndpoint(String depName, DependencyType depType, boolean critical, Endpoint ep, HealthChecker checker)`
   - `synchronized` block
   - Check `started && !stopped`, else throw `IllegalStateException`
   - Compute key `depName:host:port`, return silently if exists (idempotent)
@@ -117,14 +117,14 @@ Implement the three core methods on `CheckScheduler`.
   - Create `EndpointState` with static fields
   - Insert into `states`
   - Schedule check via `executor.scheduleAtFixedRate()`, store `ScheduledFuture`
-- [ ] `removeEndpoint(String depName, String host, String port)`
+- [x] `removeEndpoint(String depName, String host, String port)`
   - `synchronized` block
   - Check `started`, else throw `IllegalStateException`
   - Find state by key, return silently if not found (idempotent)
   - Cancel `ScheduledFuture` (`future.cancel(false)`)
   - Remove from `states`
   - Call `metrics.deleteMetrics()` to clean up Prometheus series
-- [ ] `updateEndpoint(String depName, String oldHost, String oldPort, Endpoint newEp, HealthChecker checker)`
+- [x] `updateEndpoint(String depName, String oldHost, String oldPort, Endpoint newEp, HealthChecker checker)`
   - `synchronized` block
   - Check `started && !stopped`
   - Find old state, throw `EndpointNotFoundException` if missing
@@ -133,16 +133,17 @@ Implement the three core methods on `CheckScheduler`.
 
 **Add `dephealth-core/.../EndpointNotFoundException.java`:**
 
-- [ ] `public class EndpointNotFoundException extends RuntimeException`
+- [x] `public class EndpointNotFoundException extends DepHealthException`
   - Constructor: `(String depName, String host, String port)`
   - Message: `"Endpoint not found: depName:host:port"`
 
 **Validation:**
 
-- [ ] `mvn compile` passes
-- [ ] `mvn test` passes (existing tests unchanged)
+- [x] `mvn compile` passes
+- [x] `mvn test` passes (existing tests unchanged)
+- [x] Checkstyle/SpotBugs pass
 
-**Status:** not started
+**Status:** done
 
 ---
 
