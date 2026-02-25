@@ -254,18 +254,18 @@ Integration tests for the public API.
 
 **Pre-merge checklist:**
 
-- [ ] All unit tests pass (including new dynamic endpoint tests)
-- [ ] No concurrency issues in tests
-- [ ] All linters pass
-- [ ] Backward compatibility verified (existing API unchanged)
-- [ ] Docs complete (EN + RU)
-- [ ] CHANGELOG updated
+- [x] All unit tests pass (including new dynamic endpoint tests)
+- [x] No concurrency issues in tests
+- [x] All linters pass
+- [x] Backward compatibility verified (existing API unchanged)
+- [x] Docs complete (EN + RU)
+- [x] CHANGELOG updated
 
 **Actions:**
 
-- Merge to master (or PR — ask user)
-- Tag: `sdk-csharp/v0.6.0`
-- GitHub Release: sdk-csharp/v0.6.0
-- Move this plan to `plans/archive/`
+- [x] Already on master (all phases committed directly)
+- [x] Tag: `sdk-csharp/v0.6.0`
+- [x] GitHub Release: sdk-csharp/v0.6.0
+- [x] Move this plan to `plans/archive/`
 
-**Status:** not started
+**Status:** done
