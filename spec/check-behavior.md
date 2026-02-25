@@ -352,6 +352,63 @@ Similar to PostgreSQL. The only difference is the connection driver.
 - Topic-level checks are not included in v1.0.
 - SASL authentication support is not included in v1.0.
 
+### 4.9. LDAP (`type: ldap`)
+
+| Parameter | Description | Default Value |
+| --- | --- | --- |
+| `checkMethod` | Check method | `root_dse` |
+| `bindDN` | DN for Simple Bind | `""` |
+| `bindPassword` | Password for Simple Bind | `""` |
+| `baseDN` | Base DN for search method | `""` |
+| `searchFilter` | LDAP filter for search method | `(objectClass=*)` |
+| `searchScope` | Search scope: `base`, `one`, `sub` | `base` |
+| `startTLS` | Use StartTLS (only with `ldap://`) | `false` |
+| `tlsSkipVerify` | Skip TLS certificate verification | `false` |
+
+**Check methods** (`checkMethod` values):
+
+| Value | Description |
+| --- | --- |
+| `anonymous_bind` | Anonymous Bind operation |
+| `simple_bind` | Simple Bind with `bindDN` / `bindPassword` |
+| `root_dse` | Search: base=`""`, scope=base, filter=`(objectClass=*)` |
+| `search` | Search with `baseDN`, `searchScope`, `searchFilter` |
+
+**Standalone mode**:
+
+1. Establish TCP connection to `{host}:{port}` (with `timeout`).
+2. If scheme is `ldaps://` — perform TLS handshake.
+3. If `startTLS=true` — send StartTLS extended operation, then TLS handshake.
+4. Execute check based on `checkMethod`:
+   - `anonymous_bind`: Anonymous Bind operation.
+   - `simple_bind`: Simple Bind with `bindDN` / `bindPassword`.
+   - `root_dse`: Search with base=`""`, scope=base, filter=`(objectClass=*)`.
+   - `search`: Search with `baseDN`, `searchScope`, `searchFilter`.
+5. If operation completes without error — **success**.
+6. Close the connection.
+
+**Connection pool mode**:
+
+1. Use existing LDAP connection.
+2. Execute check method (same as standalone step 4).
+3. If operation completes without error — **success**.
+
+**Validation rules**:
+
+| Condition | Result |
+| --- | --- |
+| `simple_bind` without `bindDN` or `bindPassword` | Configuration error |
+| `search` without `baseDN` | Configuration error |
+| `startTLS=true` with `ldaps://` scheme | Configuration error (incompatible) |
+
+**Specifics**:
+
+- LDAP referrals are not followed.
+- LDAP result code 49 (Invalid Credentials) and 50 (Insufficient Access Rights) are
+  classified as `auth_error` (see section 6.2.3).
+- LDAP operational errors (server down, busy, unavailable) are classified as `unhealthy`.
+- TLS certificate validation respects `tlsSkipVerify` for both `ldaps://` and StartTLS.
+
 ---
 
 ## 5. Two Operating Modes
@@ -493,6 +550,7 @@ A successful check (no error) always produces:
 | Redis | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `unhealthy`, `error` |
 | AMQP | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `unhealthy`, `error` |
 | Kafka | `ok`, `timeout`, `connection_refused`, `dns_error`, `no_brokers`, `error` |
+| LDAP | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `unhealthy`, `error` |
 
 #### 6.2.4. Detail to Status Mapping
 

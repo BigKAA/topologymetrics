@@ -148,35 +148,35 @@ Create feature branch, update specification files.
 
 **Branch:**
 
-- [ ] Create branch `feature/ldap-checker` from `master`
+- [x] Create branch `feature/ldap-checker` from `master`
 
 **Modify `spec/check-behavior.md`:**
 
-- [ ] Add section `4.9. LDAP (type: ldap)` with parameter table, algorithm, specifics
-- [ ] Add LDAP to error classification table in section 6.2.3 (detail values)
+- [x] Add section `4.9. LDAP (type: ldap)` with parameter table, algorithm, specifics
+- [x] Add LDAP to error classification table in section 6.2.3 (detail values)
 
 **Modify `spec/check-behavior.ru.md`:**
 
-- [ ] Same changes (Russian translation)
+- [x] Same changes (Russian translation)
 
 **Modify `spec/config-contract.md`:**
 
-- [ ] Add `ldap://` and `ldaps://` to scheme table (section 2.1)
-- [ ] Add `ldap` to default port table (section 6): port 389 and 636
-- [ ] Add LDAP URL examples to section 2.4
-- [ ] Add `LDAP()` to factory methods list (section 7.1)
-- [ ] Add LDAP-specific options to section 7.3
-- [ ] Add LDAP env vars to section 8.2
+- [x] Add `ldap://` and `ldaps://` to scheme table (section 2.1)
+- [x] Add `ldap` to default port table (section 6): port 389 and 636
+- [x] Add LDAP URL examples to section 2.4
+- [x] Add `LDAP()` to factory methods list (section 7.1)
+- [x] Add LDAP-specific options to section 7.3
+- [x] Add LDAP env vars to section 8.2
 
 **Modify `spec/config-contract.ru.md`:**
 
-- [ ] Same changes (Russian translation)
+- [x] Same changes (Russian translation)
 
 **Validation:**
 
-- [ ] `markdownlint` passes on all modified files
+- [x] `markdownlint` passes on all modified files
 
-**Status:** todo
+**Status:** done
 
 ---
 

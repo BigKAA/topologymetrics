@@ -46,6 +46,8 @@ SDK must correctly extract from any format:
 | `https://` | `http` | `443` |
 | `grpc://` | `grpc` | `443` |
 | `kafka://` | `kafka` | `9092` |
+| `ldap://` | `ldap` | `389` |
+| `ldaps://` | `ldap` | `636` |
 
 ### 2.2. URL Parsing Rules
 
@@ -117,6 +119,10 @@ postgres://user:pass@primary:5432,replica:5432/db?target_session_attrs=read-writ
 | `amqp://user:pass@rabbit.svc/orders` | `rabbit.svc` | `5672` | `amqp` |
 | `kafka://broker-0.svc:9092` | `broker-0.svc` | `9092` | `kafka` |
 | `postgres://[::1]:5432/db` | `::1` | `5432` | `postgres` |
+| `ldap://ldap.svc:389` | `ldap.svc` | `389` | `ldap` |
+| `ldap://ldap.svc` | `ldap.svc` | `389` | `ldap` |
+| `ldaps://ldap.svc:636` | `ldap.svc` | `636` | `ldap` |
+| `ldaps://ldap.svc` | `ldap.svc` | `636` | `ldap` |
 
 ---
 
@@ -227,6 +233,8 @@ jdbc:<subprotocol>://host[:port][/database][?parameters]
 | `http` (TLS) | `443` | TCP + TLS |
 | `grpc` | `443` | TCP (HTTP/2) |
 | `kafka` | `9092` | TCP |
+| `ldap` | `389` | TCP |
+| `ldap` (TLS) | `636` | TCP + TLS |
 | `tcp` | — | TCP (port is required) |
 
 For `type: tcp` the default port is **not defined** — developer must specify it explicitly.
@@ -249,6 +257,7 @@ dephealth.MySQL(name, source, ...opts)
 dephealth.Redis(name, source, ...opts)
 dephealth.AMQP(name, source, ...opts)
 dephealth.Kafka(name, source, ...opts)
+dephealth.LDAP(name, source, ...opts)
 ```
 
 **Parameters**:
@@ -308,6 +317,15 @@ dephealth.WithHTTPBasicAuth("admin", "secret")
 dephealth.WithGRPCMetadata(map[string]string{"x-custom": "value"})
 dephealth.WithGRPCBearerToken("eyJhbG...")
 dephealth.WithGRPCBasicAuth("admin", "secret")
+
+// LDAP-specific
+dephealth.WithLDAPCheckMethod("root_dse")     // anonymous_bind, simple_bind, root_dse, search
+dephealth.WithLDAPBindDN("cn=admin,dc=example,dc=com")
+dephealth.WithLDAPBindPassword("secret")
+dephealth.WithLDAPBaseDN("dc=example,dc=com")
+dephealth.WithLDAPSearchFilter("(objectClass=*)")
+dephealth.WithLDAPSearchScope("base")         // base, one, sub
+dephealth.WithLDAPStartTLS(true)
 
 // Custom labels
 dephealth.WithLabel("role", "primary")
@@ -429,6 +447,13 @@ For example: `CHECK_INTERVAL=30`, `TIMEOUT=5`. SDK converts the number to native
 | `DEPHEALTH_<NAME>_BEARER_TOKEN` | Bearer token (HTTP/gRPC) | `DEPHEALTH_PAYMENT_SERVICE_BEARER_TOKEN=eyJhbG...` |
 | `DEPHEALTH_<NAME>_BASIC_USERNAME` | Basic Auth username (HTTP/gRPC) | `DEPHEALTH_PAYMENT_SERVICE_BASIC_USERNAME=admin` |
 | `DEPHEALTH_<NAME>_BASIC_PASSWORD` | Basic Auth password (HTTP/gRPC) | `DEPHEALTH_PAYMENT_SERVICE_BASIC_PASSWORD=secret` |
+| `DEPHEALTH_<NAME>_LDAP_CHECK_METHOD` | LDAP check method | `DEPHEALTH_LDAP_MAIN_LDAP_CHECK_METHOD=root_dse` |
+| `DEPHEALTH_<NAME>_LDAP_BIND_DN` | LDAP Bind DN | `DEPHEALTH_LDAP_MAIN_LDAP_BIND_DN=cn=admin,dc=example,dc=com` |
+| `DEPHEALTH_<NAME>_LDAP_BIND_PASSWORD` | LDAP Bind password | `DEPHEALTH_LDAP_MAIN_LDAP_BIND_PASSWORD=secret` |
+| `DEPHEALTH_<NAME>_LDAP_BASE_DN` | LDAP Base DN | `DEPHEALTH_LDAP_MAIN_LDAP_BASE_DN=dc=example,dc=com` |
+| `DEPHEALTH_<NAME>_LDAP_SEARCH_FILTER` | LDAP search filter | `DEPHEALTH_LDAP_MAIN_LDAP_SEARCH_FILTER=(objectClass=*)` |
+| `DEPHEALTH_<NAME>_LDAP_SEARCH_SCOPE` | LDAP search scope | `DEPHEALTH_LDAP_MAIN_LDAP_SEARCH_SCOPE=base` |
+| `DEPHEALTH_<NAME>_LDAP_START_TLS` | LDAP StartTLS (`yes` / `no`) | `DEPHEALTH_LDAP_MAIN_LDAP_START_TLS=yes` |
 
 #### Custom Labels
 
