@@ -382,47 +382,47 @@ Documentation for all SDKs, Go version bump, TODO update.
 
 **Go SDK version bump:**
 
-- [ ] `sdk-go/dephealth/version.go` → `0.8.0`
+- [x] `sdk-go/dephealth/version.go` → `0.8.0`
 
 **Go SDK documentation:**
 
-- [ ] Update `sdk-go/README.md` — add LDAP checker section
-- [ ] Update `sdk-go/docs/api-reference.md` — add LDAP types, options, checker API (EN)
-- [ ] Update `sdk-go/docs/api-reference.ru.md` — same (RU)
+- [x] Update `sdk-go/README.md` — add LDAP checker section
+- [x] Update `sdk-go/docs/api-reference.md` — add LDAP types, options, checker API (EN)
+- [x] Update `sdk-go/docs/api-reference.ru.md` — same (RU)
 
 **Java SDK documentation:**
 
-- [ ] Update `sdk-java/README.md` — add LDAP checker section
+- [x] Create `sdk-java/README.md` — add LDAP checker section
 
 **Python SDK documentation:**
 
-- [ ] Update `sdk-python/README.md` — add LDAP checker section
+- [x] Update `sdk-python/README.md` — add LDAP checker section
 
 **C# SDK documentation:**
 
-- [ ] Update `sdk-csharp/README.md` — add LDAP checker section
+- [x] Update `sdk-csharp/README.md` — add LDAP checker section
 
 **Migration guides:**
 
-- [ ] Create `docs/migration/v070-to-v080.md` (EN) — for Go SDK (0.7.0 → 0.8.0)
-- [ ] Create `docs/migration/v070-to-v080.ru.md` (RU)
-- [ ] Create `docs/migration/v060-to-v080.md` (EN) — for Java/Python/C# (0.6.0 → 0.8.0)
-- [ ] Create `docs/migration/v060-to-v080.ru.md` (RU)
+- [x] Create `docs/migration/v070-to-v080.md` (EN) — for Go SDK (0.7.0 → 0.8.0)
+- [x] Create `docs/migration/v070-to-v080.ru.md` (RU)
+- [x] Create `docs/migration/v060-to-v080.md` (EN) — for Java/Python/C# (0.6.0 → 0.8.0)
+- [x] Create `docs/migration/v060-to-v080.ru.md` (RU)
 
 **Changelogs:**
 
-- [ ] Update `CHANGELOG.md` — add `[0.8.0]` section for all SDKs
+- [x] Update `CHANGELOG.md` — add `[0.8.0]` section for all SDKs
 
 **TODO:**
 
-- [ ] Update `TODO.md` — mark LDAP checker as done for all SDKs
+- [x] Update `TODO.md` — mark LDAP checker as done for all SDKs
 
 **Validation:**
 
-- [ ] `markdownlint` passes on all new/modified `.md` files
-- [ ] All builds pass: Go, Java, Python, C#
+- [x] `markdownlint` passes on all new/modified `.md` files
+- [x] All builds pass: Go, Java, Python, C#
 
-**Status:** todo
+**Status:** done
 
 ---
 

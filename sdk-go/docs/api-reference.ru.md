@@ -15,7 +15,7 @@
 #### Version
 
 ```go
-const Version = "0.7.0"
+const Version = "0.8.0"
 ```
 
 Версия SDK, используется в заголовках User-Agent.
@@ -59,6 +59,7 @@ type DependencyType string
 | `TypeRedis` | `"redis"` |
 | `TypeAMQP` | `"amqp"` |
 | `TypeKafka` | `"kafka"` |
+| `TypeLDAP` | `"ldap"` |
 
 #### StatusCategory
 
@@ -268,6 +269,17 @@ type DependencyConfig struct {
     RedisPassword     string
     RedisDB           *int
     AMQPURL           string
+
+    // LDAP-опции
+    LDAPCheckMethod   string
+    LDAPBindDN        string
+    LDAPBindPassword  string
+    LDAPBaseDN        string
+    LDAPSearchFilter  string
+    LDAPSearchScope   string
+    LDAPStartTLS      *bool
+    LDAPTLSSkipVerify *bool
+    LDAPUseTLS        bool
 }
 ```
 
@@ -342,6 +354,7 @@ func MySQL(name string, opts ...DependencyOption) Option
 func Redis(name string, opts ...DependencyOption) Option
 func AMQP(name string, opts ...DependencyOption) Option
 func Kafka(name string, opts ...DependencyOption) Option
+func LDAP(name string, opts ...DependencyOption) Option
 ```
 
 #### AddDependency
@@ -520,13 +533,26 @@ type CheckerFactory func(dc *DependencyConfig) HealthChecker
 | --- | --- | --- |
 | `WithAMQPURL` | `(url string) DependencyOption` | Полный AMQP URL |
 
+#### LDAP
+
+| Функция | Сигнатура | Описание |
+| --- | --- | --- |
+| `WithLDAPCheckMethod` | `(method string) DependencyOption` | Метод проверки: `anonymous_bind`, `simple_bind`, `root_dse`, `search` |
+| `WithLDAPBindDN` | `(dn string) DependencyOption` | DN для простой привязки |
+| `WithLDAPBindPassword` | `(password string) DependencyOption` | Пароль для простой привязки |
+| `WithLDAPBaseDN` | `(baseDN string) DependencyOption` | Базовый DN для поиска |
+| `WithLDAPSearchFilter` | `(filter string) DependencyOption` | LDAP-фильтр поиска (по умолчанию `(objectClass=*)`) |
+| `WithLDAPSearchScope` | `(scope string) DependencyOption` | Область поиска: `base`, `one`, `sub` |
+| `WithLDAPStartTLS` | `(enabled bool) DependencyOption` | Использовать StartTLS (только с `ldap://`) |
+| `WithLDAPTLSSkipVerify` | `(skip bool) DependencyOption` | Пропустить проверку TLS-сертификата |
+
 ---
 
 ## Пакет `checks`
 
 **Импорт:** `github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks`
 
-Импорт этого пакета регистрирует фабрики для **всех 8 типов чекеров**
+Импорт этого пакета регистрирует фабрики для **всех 9 типов чекеров**
 через blank-импорты под-пакетов. Также предоставляет обратно совместимые
 псевдонимы типов и обёртки конструкторов.
 
@@ -842,6 +868,67 @@ func (c *Checker) Type() string  // возвращает "kafka"
 | Условие | Категория | Детализация |
 | --- | --- | --- |
 | Нет брокеров в метаданных | `unhealthy` | `no_brokers` |
+
+### `checks/ldapcheck`
+
+**Импорт:** `github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/ldapcheck`
+
+LDAP-чекер. Поддерживает четыре метода проверки: анонимная привязка, простая
+привязка, запрос RootDSE и поиск. Поддерживает LDAP, LDAPS и StartTLS
+соединения. Использует `go-ldap/ldap/v3`.
+
+```go
+type Checker struct{ /* приватные поля */ }
+type Option func(*Checker)
+
+func New(opts ...Option) *Checker
+func NewFromConfig(dc *dephealth.DependencyConfig) dephealth.HealthChecker
+
+func (c *Checker) Check(ctx context.Context, endpoint dephealth.Endpoint) error
+func (c *Checker) Type() string  // возвращает "ldap"
+```
+
+| Опция | Сигнатура | Описание |
+| --- | --- | --- |
+| `WithConn` | `(conn *ldap.Conn) Option` | Использовать существующее LDAP-соединение (режим пула) |
+| `WithCheckMethod` | `(method CheckMethod) Option` | Метод проверки (по умолчанию `MethodRootDSE`) |
+| `WithBindDN` | `(dn string) Option` | DN для простой привязки |
+| `WithBindPassword` | `(password string) Option` | Пароль для простой привязки |
+| `WithBaseDN` | `(baseDN string) Option` | Базовый DN для поиска |
+| `WithSearchFilter` | `(filter string) Option` | Фильтр поиска (по умолчанию `(objectClass=*)`) |
+| `WithSearchScope` | `(scope SearchScope) Option` | Область поиска (по умолчанию `ScopeBase`) |
+| `WithStartTLS` | `(enabled bool) Option` | Включить StartTLS |
+| `WithUseTLS` | `(enabled bool) Option` | Использовать TLS (LDAPS) |
+| `WithTLSSkipVerify` | `(skip bool) Option` | Пропустить проверку TLS-сертификата |
+
+**Константы:**
+
+| Константа | Тип | Значение |
+| --- | --- | --- |
+| `MethodAnonymousBind` | `CheckMethod` | `"anonymous_bind"` |
+| `MethodSimpleBind` | `CheckMethod` | `"simple_bind"` |
+| `MethodRootDSE` | `CheckMethod` | `"root_dse"` |
+| `MethodSearch` | `CheckMethod` | `"search"` |
+| `ScopeBase` | `SearchScope` | `"base"` |
+| `ScopeOne` | `SearchScope` | `"one"` |
+| `ScopeSub` | `SearchScope` | `"sub"` |
+
+**Классификация ошибок:**
+
+| Условие | Категория | Детализация |
+| --- | --- | --- |
+| LDAP код результата 49 (Invalid Credentials) | `auth_error` | `auth_error` |
+| LDAP код результата 50 (Insufficient Access Rights) | `auth_error` | `auth_error` |
+| Ошибка TLS/StartTLS рукопожатия | `tls_error` | `tls_error` |
+| Сервер LDAP недоступен/занят | `unhealthy` | `unhealthy` |
+
+**Ошибки валидации (возвращаются из `New` или `NewFromConfig`):**
+
+| Условие | Ошибка |
+| --- | --- |
+| `simple_bind` без `bindDN` или `bindPassword` | `"simple_bind requires bindDN and bindPassword"` |
+| `search` без `baseDN` | `"search requires baseDN"` |
+| `startTLS` с `useTLS` (LDAPS) | `"startTLS and useTLS are mutually exclusive"` |
 
 ---
 

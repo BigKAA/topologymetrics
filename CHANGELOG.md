@@ -5,6 +5,70 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-02-25
+
+LDAP health checker: new checker for LDAP directories with full protocol
+support (LDAP, LDAPS, StartTLS) and four check methods (anonymous bind,
+simple bind, RootDSE query, search).
+
+### Added
+
+#### All SDKs
+
+- LDAP health checker (`type: ldap`) with four check methods:
+  - `anonymous_bind` — anonymous LDAP bind operation
+  - `simple_bind` — bind with DN and password
+  - `root_dse` — RootDSE query (default)
+  - `search` — LDAP search with configurable base DN, scope, and filter
+- LDAP protocol support: `ldap://` (port 389), `ldaps://` (port 636),
+  StartTLS upgrade on plain LDAP connections
+- TLS configuration: `startTLS`, `tlsSkipVerify` options
+- Connection pool mode: accept existing LDAP connection for health checks
+- Error classification: `auth_error` (LDAP codes 49, 50), `tls_error`,
+  `connection_refused`, `dns_error`, `timeout`, `unhealthy`
+- Configuration validation: `simple_bind` requires credentials,
+  `search` requires `baseDN`, `startTLS` incompatible with `ldaps://`
+
+#### Go SDK
+
+- `TypeLDAP` constant and `LDAP()` factory function
+- LDAP-specific options: `WithLDAPCheckMethod`, `WithLDAPBindDN`,
+  `WithLDAPBindPassword`, `WithLDAPBaseDN`, `WithLDAPSearchFilter`,
+  `WithLDAPSearchScope`, `WithLDAPStartTLS`, `WithLDAPTLSSkipVerify`
+- `checks/ldapcheck` sub-package with `init()` auto-registration
+- LDAP fields in `DependencyConfig`
+
+#### Java SDK
+
+- `DependencyType.LDAP` enum value
+- `LdapHealthChecker` with builder pattern
+- `CheckMethod` and `LdapSearchScope` enums
+
+#### Python SDK
+
+- `DependencyType.LDAP` enum value
+- `LdapChecker` class with async check via `ldap3`
+- `LdapCheckMethod` and `LdapSearchScope` enums
+
+#### C# SDK
+
+- `DependencyType.Ldap` enum value
+- `LdapChecker` class implementing `IHealthChecker`
+- `LdapCheckMethod` and `LdapSearchScope` enums
+
+#### Specification
+
+- `spec/check-behavior.md` section 4.9: LDAP checker specification
+- `spec/config-contract.md`: `ldap://` and `ldaps://` scheme mapping,
+  default ports, LDAP factory and options, environment variables
+
+### Changed
+
+- **Go SDK**: Version `0.7.0` → `0.8.0`
+- **Java SDK**: Version `0.6.0` → `0.8.0`
+- **Python SDK**: Version `0.6.0` → `0.8.0`
+- **C# SDK**: Version `0.6.0` → `0.8.0`
+
 ## [sdk-csharp 0.6.0] - 2026-02-25
 
 Dynamic endpoint management: add, remove, and update monitored endpoints
@@ -403,6 +467,7 @@ verifying cross-language compatibility.
 - SDK comparison table
 - CONTRIBUTING.md with development workflow
 
+[0.8.0]: https://github.com/BigKAA/topologymetrics/releases/tag/v0.8.0
 [sdk-csharp 0.6.0]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-csharp/v0.6.0
 [sdk-python 0.6.0]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-python/v0.6.0
 [sdk-java 0.6.0]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-java/v0.6.0

@@ -4,7 +4,7 @@ SDK for monitoring microservice dependencies via Prometheus metrics.
 
 ## Features
 
-- Automatic health checking for dependencies (PostgreSQL, MySQL, Redis, RabbitMQ, Kafka, HTTP, gRPC, TCP)
+- Automatic health checking for dependencies (PostgreSQL, MySQL, Redis, RabbitMQ, Kafka, HTTP, gRPC, TCP, LDAP)
 - Prometheus metrics export: `app_dependency_health` (Gauge 0/1), `app_dependency_latency_seconds` (Histogram), `app_dependency_status` (enum), `app_dependency_status_detail` (info)
 - Async architecture built on `async Task`
 - ASP.NET Core integration (hosted service, middleware, health endpoints)
@@ -121,6 +121,35 @@ foreach (var (key, ep) in details)
 | HTTP | `Http` | `http://host:8080/health` |
 | gRPC | `Grpc` | `host:50051` (via `Host()` + `Port()`) |
 | TCP | `Tcp` | `tcp://host:port` |
+| LDAP | `Ldap` | `ldap://host:389` or `ldaps://host:636` |
+
+## LDAP Checker
+
+LDAP health checker supports four check methods and multiple TLS modes:
+
+```csharp
+using DepHealth.Checks;
+
+// RootDSE check (default)
+var checker = new LdapChecker(checkMethod: LdapCheckMethod.RootDse);
+
+// Simple bind with credentials
+var checker = new LdapChecker(
+    checkMethod: LdapCheckMethod.SimpleBind,
+    bindDN: "cn=monitor,dc=corp,dc=com",
+    bindPassword: "secret",
+    useTls: true);
+
+// Search with StartTLS
+var checker = new LdapChecker(
+    checkMethod: LdapCheckMethod.Search,
+    baseDN: "dc=example,dc=com",
+    searchFilter: "(objectClass=organizationalUnit)",
+    searchScope: LdapSearchScope.One,
+    startTls: true);
+```
+
+Check methods: `AnonymousBind`, `SimpleBind`, `RootDse` (default), `Search`.
 
 ## Authentication
 

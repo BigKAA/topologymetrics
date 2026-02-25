@@ -4,7 +4,7 @@ SDK for monitoring microservice dependencies via Prometheus metrics.
 
 ## Features
 
-- Automatic health checking for dependencies (PostgreSQL, MySQL, Redis, RabbitMQ, Kafka, HTTP, gRPC, TCP)
+- Automatic health checking for dependencies (PostgreSQL, MySQL, Redis, RabbitMQ, Kafka, HTTP, gRPC, TCP, LDAP)
 - Prometheus metrics export: `app_dependency_health` (Gauge 0/1), `app_dependency_latency_seconds` (Histogram), `app_dependency_status` (enum), `app_dependency_status_detail` (info)
 - Async architecture built on `asyncio`
 - FastAPI integration (middleware, lifespan, endpoints)
@@ -115,6 +115,37 @@ for key, ep in details.items():
 | HTTP | — | `http://host:8080/health` |
 | gRPC | `grpc` | `host:50051` (via `FromParams`) |
 | TCP | — | `tcp://host:port` |
+| LDAP | `ldap` | `ldap://host:389` or `ldaps://host:636` |
+
+## LDAP Checker
+
+LDAP health checker supports four check methods and multiple TLS modes:
+
+```python
+from dephealth.checks.ldap import LdapChecker, LdapCheckMethod, LdapSearchScope
+
+# RootDSE check (default)
+ldap_checker = LdapChecker(check_method=LdapCheckMethod.ROOT_DSE)
+
+# Simple bind with credentials
+ldap_checker = LdapChecker(
+    check_method=LdapCheckMethod.SIMPLE_BIND,
+    bind_dn="cn=monitor,dc=corp,dc=com",
+    bind_password="secret",
+    use_tls=True,
+)
+
+# Search with StartTLS
+ldap_checker = LdapChecker(
+    check_method=LdapCheckMethod.SEARCH,
+    base_dn="dc=example,dc=com",
+    search_filter="(objectClass=organizationalUnit)",
+    search_scope=LdapSearchScope.ONE,
+    start_tls=True,
+)
+```
+
+Check methods: `ANONYMOUS_BIND`, `SIMPLE_BIND`, `ROOT_DSE` (default), `SEARCH`.
 
 ## Authentication
 
