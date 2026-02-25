@@ -205,6 +205,12 @@ Create an AMQP (RabbitMQ) health check.
 
 Create a Kafka health check.
 
+### `ldap_check(name, *, url, critical, ...)`
+
+Create an LDAP health check. Supports existing ldap3 client via `client`
+parameter. Check methods: `ANONYMOUS_BIND`, `SIMPLE_BIND`, `ROOT_DSE`
+(default), `SEARCH`.
+
 ---
 
 ## Types
@@ -221,7 +227,7 @@ class Endpoint:
 
 ### `DependencyType`
 
-Enum: `HTTP`, `GRPC`, `TCP`, `POSTGRES`, `MYSQL`, `REDIS`, `AMQP`, `KAFKA`.
+Enum: `HTTP`, `GRPC`, `TCP`, `POSTGRES`, `MYSQL`, `REDIS`, `AMQP`, `KAFKA`, `LDAP`.
 
 ### `EndpointStatus`
 

@@ -204,6 +204,12 @@ AMQP (RabbitMQ) проверка.
 
 Kafka-проверка.
 
+### `ldap_check(name, *, url, critical, ...)`
+
+LDAP-проверка. Поддержка существующего ldap3 клиента через параметр `client`.
+Методы проверки: `ANONYMOUS_BIND`, `SIMPLE_BIND`, `ROOT_DSE` (по умолчанию),
+`SEARCH`.
+
 ---
 
 ## Типы
@@ -220,7 +226,7 @@ class Endpoint:
 
 ### `DependencyType`
 
-Enum: `HTTP`, `GRPC`, `TCP`, `POSTGRES`, `MYSQL`, `REDIS`, `AMQP`, `KAFKA`.
+Enum: `HTTP`, `GRPC`, `TCP`, `POSTGRES`, `MYSQL`, `REDIS`, `AMQP`, `KAFKA`, `LDAP`.
 
 ### `EndpointStatus`
 

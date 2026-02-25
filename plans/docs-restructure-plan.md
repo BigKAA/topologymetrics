@@ -240,18 +240,25 @@ Java SDK имеет минимальную документацию. Нужно 
 
 ### 3B: Markdown документация
 
-- [ ] 3B.1 Создать `sdk-python/docs/README.md` — обзор и навигация
-- [ ] 3B.2 Создать `sdk-python/docs/getting-started.md` / `.ru.md`
-- [ ] 3B.3 Обновить существующий `sdk-python/docs/api-reference.md` — проверить полноту
-- [ ] 3B.4 Создать `sdk-python/docs/configuration.md` / `.ru.md`
-- [ ] 3B.5 Создать `sdk-python/docs/checkers.md` / `.ru.md`
-- [ ] 3B.6 Создать `sdk-python/docs/fastapi.md` / `.ru.md`
-- [ ] 3B.7 Создать `sdk-python/docs/metrics.md` / `.ru.md`
-- [ ] 3B.8 Создать `sdk-python/docs/authentication.md` / `.ru.md`
-- [ ] 3B.9 Создать `sdk-python/docs/connection-pools.md` / `.ru.md`
-- [ ] 3B.10 Создать `sdk-python/docs/troubleshooting.md` / `.ru.md`
-- [ ] 3B.11 Перенести `docs/migration/python.md` + `sdk-python-v050-to-v060.md` → `sdk-python/docs/migration.md` / `.ru.md`
-- [ ] 3B.12 Перенести `docs/code-style/python.md` → `sdk-python/docs/code-style.md` / `.ru.md`
+- [x] 3B.1 Создать `sdk-python/docs/README.md` — обзор и навигация
+- [x] 3B.2 Создать `sdk-python/docs/getting-started.md` / `.ru.md`
+- [x] 3B.3 Обновить существующий `sdk-python/docs/api-reference.md` — проверить полноту
+  - Добавлен `ldap_check()` и `LDAP` в `DependencyType` (обе версии)
+- [x] 3B.4 Создать `sdk-python/docs/configuration.md` / `.ru.md`
+- [x] 3B.5 Создать `sdk-python/docs/checkers.md` / `.ru.md`
+- [x] 3B.6 Создать `sdk-python/docs/fastapi.md` / `.ru.md`
+- [x] 3B.7 Создать `sdk-python/docs/metrics.md` / `.ru.md`
+- [x] 3B.8 Создать `sdk-python/docs/authentication.md` / `.ru.md`
+- [x] 3B.9 Создать `sdk-python/docs/connection-pools.md` / `.ru.md`
+- [x] 3B.10 Создать `sdk-python/docs/troubleshooting.md` / `.ru.md`
+- [x] 3B.11 Перенести `docs/migration/python.md` + `sdk-python-v050-to-v060.md` → `sdk-python/docs/migration.md` / `.ru.md`
+  - Объединены: migration guide + v0.5→v0.6 dynamic endpoints + v0.4→v0.4.1 health_details + v0.3→v0.4 status metrics + v0.1→v0.2
+  - Удаление оригиналов из `docs/` произойдёт в Фазе 5
+- [x] 3B.12 Перенести `docs/code-style/python.md` → `sdk-python/docs/code-style.md` / `.ru.md`
+  - Обновлена структура пакетов (добавлены check_result.py, endpoint_status.py, ldap.py, endpoints.py)
+  - Обновлена иерархия исключений (добавлены CheckDnsError, CheckAuthError, CheckTlsError)
+  - Обновлены ссылки на общие docs
+  - Удаление оригиналов из `docs/` произойдёт в Фазе 5
 
 ### 3C: Примеры
 
