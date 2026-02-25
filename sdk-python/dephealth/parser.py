@@ -20,6 +20,8 @@ DEFAULT_PORTS: dict[str, str] = {
     "https": "443",
     "grpc": "443",
     "kafka": "9092",
+    "ldap": "389",
+    "ldaps": "636",
 }
 
 # Scheme to dependency type mapping.
@@ -35,6 +37,8 @@ _SCHEME_TO_TYPE: dict[str, DependencyType] = {
     "https": DependencyType.HTTP,
     "grpc": DependencyType.GRPC,
     "kafka": DependencyType.KAFKA,
+    "ldap": DependencyType.LDAP,
+    "ldaps": DependencyType.LDAP,
 }
 
 # JDBC subprotocol to dependency type mapping.

@@ -18,6 +18,7 @@ class DependencyType(StrEnum):
     REDIS = "redis"
     AMQP = "amqp"
     KAFKA = "kafka"
+    LDAP = "ldap"
 
 
 # Default values from the specification.

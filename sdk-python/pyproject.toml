@@ -7,7 +7,7 @@ packages = ["dephealth", "dephealth_fastapi"]
 
 [project]
 name = "dephealth"
-version = "0.6.0"
+version = "0.8.0"
 description = "SDK for monitoring microservice dependencies via Prometheus metrics"
 requires-python = ">=3.11"
 license = "Apache-2.0"
@@ -45,10 +45,11 @@ mysql = ["aiomysql>=0.2"]
 redis = ["redis[hiredis]>=5.0"]
 amqp = ["aio-pika>=9.4"]
 kafka = ["aiokafka>=0.10"]
+ldap = ["ldap3>=2.9"]
 grpc = ["grpcio>=1.60", "grpcio-health-checking>=1.60"]
 fastapi = ["fastapi>=0.110", "uvicorn[standard]>=0.29"]
 all = [
-    "dephealth[postgres,mysql,redis,amqp,kafka,grpc,fastapi]",
+    "dephealth[postgres,mysql,redis,amqp,kafka,ldap,grpc,fastapi]",
 ]
 dev = [
     "dephealth[all]",
@@ -92,6 +93,8 @@ module = [
     "grpc.*",
     "grpc_health",
     "grpc_health.*",
+    "ldap3",
+    "ldap3.*",
 ]
 ignore_missing_imports = true
 

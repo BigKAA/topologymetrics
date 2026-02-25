@@ -285,46 +285,46 @@ Implement LDAP checker for Python SDK.
 
 **Add dependency:**
 
-- [ ] Add `ldap3` to `sdk-python/pyproject.toml` dependencies
+- [x] Add `ldap3` to `sdk-python/pyproject.toml` dependencies
 
 **Modify `sdk-python/dephealth/dependency.py`:**
 
-- [ ] Add `LDAP = "ldap"` to `DependencyType`
+- [x] Add `LDAP = "ldap"` to `DependencyType`
 
 **Modify `sdk-python/dephealth/parser.py`:**
 
-- [ ] Add `ldap` → `LDAP`, `ldaps` → `LDAP` to scheme mapping
-- [ ] Add default ports: `ldap` → 389, `ldaps` → 636
+- [x] Add `ldap` → `LDAP`, `ldaps` → `LDAP` to scheme mapping
+- [x] Add default ports: `ldap` → 389, `ldaps` → 636
 
 **Create `sdk-python/dephealth/checks/ldap.py`:**
 
-- [ ] `LdapChecker` class with `async check(endpoint)` and `checker_type() -> str`
-- [ ] Constructor: `timeout`, `check_method`, `bind_dn`, `bind_password`, `base_dn`, `search_filter`, `search_scope`, `start_tls`, `tls_skip_verify`, `client`
-- [ ] Standalone: create `ldap3.Connection` in executor (ldap3 is synchronous)
-- [ ] Pool mode: accept existing connection
-- [ ] Error classification: `CheckAuthError`, `CheckConnectionRefusedError`, `CheckTlsError`
+- [x] `LdapChecker` class with `async check(endpoint)` and `checker_type() -> str`
+- [x] Constructor: `timeout`, `check_method`, `bind_dn`, `bind_password`, `base_dn`, `search_filter`, `search_scope`, `start_tls`, `tls_skip_verify`, `client`
+- [x] Standalone: create `ldap3.Connection` in executor (ldap3 is synchronous)
+- [x] Pool mode: accept existing connection
+- [x] Error classification: `CheckAuthError`, `CheckConnectionRefusedError`, `CheckTlsError`
 
 **Modify `sdk-python/dephealth/checks/__init__.py`:**
 
-- [ ] Export `LdapChecker`
+- [x] Export `LdapChecker`
 
 **Create `sdk-python/tests/test_ldap.py`:**
 
-- [ ] Unit tests for all 4 check methods
-- [ ] Test error classification
-- [ ] Test validation rules
+- [x] Unit tests for all 4 check methods
+- [x] Test error classification
+- [x] Test validation rules
 
 **Version bump:**
 
-- [ ] `sdk-python/pyproject.toml` version → `0.8.0`
+- [x] `sdk-python/pyproject.toml` version → `0.8.0`
 
 **Validation:**
 
-- [ ] `pytest` passes
-- [ ] `ruff check` passes
-- [ ] `mypy` passes (if configured)
+- [x] `pytest` passes
+- [x] `ruff check` passes
+- [x] `mypy` passes (if configured)
 
-**Status:** todo
+**Status:** done
 
 ---
 

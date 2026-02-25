@@ -6,6 +6,7 @@ from dephealth.checks.amqp import AMQPChecker
 from dephealth.checks.grpc import GRPCChecker
 from dephealth.checks.http import HTTPChecker
 from dephealth.checks.kafka import KafkaChecker
+from dephealth.checks.ldap import LdapChecker
 from dephealth.checks.mysql import MySQLChecker
 from dephealth.checks.postgres import PostgresChecker
 from dephealth.checks.redis import RedisChecker
@@ -16,6 +17,7 @@ __all__ = [
     "GRPCChecker",
     "HTTPChecker",
     "KafkaChecker",
+    "LdapChecker",
     "MySQLChecker",
     "PostgresChecker",
     "RedisChecker",
