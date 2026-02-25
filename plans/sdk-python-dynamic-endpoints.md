@@ -248,29 +248,29 @@ Integration tests for the public API.
 
 **Version bump:**
 
-- [ ] `pyproject.toml` → `version = "0.6.0"`
+- [x] `pyproject.toml` → `version = "0.6.0"`
 
 **Documentation (EN):**
 
-- [ ] Update `sdk-python/docs/api-reference.md` — add `add_endpoint`, `remove_endpoint`, `update_endpoint`
-- [ ] Update `sdk-python/README.md` — add "Dynamic Endpoints" section with usage example
-- [ ] Create `docs/migration/sdk-python-v050-to-v060.md` — migration guide
+- [x] Create `sdk-python/docs/api-reference.md` — full API reference with dynamic endpoints
+- [x] Update `sdk-python/README.md` — add "Dynamic Endpoints" section with usage example
+- [x] Create `docs/migration/sdk-python-v050-to-v060.md` — migration guide
 
 **Documentation (RU):**
 
-- [ ] Update `sdk-python/docs/api-reference.ru.md` — same as EN
-- [ ] Create `docs/migration/sdk-python-v050-to-v060.ru.md` — migration guide
+- [x] Create `sdk-python/docs/api-reference.ru.md` — same as EN
+- [x] Create `docs/migration/sdk-python-v050-to-v060.ru.md` — migration guide
 
 **Changelog:**
 
-- [ ] Update `CHANGELOG.md` — add `[sdk-python 0.6.0]` section
+- [x] Update `CHANGELOG.md` — add `[sdk-python 0.6.0]` section
 
 **Validation:**
 
-- [ ] `pytest` — all pass
-- [ ] `markdownlint` on all new/changed `.md` files — 0 issues
+- [x] `pytest` — all pass (212 passed)
+- [x] `markdownlint` on all new/changed `.md` files — 0 issues
 
-**Status:** not started
+**Status:** done
 
 ---
 

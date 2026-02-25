@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [sdk-python 0.6.0] - 2026-02-25
+
+Dynamic endpoint management: add, remove, and update monitored endpoints
+at runtime on a running `DependencyHealth` instance.
+
+### Added
+
+- **Python SDK**: `DependencyHealth.add_endpoint()` / `add_endpoint_sync()` —
+  add a monitored endpoint after `start()`
+- **Python SDK**: `DependencyHealth.remove_endpoint()` / `remove_endpoint_sync()` —
+  remove an endpoint (cancels task, deletes metrics)
+- **Python SDK**: `DependencyHealth.update_endpoint()` / `update_endpoint_sync()` —
+  atomically replace an endpoint
+- **Python SDK**: `EndpointNotFoundError` exception
+- **Python SDK**: Per-endpoint `asyncio.Task` / `threading.Thread` tracking
+  for cancellation
+- **Python SDK**: `threading.Lock` for thread-safe state mutations in
+  `health()` / `health_details()`
+- Migration guide from Python SDK v0.5.0 to v0.6.0
+- API reference documentation (EN + RU)
+
 ## [sdk-java 0.6.0] - 2026-02-24
 
 Dynamic endpoint management: add, remove, and update monitored endpoints
@@ -362,6 +383,7 @@ verifying cross-language compatibility.
 - SDK comparison table
 - CONTRIBUTING.md with development workflow
 
+[sdk-python 0.6.0]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-python/v0.6.0
 [sdk-java 0.6.0]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-java/v0.6.0
 [0.7.0]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-go/v0.7.0
 [0.6.0]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-go/v0.6.0

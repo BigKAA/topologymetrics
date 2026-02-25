@@ -50,6 +50,43 @@ dh = DepHealthFastAPI(app)
 dh.add("postgres", url="postgresql://user:pass@localhost:5432/mydb")
 ```
 
+## Dynamic Endpoints
+
+Add, remove, or replace monitored endpoints at runtime on a running instance
+(v0.6.0+):
+
+```python
+from dephealth import DependencyType, Endpoint
+from dephealth.checks.http import HTTPChecker
+
+# After dh.start()...
+
+# Add a new endpoint
+await dh.add_endpoint(
+    "api-backend",
+    DependencyType.HTTP,
+    True,
+    Endpoint(host="backend-2.svc", port="8080"),
+    HTTPChecker(),
+)
+
+# Remove an endpoint (cancels check task, deletes metrics)
+await dh.remove_endpoint("api-backend", "backend-2.svc", "8080")
+
+# Replace an endpoint atomically
+await dh.update_endpoint(
+    "api-backend",
+    "backend-1.svc", "8080",
+    Endpoint(host="backend-3.svc", port="8080"),
+    HTTPChecker(),
+)
+```
+
+Synchronous variants are available: `add_endpoint_sync()`,
+`remove_endpoint_sync()`, `update_endpoint_sync()`.
+
+See [migration guide](../docs/migration/sdk-python-v050-to-v060.md) for details.
+
 ## Health Details
 
 ```python
