@@ -156,6 +156,7 @@ Go SDK уже имеет наиболее полную документацию.
 - [x] 1.5 Обновить навигацию в getting-started.md / getting-started.ru.md — ссылки на migration, code-style, examples
   - Примечание: отдельного `sdk-go/docs/README.md` не существует; навигация обновлена в getting-started
 - [x] 1.6 Обновить перекрёстные ссылки в `sdk-go/README.md`
+- [ ] 1.7 Создать `sdk-go/README.ru.md` — русская версия README
 
 ## Фаза 2: Java SDK — создание документации
 
@@ -177,36 +178,36 @@ Java SDK имеет минимальную документацию. Нужно 
 
 ### 2B: Markdown документация
 
-- [ ] 2B.1 Создать `sdk-java/docs/README.md` — обзор и навигация по документации
-- [ ] 2B.2 Создать `sdk-java/docs/getting-started.md` / `.ru.md` — на основе README.md, но подробнее:
+- [x] 2B.1 Создать `sdk-java/docs/README.md` — обзор и навигация по документации
+- [x] 2B.2 Создать `sdk-java/docs/getting-started.md` / `.ru.md` — на основе README.md, но подробнее:
   - Prerequisites (Java 21, Maven)
   - Установка (Maven, Gradle)
   - Минимальный пример с пояснениями
   - Checker Registration
-- [ ] 2B.3 Создать `sdk-java/docs/api-reference.md` / `.ru.md`:
+- [x] 2B.3 Создать `sdk-java/docs/api-reference.md` / `.ru.md`:
   - Все публичные классы и интерфейсы
   - Builder API
   - Configuration options
   - (Ссылка на автогенерированный Javadoc)
-- [ ] 2B.4 Создать `sdk-java/docs/configuration.md` / `.ru.md`:
+- [x] 2B.4 Создать `sdk-java/docs/configuration.md` / `.ru.md`:
   - Connection string форматы
   - URL парсинг
   - Environment variables
   - Spring Boot properties (`dephealth.*`)
-- [ ] 2B.5 Создать `sdk-java/docs/checkers.md` / `.ru.md`:
+- [x] 2B.5 Создать `sdk-java/docs/checkers.md` / `.ru.md`:
   - Все типы checkers: HTTP, gRPC, TCP, Postgres, MySQL, Redis, AMQP, Kafka, LDAP
   - Для каждого: описание, параметры, пример использования
-- [ ] 2B.6 Создать `sdk-java/docs/spring-boot.md` / `.ru.md`:
+- [x] 2B.6 Создать `sdk-java/docs/spring-boot.md` / `.ru.md`:
   - Auto-configuration
   - Actuator integration
   - Properties reference
   - Customization
-- [ ] 2B.7 Создать `sdk-java/docs/metrics.md` / `.ru.md`
-- [ ] 2B.8 Создать `sdk-java/docs/authentication.md` / `.ru.md`
-- [ ] 2B.9 Создать `sdk-java/docs/connection-pools.md` / `.ru.md`
-- [ ] 2B.10 Создать `sdk-java/docs/troubleshooting.md` / `.ru.md`
-- [ ] 2B.11 Перенести `docs/migration/java.md` + `sdk-java-v050-to-v060.md` → `sdk-java/docs/migration.md` / `.ru.md`
-- [ ] 2B.12 Перенести `docs/code-style/java.md` → `sdk-java/docs/code-style.md` / `.ru.md`
+- [x] 2B.7 Создать `sdk-java/docs/metrics.md` / `.ru.md`
+- [x] 2B.8 Создать `sdk-java/docs/authentication.md` / `.ru.md`
+- [x] 2B.9 Создать `sdk-java/docs/connection-pools.md` / `.ru.md`
+- [x] 2B.10 Создать `sdk-java/docs/troubleshooting.md` / `.ru.md`
+- [x] 2B.11 Перенести `docs/migration/java.md` + `sdk-java-v050-to-v060.md` → `sdk-java/docs/migration.md` / `.ru.md`
+- [x] 2B.12 Перенести `docs/code-style/java.md` → `sdk-java/docs/code-style.md` / `.ru.md`
 
 ### 2C: Примеры
 
@@ -217,7 +218,8 @@ Java SDK имеет минимальную документацию. Нужно 
 
 ### 2D: Обновление ссылок
 
-- [ ] 2D.1 Обновить `sdk-java/README.md` — ссылки на `docs/`
+- [x] 2D.1 Обновить `sdk-java/README.md` — ссылки на `docs/`
+- [x] 2D.3 Создать `sdk-java/README.ru.md` — русская версия README
 - [ ] 2D.2 Обновить `TODO.md` — отметить Javadoc как завершённый
 
 ## Фаза 3: Python SDK — создание документации
@@ -257,6 +259,7 @@ Java SDK имеет минимальную документацию. Нужно 
 ### 3D: Обновление ссылок
 
 - [ ] 3D.1 Обновить `sdk-python/README.md` (создать если нет) — ссылки на `docs/`
+- [ ] 3D.2 Создать `sdk-python/README.ru.md` — русская версия README
 
 ## Фаза 4: C# SDK — создание документации
 
@@ -299,6 +302,7 @@ Java SDK имеет минимальную документацию. Нужно 
 ### 4D: Обновление ссылок
 
 - [ ] 4D.1 Обновить `sdk-csharp/README.md` (создать если нет) — ссылки на `docs/`
+- [ ] 4D.2 Создать `sdk-csharp/README.ru.md` — русская версия README
 
 ## Фаза 5: Очистка общего `docs/`
 

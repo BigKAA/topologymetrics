@@ -1,18 +1,18 @@
-*[Русская версия](README.ru.md)*
+*[English version](README.md)*
 
 # dephealth
 
-SDK for monitoring microservice dependencies via Prometheus metrics.
+SDK для мониторинга зависимостей микросервисов через метрики Prometheus.
 
-## Features
+## Возможности
 
-- Automatic health checking for dependencies (PostgreSQL, MySQL, Redis, RabbitMQ, Kafka, HTTP, gRPC, TCP, LDAP)
-- Prometheus metrics export: `app_dependency_health` (Gauge 0/1), `app_dependency_latency_seconds` (Histogram), `app_dependency_status` (enum), `app_dependency_status_detail` (info)
-- Java 21 LTS, Maven multi-module project
-- Spring Boot starter with auto-configuration and actuator integration
-- Connection pool support (preferred) and standalone checks
+- Автоматическая проверка здоровья зависимостей (PostgreSQL, MySQL, Redis, RabbitMQ, Kafka, HTTP, gRPC, TCP, LDAP)
+- Экспорт метрик Prometheus: `app_dependency_health` (Gauge 0/1), `app_dependency_latency_seconds` (Histogram), `app_dependency_status` (enum), `app_dependency_status_detail` (info)
+- Java 21 LTS, Maven multi-module проект
+- Spring Boot starter с auto-configuration и интеграцией actuator
+- Поддержка connection pool (предпочтительно) и автономных проверок
 
-## Installation
+## Установка
 
 ### Maven
 
@@ -34,7 +34,7 @@ SDK for monitoring microservice dependencies via Prometheus metrics.
 </dependency>
 ```
 
-## Quick Start
+## Быстрый старт
 
 ```java
 import biz.kryukov.dev.dephealth.DepHealth;
@@ -49,39 +49,39 @@ var dh = DepHealth.builder("my-service", "my-team", registry)
     .build();
 
 dh.start();
-// Metrics are available via Micrometer registry
+// Метрики доступны через Micrometer registry
 dh.stop();
 ```
 
-## Dynamic Endpoints
+## Динамические эндпоинты
 
-Add, remove, or replace monitored endpoints at runtime on a running instance
-(v0.6.0+):
+Добавление, удаление и замена мониторируемых эндпоинтов в рантайме на
+работающем экземпляре (v0.6.0+):
 
 ```java
 import biz.kryukov.dev.dephealth.model.DependencyType;
 import biz.kryukov.dev.dephealth.model.Endpoint;
 import biz.kryukov.dev.dephealth.checks.HttpHealthChecker;
 
-// After dh.start()...
+// После dh.start()...
 
-// Add a new endpoint
+// Добавить новый эндпоинт
 dh.addEndpoint("api-backend", DependencyType.HTTP, true,
     new Endpoint("backend-2.svc", "8080"),
     HttpHealthChecker.builder().build());
 
-// Remove an endpoint (cancels scheduled task, deletes metrics)
+// Удалить эндпоинт (отменяет задачу, удаляет метрики)
 dh.removeEndpoint("api-backend", "backend-2.svc", "8080");
 
-// Replace an endpoint atomically
+// Заменить эндпоинт атомарно
 dh.updateEndpoint("api-backend", "backend-1.svc", "8080",
     new Endpoint("backend-3.svc", "8080"),
     HttpHealthChecker.builder().build());
 ```
 
-See [migration guide](docs/migration.md#v050-to-v060) for details.
+Подробности в [руководстве по миграции](docs/migration.ru.md#v050--v060).
 
-## Health Details
+## Детализация здоровья
 
 ```java
 var details = dh.healthDetails();
@@ -90,9 +90,9 @@ details.forEach((key, ep) ->
         key, ep.isHealthy(), ep.getStatus(), ep.getLatencyMillis()));
 ```
 
-## Supported Dependencies
+## Поддерживаемые зависимости
 
-| Type | URL Format |
+| Тип | Формат URL |
 | --- | --- |
 | PostgreSQL | `postgresql://user:pass@host:5432/db` |
 | MySQL | `mysql://user:pass@host:3306/db` |
@@ -100,25 +100,25 @@ details.forEach((key, ep) ->
 | RabbitMQ | `amqp://user:pass@host:5672/vhost` |
 | Kafka | `kafka://host1:9092,host2:9092` |
 | HTTP | `http://host:8080/health` |
-| gRPC | via `host()` + `port()` |
+| gRPC | через `host()` + `port()` |
 | TCP | `tcp://host:port` |
-| LDAP | `ldap://host:389` or `ldaps://host:636` |
+| LDAP | `ldap://host:389` или `ldaps://host:636` |
 
-## LDAP Checker
+## LDAP-чекер
 
-LDAP health checker supports four check methods and multiple TLS modes:
+LDAP-чекер поддерживает четыре метода проверки и несколько режимов TLS:
 
 ```java
 import biz.kryukov.dev.dephealth.checks.LdapHealthChecker;
 import biz.kryukov.dev.dephealth.checks.LdapHealthChecker.CheckMethod;
 import biz.kryukov.dev.dephealth.checks.LdapHealthChecker.LdapSearchScope;
 
-// RootDSE check (default)
+// Запрос RootDSE (по умолчанию)
 var checker = LdapHealthChecker.builder()
     .checkMethod(CheckMethod.ROOT_DSE)
     .build();
 
-// Simple bind with credentials
+// Простая привязка с учётными данными
 var checker = LdapHealthChecker.builder()
     .checkMethod(CheckMethod.SIMPLE_BIND)
     .bindDN("cn=monitor,dc=corp,dc=com")
@@ -126,7 +126,7 @@ var checker = LdapHealthChecker.builder()
     .useTLS(true)
     .build();
 
-// Search with StartTLS
+// Поиск с StartTLS
 var checker = LdapHealthChecker.builder()
     .checkMethod(CheckMethod.SEARCH)
     .baseDN("dc=example,dc=com")
@@ -136,11 +136,11 @@ var checker = LdapHealthChecker.builder()
     .build();
 ```
 
-Check methods: `ANONYMOUS_BIND`, `SIMPLE_BIND`, `ROOT_DSE` (default), `SEARCH`.
+Методы проверки: `ANONYMOUS_BIND`, `SIMPLE_BIND`, `ROOT_DSE` (по умолчанию), `SEARCH`.
 
-## Authentication
+## Аутентификация
 
-HTTP and gRPC checkers support Bearer token, Basic Auth, and custom headers/metadata:
+HTTP и gRPC чекеры поддерживают Bearer token, Basic Auth и пользовательские заголовки/метаданные:
 
 ```java
 dh.http("secure-api", "http://api.svc:8080", true,
@@ -150,8 +150,12 @@ dh.grpc("grpc-backend", "backend.svc", "9090", true,
     GrpcHealthChecker.builder().bearerToken("eyJhbG...").build());
 ```
 
-See [authentication guide](docs/authentication.md) for all options.
+Все опции описаны в [руководстве по аутентификации](docs/authentication.ru.md).
 
-## License
+## Документация
 
-Apache License 2.0 — see [LICENSE](https://github.com/BigKAA/topologymetrics/blob/master/LICENSE).
+Полная документация доступна в директории [docs/](docs/README.md).
+
+## Лицензия
+
+Apache License 2.0 — см. [LICENSE](https://github.com/BigKAA/topologymetrics/blob/master/LICENSE).
