@@ -21,7 +21,7 @@ simple bind, RootDSE query, search), and bump all SDK versions to 0.8.0.
 | Go | `go-ldap/ldap/v3` | `github.com/go-ldap/ldap/v3` |
 | Java | UnboundID LDAP SDK | `com.unboundid:unboundid-ldapsdk` |
 | Python | ldap3 | `ldap3` |
-| C# | Novell LDAP | `Novell.Directory.Ldap.NETStandard` |
+| C# | Novell LDAP | `Novell.Directory.Ldap.NETStandard` (4.0.0) |
 
 ## DependencyType
 
@@ -334,45 +334,45 @@ Implement LDAP checker for C# SDK.
 
 **Add dependency:**
 
-- [ ] Add `Novell.Directory.Ldap.NETStandard` to `DepHealth.Core.csproj`
+- [x] Add `Novell.Directory.Ldap.NETStandard` to `DepHealth.Core.csproj`
 
 **Modify `DependencyType.cs`:**
 
-- [ ] Add `Ldap` enum value
-- [ ] Update `Label()` and `FromLabel()` extension methods
+- [x] Add `Ldap` enum value
+- [x] Update `Label()` and `FromLabel()` extension methods
 
 **Modify `ConfigParser.cs`:**
 
-- [ ] Add `ldap` → `Ldap`, `ldaps` → `Ldap` to scheme mapping
-- [ ] Add default ports: `ldap` → 389, `ldaps` → 636
+- [x] Add `ldap` → `Ldap`, `ldaps` → `Ldap` to scheme mapping
+- [x] Add default ports: `ldap` → 389, `ldaps` → 636
 
 **Create `DepHealth.Core/Checks/LdapChecker.cs`:**
 
-- [ ] Implement `IHealthChecker` with `CheckAsync(Endpoint, CancellationToken)` and `Type`
-- [ ] Standalone mode: `LdapConnection.ConnectAsync`, optional StartTLS, check, disconnect
-- [ ] Pool mode: accept existing `ILdapConnection`
-- [ ] Error classification: `CheckAuthException`, `ConnectionRefusedException`
-- [ ] Constructor overloads for standalone (config) and pool (connection) modes
+- [x] Implement `IHealthChecker` with `CheckAsync(Endpoint, CancellationToken)` and `Type`
+- [x] Standalone mode: `LdapConnection.Connect`, optional StartTLS, check, disconnect
+- [x] Pool mode: accept existing `LdapConnection`
+- [x] Error classification: `CheckAuthException`, `ConnectionRefusedException`
+- [x] Constructor overloads for standalone (config) and pool (connection) modes
 
 **Create `tests/.../LdapCheckerTests.cs`:**
 
-- [ ] xUnit tests
-- [ ] Test type property
-- [ ] Test all 4 check methods (with mocked connection)
-- [ ] Test error classification
-- [ ] Test validation rules
+- [x] xUnit tests
+- [x] Test type property
+- [x] Test all 4 check methods (constructor validation)
+- [x] Test error classification
+- [x] Test validation rules
 
 **Version bump:**
 
-- [ ] `sdk-csharp/Directory.Build.props` → `0.8.0`
+- [x] `sdk-csharp/Directory.Build.props` → `0.8.0`
 
 **Validation:**
 
-- [ ] `dotnet build` passes (in Docker: `harbor.kryukov.lan/mcr/dotnet/sdk:8.0`)
-- [ ] `dotnet test` passes
-- [ ] No warnings
+- [x] `dotnet build` passes (in Docker: `harbor.kryukov.lan/mcr/dotnet/sdk:8.0`)
+- [x] `dotnet test` passes
+- [x] No warnings
 
-**Status:** todo
+**Status:** done
 
 ---
 

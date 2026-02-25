@@ -15,6 +15,8 @@ public class ConfigParserTests
     [InlineData("http://api.svc:8080/health", "api.svc", "8080", DependencyType.Http)]
     [InlineData("https://secure.api:443/health", "secure.api", "443", DependencyType.Http)]
     [InlineData("grpc://grpc-svc:50051", "grpc-svc", "50051", DependencyType.Grpc)]
+    [InlineData("ldap://ldap.host:389", "ldap.host", "389", DependencyType.Ldap)]
+    [InlineData("ldaps://ldap.host:636", "ldap.host", "636", DependencyType.Ldap)]
     public void ParseUrl_ValidUrls(string url, string expectedHost, string expectedPort, DependencyType expectedType)
     {
         var result = ConfigParser.ParseUrl(url);
@@ -39,6 +41,22 @@ public class ConfigParserTests
         var result = ConfigParser.ParseUrl("http://api.svc/health");
         Assert.Single(result);
         Assert.Equal("80", result[0].Port);
+    }
+
+    [Fact]
+    public void ParseUrl_LdapDefaultPort()
+    {
+        var result = ConfigParser.ParseUrl("ldap://ldap.host");
+        Assert.Single(result);
+        Assert.Equal("389", result[0].Port);
+    }
+
+    [Fact]
+    public void ParseUrl_LdapsDefaultPort()
+    {
+        var result = ConfigParser.ParseUrl("ldaps://ldap.host");
+        Assert.Single(result);
+        Assert.Equal("636", result[0].Port);
     }
 
     [Fact]

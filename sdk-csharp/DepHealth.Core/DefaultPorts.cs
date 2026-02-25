@@ -17,7 +17,9 @@ public static class DefaultPorts
         ["http"] = "80",
         ["https"] = "443",
         ["grpc"] = "443",
-        ["kafka"] = "9092"
+        ["kafka"] = "9092",
+        ["ldap"] = "389",
+        ["ldaps"] = "636"
     };
 
     private static readonly Dictionary<DependencyType, string> TypeToPort = new()
@@ -28,7 +30,8 @@ public static class DefaultPorts
         [DependencyType.Amqp] = "5672",
         [DependencyType.Http] = "80",
         [DependencyType.Grpc] = "443",
-        [DependencyType.Kafka] = "9092"
+        [DependencyType.Kafka] = "9092",
+        [DependencyType.Ldap] = "389"
     };
 
     /// <summary>

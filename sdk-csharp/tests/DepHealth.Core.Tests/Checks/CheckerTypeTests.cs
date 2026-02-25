@@ -87,4 +87,11 @@ public class CheckerTypeTests
         var checker = new KafkaChecker();
         Assert.Equal(DependencyType.Kafka, checker.Type);
     }
+
+    [Fact]
+    public void LdapChecker_HasCorrectType()
+    {
+        var checker = new LdapChecker();
+        Assert.Equal(DependencyType.Ldap, checker.Type);
+    }
 }

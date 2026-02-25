@@ -18,7 +18,9 @@ public static class ConfigParser
             ["http"] = DependencyType.Http,
             ["https"] = DependencyType.Http,
             ["grpc"] = DependencyType.Grpc,
-            ["kafka"] = DependencyType.Kafka
+            ["kafka"] = DependencyType.Kafka,
+            ["ldap"] = DependencyType.Ldap,
+            ["ldaps"] = DependencyType.Ldap
         };
 
     private static readonly Dictionary<string, DependencyType> JdbcSubprotocolToType =
