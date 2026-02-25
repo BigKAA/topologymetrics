@@ -238,44 +238,44 @@ Implement LDAP checker for Java SDK.
 
 **Add dependency:**
 
-- [ ] Add `com.unboundid:unboundid-ldapsdk` to `sdk-java/dephealth-core/pom.xml`
+- [x] Add `com.unboundid:unboundid-ldapsdk` to `sdk-java/dephealth-core/pom.xml`
 
 **Modify `DependencyType.java`:**
 
-- [ ] Add `LDAP("ldap")` enum value
+- [x] Add `LDAP("ldap")` enum value
 
 **Modify `ConfigParser.java`:**
 
-- [ ] Add `ldap` → `LDAP`, `ldaps` → `LDAP` to scheme mapping
-- [ ] Add default ports: `ldap` → 389, `ldaps` → 636
+- [x] Add `ldap` → `LDAP`, `ldaps` → `LDAP` to scheme mapping
+- [x] Add default ports: `ldap` → 389, `ldaps` → 636
 
 **Create `LdapHealthChecker.java`:**
 
-- [ ] Implement `HealthChecker` interface
-- [ ] Builder pattern for configuration (checkMethod, bindDN, bindPassword, baseDN, etc.)
-- [ ] Standalone mode: `LDAPConnection`, optional StartTLS, check method, close
-- [ ] Pool mode: accept existing `LDAPConnection`
-- [ ] Error classification: `CheckAuthException`, `CheckConnectionException`
+- [x] Implement `HealthChecker` interface
+- [x] Builder pattern for configuration (checkMethod, bindDN, bindPassword, baseDN, etc.)
+- [x] Standalone mode: `LDAPConnection`, optional StartTLS, check method, close
+- [x] Pool mode: accept existing `LDAPConnection`
+- [x] Error classification: `CheckAuthException`, `CheckConnectionException`
 
 **Create `LdapHealthCheckerTest.java`:**
 
-- [ ] Unit tests with Mockito (mock LDAP connection)
-- [ ] Test all 4 check methods
-- [ ] Test error classification
-- [ ] Test validation rules
+- [x] Unit tests with Mockito (mock LDAP connection)
+- [x] Test all 4 check methods
+- [x] Test error classification
+- [x] Test validation rules
 
 **Version bump:**
 
-- [ ] `sdk-java/pom.xml` → `0.8.0`
-- [ ] All child `pom.xml` → `0.8.0`
+- [x] `sdk-java/pom.xml` → `0.8.0`
+- [x] All child `pom.xml` → `0.8.0`
 
 **Validation:**
 
-- [ ] `mvn compile` passes
-- [ ] `mvn test` passes
-- [ ] `mvn checkstyle:check` passes (if configured)
+- [x] `mvn compile` passes
+- [x] `mvn test` passes
+- [x] `mvn checkstyle:check` passes (if configured)
 
-**Status:** todo
+**Status:** done
 
 ---
 

@@ -8,6 +8,7 @@ import biz.kryukov.dev.dephealth.checks.MysqlHealthChecker;
 import biz.kryukov.dev.dephealth.checks.RedisHealthChecker;
 import biz.kryukov.dev.dephealth.checks.AmqpHealthChecker;
 import biz.kryukov.dev.dephealth.checks.KafkaHealthChecker;
+import biz.kryukov.dev.dephealth.checks.LdapHealthChecker;
 import biz.kryukov.dev.dephealth.metrics.MetricsExporter;
 import biz.kryukov.dev.dephealth.parser.ConfigParser;
 
@@ -211,6 +212,17 @@ public final class DepHealth {
         private String amqpPassword;
         private String amqpVirtualHost;
 
+        // LDAP
+        private LdapHealthChecker.CheckMethod ldapCheckMethod;
+        private String ldapBindDN;
+        private String ldapBindPassword;
+        private String ldapBaseDN;
+        private String ldapSearchFilter;
+        private LdapHealthChecker.LdapSearchScope ldapSearchScope;
+        private Boolean ldapStartTLS;
+        private Boolean ldapTlsSkipVerify;
+        private com.unboundid.ldap.sdk.LDAPConnection ldapConnection;
+
         private DependencyBuilder() {}
 
         public DependencyBuilder url(String url) {
@@ -380,6 +392,51 @@ public final class DepHealth {
 
         public DependencyBuilder amqpVirtualHost(String virtualHost) {
             this.amqpVirtualHost = virtualHost;
+            return this;
+        }
+
+        public DependencyBuilder ldapCheckMethod(LdapHealthChecker.CheckMethod method) {
+            this.ldapCheckMethod = method;
+            return this;
+        }
+
+        public DependencyBuilder ldapBindDN(String bindDN) {
+            this.ldapBindDN = bindDN;
+            return this;
+        }
+
+        public DependencyBuilder ldapBindPassword(String bindPassword) {
+            this.ldapBindPassword = bindPassword;
+            return this;
+        }
+
+        public DependencyBuilder ldapBaseDN(String baseDN) {
+            this.ldapBaseDN = baseDN;
+            return this;
+        }
+
+        public DependencyBuilder ldapSearchFilter(String searchFilter) {
+            this.ldapSearchFilter = searchFilter;
+            return this;
+        }
+
+        public DependencyBuilder ldapSearchScope(LdapHealthChecker.LdapSearchScope scope) {
+            this.ldapSearchScope = scope;
+            return this;
+        }
+
+        public DependencyBuilder ldapStartTLS(boolean startTLS) {
+            this.ldapStartTLS = startTLS;
+            return this;
+        }
+
+        public DependencyBuilder ldapTlsSkipVerify(boolean skip) {
+            this.ldapTlsSkipVerify = skip;
+            return this;
+        }
+
+        public DependencyBuilder ldapConnection(com.unboundid.ldap.sdk.LDAPConnection connection) {
+            this.ldapConnection = connection;
             return this;
         }
     }
@@ -835,6 +892,40 @@ public final class DepHealth {
                     yield b.build();
                 }
                 case KAFKA -> new KafkaHealthChecker();
+                case LDAP -> {
+                    LdapHealthChecker.Builder b = LdapHealthChecker.builder();
+                    if (db.ldapCheckMethod != null) {
+                        b.checkMethod(db.ldapCheckMethod);
+                    }
+                    if (db.ldapBindDN != null) {
+                        b.bindDN(db.ldapBindDN);
+                    }
+                    if (db.ldapBindPassword != null) {
+                        b.bindPassword(db.ldapBindPassword);
+                    }
+                    if (db.ldapBaseDN != null) {
+                        b.baseDN(db.ldapBaseDN);
+                    }
+                    if (db.ldapSearchFilter != null) {
+                        b.searchFilter(db.ldapSearchFilter);
+                    }
+                    if (db.ldapSearchScope != null) {
+                        b.searchScope(db.ldapSearchScope);
+                    }
+                    if (db.ldapStartTLS != null) {
+                        b.startTLS(db.ldapStartTLS);
+                    }
+                    if (db.ldapTlsSkipVerify != null) {
+                        b.tlsSkipVerify(db.ldapTlsSkipVerify);
+                    }
+                    if (db.ldapConnection != null) {
+                        b.connection(db.ldapConnection);
+                    }
+                    boolean tls = db.url != null
+                            && db.url.toLowerCase().startsWith("ldaps://");
+                    b.useTLS(tls);
+                    yield b.build();
+                }
             };
         }
 

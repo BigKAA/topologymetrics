@@ -17,7 +17,8 @@ class DependencyTypeTest {
             "MYSQL, mysql",
             "REDIS, redis",
             "AMQP, amqp",
-            "KAFKA, kafka"
+            "KAFKA, kafka",
+            "LDAP, ldap"
     })
     void labelReturnsCorrectString(String enumName, String expectedLabel) {
         DependencyType type = DependencyType.valueOf(enumName);
@@ -43,6 +44,6 @@ class DependencyTypeTest {
 
     @Test
     void allTypesCount() {
-        assertEquals(8, DependencyType.values().length);
+        assertEquals(9, DependencyType.values().length);
     }
 }
