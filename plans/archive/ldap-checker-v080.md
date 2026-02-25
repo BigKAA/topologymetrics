@@ -632,11 +632,11 @@ covering different check methods and error scenarios:
 **Actions:**
 
 - [x] Merge `feature/ldap-checker` to `master`
-- [ ] Tag: `sdk-go/v0.8.0`
-- [ ] Tag: `sdk-java/v0.8.0`
-- [ ] Tag: `sdk-python/v0.8.0`
-- [ ] Tag: `sdk-csharp/v0.8.0`
+- [x] Tag: `sdk-go/v0.8.0`
+- [x] Tag: `sdk-java/v0.8.0`
+- [x] Tag: `sdk-python/v0.8.0`
+- [x] Tag: `sdk-csharp/v0.8.0`
 - [ ] GitHub Releases (4 releases, one per SDK)
-- [ ] Move this plan to `plans/archive/`
+- [x] Move this plan to `plans/archive/`
 
-**Status:** todo
+**Status:** done
