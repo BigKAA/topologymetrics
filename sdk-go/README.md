@@ -231,7 +231,7 @@ See [Authentication](docs/authentication.md) for all options.
 | Guide | Description |
 | --- | --- |
 | [Getting Started](docs/getting-started.md) | Installation, basic setup, first health check |
-| [Checkers](docs/checkers.md) | Detailed guide for all 8 built-in checkers |
+| [Checkers](docs/checkers.md) | Detailed guide for all built-in checkers |
 | [Configuration](docs/configuration.md) | All options, defaults, environment variables |
 | [Connection Pools](docs/connection-pools.md) | Integration with existing connection pools |
 | [Custom Checkers](docs/custom-checkers.md) | Implementing your own health checker |
@@ -240,10 +240,9 @@ See [Authentication](docs/authentication.md) for all options.
 | [Selective Imports](docs/selective-imports.md) | Binary size optimization with split packages |
 | [API Reference](docs/api-reference.md) | Complete reference of all public symbols |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions |
-| [Quick Start Guide](../docs/quickstart/go.md) | Extended examples with environment variables |
-| [Migration v0.5 to v0.6](../docs/migration/v050-to-v060.md) | Migration guide for v0.6.0 split checkers |
-| [Migration v0.6 to v0.7](../docs/migration/v060-to-v070.md) | Migration guide for v0.7.0 dynamic endpoints |
-| [Migration v0.7 to v0.8](../docs/migration/v070-to-v080.md) | Migration guide for v0.8.0 LDAP checker |
+| [Migration Guide](docs/migration.md) | Version upgrade instructions (all versions) |
+| [Code Style](docs/code-style.md) | Go code conventions for this project |
+| [Examples](docs/examples/) | Complete runnable examples |
 
 ## License
 

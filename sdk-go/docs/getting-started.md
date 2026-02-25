@@ -214,4 +214,6 @@ check completes, `Healthy` is `nil` and `Status` is `"unknown"`.
 - [Metrics](metrics.md) — Prometheus metrics reference and PromQL examples
 - [API Reference](api-reference.md) — complete reference of all public symbols
 - [Troubleshooting](troubleshooting.md) — common issues and solutions
-- [Quick Start Guide](../../docs/quickstart/go.md) — extended examples with environment variables
+- [Migration Guide](migration.md) — version upgrade instructions
+- [Code Style](code-style.md) — Go code conventions for this project
+- [Examples](examples/) — complete runnable examples
