@@ -9,7 +9,7 @@
 
 ## sdk-java
 
-- [ ] Integrate Javadoc annotations throughout the codebase and generate documentation
+- [x] Integrate Javadoc annotations throughout the codebase and generate documentation — v0.8.0
 - [x] Implement LDAP checker — v0.8.0
 - [ ] **[Low]** Implement S3 checker
 

@@ -211,16 +211,16 @@ Java SDK имеет минимальную документацию. Нужно 
 
 ### 2C: Примеры
 
-- [ ] 2C.1 Создать `sdk-java/docs/examples/basic-spring-boot/` — Spring Boot starter пример
-- [ ] 2C.2 Создать `sdk-java/docs/examples/programmatic-api/` — программный API без Spring
-- [ ] 2C.3 Создать `sdk-java/docs/examples/multi-dependency/` — несколько зависимостей
-- [ ] 2C.4 Создать `sdk-java/docs/examples/dynamic-endpoints/` — динамические endpoints
+- [x] 2C.1 Создать `sdk-java/docs/examples/basic-spring-boot/` — Spring Boot starter пример
+- [x] 2C.2 Создать `sdk-java/docs/examples/programmatic-api/` — программный API без Spring
+- [x] 2C.3 Создать `sdk-java/docs/examples/multi-dependency/` — несколько зависимостей
+- [x] 2C.4 Создать `sdk-java/docs/examples/dynamic-endpoints/` — динамические endpoints
 
 ### 2D: Обновление ссылок
 
 - [x] 2D.1 Обновить `sdk-java/README.md` — ссылки на `docs/`
 - [x] 2D.3 Создать `sdk-java/README.ru.md` — русская версия README
-- [ ] 2D.2 Обновить `TODO.md` — отметить Javadoc как завершённый
+- [x] 2D.2 Обновить `TODO.md` — отметить Javadoc как завершённый
 
 ## Фаза 3: Python SDK — создание документации
 

@@ -1,0 +1,28 @@
+# Minimal dephealth configuration for a Spring Boot application.
+# The dephealth-spring-boot-starter auto-configures DepHealth, lifecycle,
+# Actuator health indicator, and the /actuator/dependencies endpoint.
+
+dephealth:
+  name: order-service
+  group: backend
+  interval: 15s
+  timeout: 5s
+  dependencies:
+    postgres-main:
+      type: postgres
+      url: postgres://app:secret@pg.db:5432/orders
+      critical: true
+    redis-cache:
+      type: redis
+      url: redis://:redis-pass@redis.cache:6379
+      critical: false
+
+# Expose Actuator endpoints.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,dependencies
+  endpoint:
+    health:
+      show-details: always
