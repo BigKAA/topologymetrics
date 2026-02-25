@@ -620,18 +620,18 @@ covering different check methods and error scenarios:
 
 **Pre-merge checklist:**
 
-- [ ] All unit tests pass (Go, Java, Python, C#)
-- [ ] All conformance scenarios pass (`./run.sh --lang all`)
-- [ ] All linters pass
-- [ ] Spec updated (EN + RU)
-- [ ] Docs complete (EN + RU, all SDKs)
-- [ ] CHANGELOG updated
-- [ ] TODO updated
-- [ ] Backward compatibility verified (existing API unchanged in all SDKs)
+- [x] All unit tests pass (Go, Java, Python, C#)
+- [x] All conformance scenarios pass (`./run.sh --lang all`)
+- [x] All linters pass
+- [x] Spec updated (EN + RU)
+- [x] Docs complete (EN + RU, all SDKs)
+- [x] CHANGELOG updated
+- [x] TODO updated
+- [x] Backward compatibility verified (existing API unchanged in all SDKs)
 
 **Actions:**
 
-- [ ] Merge `feature/ldap-checker` to `master`
+- [x] Merge `feature/ldap-checker` to `master`
 - [ ] Tag: `sdk-go/v0.8.0`
 - [ ] Tag: `sdk-java/v0.8.0`
 - [ ] Tag: `sdk-python/v0.8.0`

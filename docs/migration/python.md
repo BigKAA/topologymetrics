@@ -24,6 +24,7 @@ dh = DependencyHealth("my-service", "my-team",
 ```
 
 FastAPI:
+
 ```python
 # v0.5.0
 app = FastAPI(
