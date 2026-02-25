@@ -151,7 +151,17 @@ class DependencyHealth:
             custom_label_names=custom_label_keys,
             registry=registry,
         )
-        self._scheduler = CheckScheduler(metrics=self._metrics, log=self._log)
+
+        global_config_kwargs: dict[str, Any] = {"initial_delay": 0}
+        if check_interval is not None:
+            global_config_kwargs["interval"] = check_interval.total_seconds()
+        if timeout is not None:
+            global_config_kwargs["timeout"] = timeout.total_seconds()
+        global_config = CheckConfig(**global_config_kwargs)
+
+        self._scheduler = CheckScheduler(
+            metrics=self._metrics, global_config=global_config, log=self._log
+        )
 
         for spec in specs:
             interval = spec.interval or check_interval
@@ -204,6 +214,97 @@ class DependencyHealth:
     def health_details(self) -> dict[str, EndpointStatus]:
         """Return detailed health status of all endpoints."""
         return self._scheduler.health_details()
+
+    # --- Dynamic endpoint management ---
+
+    async def add_endpoint(
+        self,
+        dep_name: str,
+        dep_type: DependencyType,
+        critical: bool,
+        endpoint: Endpoint,
+        checker: HealthChecker,
+    ) -> None:
+        """Add a new endpoint at runtime (asyncio mode)."""
+        _validate_dep_name(dep_name)
+        _validate_dep_type(dep_type)
+        _validate_endpoint(endpoint)
+        await self._scheduler.add_endpoint(dep_name, dep_type, critical, endpoint, checker)
+
+    async def remove_endpoint(self, dep_name: str, host: str, port: str) -> None:
+        """Remove an endpoint at runtime (asyncio mode)."""
+        await self._scheduler.remove_endpoint(dep_name, host, port)
+
+    async def update_endpoint(
+        self,
+        dep_name: str,
+        old_host: str,
+        old_port: str,
+        new_endpoint: Endpoint,
+        checker: HealthChecker,
+    ) -> None:
+        """Replace an endpoint at runtime (asyncio mode)."""
+        _validate_endpoint(new_endpoint)
+        await self._scheduler.update_endpoint(dep_name, old_host, old_port, new_endpoint, checker)
+
+    def add_endpoint_sync(
+        self,
+        dep_name: str,
+        dep_type: DependencyType,
+        critical: bool,
+        endpoint: Endpoint,
+        checker: HealthChecker,
+    ) -> None:
+        """Add a new endpoint at runtime (threading mode)."""
+        _validate_dep_name(dep_name)
+        _validate_dep_type(dep_type)
+        _validate_endpoint(endpoint)
+        self._scheduler.add_endpoint_sync(dep_name, dep_type, critical, endpoint, checker)
+
+    def remove_endpoint_sync(self, dep_name: str, host: str, port: str) -> None:
+        """Remove an endpoint at runtime (threading mode)."""
+        self._scheduler.remove_endpoint_sync(dep_name, host, port)
+
+    def update_endpoint_sync(
+        self,
+        dep_name: str,
+        old_host: str,
+        old_port: str,
+        new_endpoint: Endpoint,
+        checker: HealthChecker,
+    ) -> None:
+        """Replace an endpoint at runtime (threading mode)."""
+        _validate_endpoint(new_endpoint)
+        self._scheduler.update_endpoint_sync(dep_name, old_host, old_port, new_endpoint, checker)
+
+
+def _validate_dep_name(name: str) -> None:
+    """Validate a dependency name for dynamic endpoint operations."""
+    from dephealth.dependency import validate_name
+
+    validate_name(name)
+
+
+def _validate_dep_type(dep_type: DependencyType) -> None:
+    """Validate that dep_type is a valid DependencyType."""
+    if not isinstance(dep_type, DependencyType):
+        try:
+            DependencyType(dep_type)
+        except ValueError:
+            msg = f"invalid dependency type: {dep_type!r}"
+            raise ValueError(msg) from None
+
+
+def _validate_endpoint(ep: Endpoint) -> None:
+    """Validate endpoint host, port, and labels for dynamic operations."""
+    if not ep.host:
+        msg = "endpoint host must not be empty"
+        raise ValueError(msg)
+    if not ep.port:
+        msg = "endpoint port must not be empty"
+        raise ValueError(msg)
+    if ep.labels:
+        validate_labels(ep.labels)
 
 
 # --- Dependency factory functions ---

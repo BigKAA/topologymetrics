@@ -40,6 +40,7 @@ from dephealth.dependency import (
 )
 from dephealth.endpoint_status import EndpointStatus
 from dephealth.parser import ParsedConnection, parse_jdbc, parse_params, parse_url
+from dephealth.scheduler import EndpointNotFoundError
 
 __all__ = [
     "ALL_STATUS_CATEGORIES",
@@ -54,6 +55,7 @@ __all__ = [
     "Dependency",
     "DependencyType",
     "Endpoint",
+    "EndpointNotFoundError",
     "EndpointStatus",
     "HealthChecker",
     "LABEL_NAME_PATTERN",

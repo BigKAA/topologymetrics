@@ -79,22 +79,22 @@ Prepare `CheckScheduler` for dynamic mutations without changing the public API y
 
 **Modify `dephealth/scheduler.py`:**
 
-- [ ] Add `_global_config: CheckConfig` field to `CheckScheduler` (passed at construction)
-- [ ] Add `_lock: threading.Lock` field — protects `_entries` and `_states` dict during mutations
-- [ ] Refactor internal state: add `_states: dict[str, _EndpointState]` keyed by `"name:host:port"`
+- [x] Add `_global_config: CheckConfig` field to `CheckScheduler` (passed at construction)
+- [x] Add `_lock: threading.Lock` field — protects `_entries` and `_states` dict during mutations
+- [x] Refactor internal state: add `_states: dict[str, _EndpointState]` keyed by `"name:host:port"`
   alongside existing `_entries` (or replace `_entries` entirely with flat state dict)
-- [ ] Add `_tasks: dict[str, asyncio.Task]` for asyncio mode — per-endpoint task tracking
-- [ ] Add `_threads: dict[str, threading.Thread]` for threading mode — per-endpoint thread tracking
-- [ ] Add `_stop_events: dict[str, threading.Event]` for threading mode — per-endpoint stop signal
-- [ ] In `start()`: store each `asyncio.create_task()` result in `_tasks` dict
-- [ ] In `start_sync()`: store each `threading.Thread` in `_threads` dict, each stop event in `_stop_events`
-- [ ] Wrap `health()` and `health_details()` state iteration with `self._lock`
+- [x] Add `_tasks: dict[str, asyncio.Task]` for asyncio mode — per-endpoint task tracking
+- [x] Add `_threads: dict[str, threading.Thread]` for threading mode — per-endpoint thread tracking
+- [x] Add `_stop_events: dict[str, threading.Event]` for threading mode — per-endpoint stop signal
+- [x] In `start()`: store each `asyncio.create_task()` result in `_tasks` dict
+- [x] In `start_sync()`: store each `threading.Thread` in `_threads` dict, each stop event in `_stop_events`
+- [x] Wrap `health()` and `health_details()` state iteration with `self._lock`
 
 **Modify `dephealth/api.py`:**
 
-- [ ] In `__init__()`: compute `global_config` from `check_interval`/`check_timeout` parameters
+- [x] In `__init__()`: compute `global_config` from `check_interval`/`check_timeout` parameters
   with `CheckConfig` defaults
-- [ ] Pass `global_config` to `CheckScheduler` constructor
+- [x] Pass `global_config` to `CheckScheduler` constructor
 
 **Validation:**
 
@@ -102,7 +102,7 @@ Prepare `CheckScheduler` for dynamic mutations without changing the public API y
 - [ ] `ruff check` passes
 - [ ] `mypy` passes (if configured)
 
-**Status:** not started
+**Status:** done
 
 ---
 
@@ -112,7 +112,7 @@ Implement the three core methods on `CheckScheduler`, both async and sync varian
 
 **Add to `dephealth/scheduler.py`:**
 
-- [ ] `async def add_endpoint(self, dep_name, dep_type, critical, ep, checker)`
+- [x] `async def add_endpoint(self, dep_name, dep_type, critical, ep, checker)`
   - Acquire `self._lock`
   - Check `_started and not _stopped`, else raise `RuntimeError("Scheduler not started")`
   - Compute key `dep_name:host:port`, return if exists (idempotent)
@@ -121,7 +121,7 @@ Implement the three core methods on `CheckScheduler`, both async and sync varian
   - Insert into `_states`
   - If asyncio mode: create task via `asyncio.create_task(_run_loop(...))`, store in `_tasks`
   - If threading mode: create thread + stop event, start thread, store in dicts
-- [ ] `async def remove_endpoint(self, dep_name, host, port)`
+- [x] `async def remove_endpoint(self, dep_name, host, port)`
   - Acquire `self._lock`
   - Check `_started`, else raise `RuntimeError`
   - Find state by key, return if not found (idempotent)
@@ -129,19 +129,18 @@ Implement the three core methods on `CheckScheduler`, both async and sync varian
   - If threading mode: set stop event, join thread (with timeout), remove from dicts
   - Remove from `_states`
   - Call `self._metrics.delete_metrics(dep, ep)` to clean up Prometheus series
-- [ ] `async def update_endpoint(self, dep_name, old_host, old_port, new_ep, checker)`
+- [x] `async def update_endpoint(self, dep_name, old_host, old_port, new_ep, checker)`
   - Acquire `self._lock`
   - Check `_started and not _stopped`
   - Find old state, raise `EndpointNotFoundError` if missing
   - Cancel old task/thread, remove old state, delete old metrics
   - Create new state, new task/thread, insert
-- [ ] Sync wrappers: `add_endpoint_sync()`, `remove_endpoint_sync()`, `update_endpoint_sync()`
-  - Use `asyncio.run_coroutine_threadsafe()` if event loop is running
-  - Or direct implementation for threading mode
+- [x] Sync wrappers: `add_endpoint_sync()`, `remove_endpoint_sync()`, `update_endpoint_sync()`
+  - Direct implementation for threading mode
 
 **Add `EndpointNotFoundError`:**
 
-- [ ] `class EndpointNotFoundError(Exception)` in `scheduler.py` (or `dependency.py`)
+- [x] `class EndpointNotFoundError(Exception)` in `scheduler.py`
   - Constructor: `(dep_name: str, host: str, port: str)`
   - Message: `f"Endpoint not found: {dep_name}:{host}:{port}"`
 
@@ -150,7 +149,7 @@ Implement the three core methods on `CheckScheduler`, both async and sync varian
 - [ ] `pytest` passes (existing tests)
 - [ ] `ruff check` passes
 
-**Status:** not started
+**Status:** done
 
 ---
 
@@ -160,29 +159,29 @@ Thin wrappers with input validation, delegating to CheckScheduler.
 
 **Modify `dephealth/api.py`:**
 
-- [ ] Add `async def add_endpoint(self, dep_name, dep_type, critical, ep, checker)`
-  - Validate `dep_name` via existing `_validate_instance_name()` or `Dependency.validate()`
+- [x] Add `async def add_endpoint(self, dep_name, dep_type, critical, ep, checker)`
+  - Validate `dep_name` via `validate_name()` from dependency.py
   - Validate `dep_type` is valid `DependencyType`
   - Validate `ep.host` and `ep.port` non-empty
   - Validate `ep.labels` via existing label validation
   - Delegate to `self._scheduler.add_endpoint()`
-- [ ] Add `async def remove_endpoint(self, dep_name, host, port)`
+- [x] Add `async def remove_endpoint(self, dep_name, host, port)`
   - Passthrough to `self._scheduler.remove_endpoint()`
-- [ ] Add `async def update_endpoint(self, dep_name, old_host, old_port, new_ep, checker)`
+- [x] Add `async def update_endpoint(self, dep_name, old_host, old_port, new_ep, checker)`
   - Validate `new_ep.host`, `new_ep.port`, `new_ep.labels`
   - Delegate to `self._scheduler.update_endpoint()`
-- [ ] Sync variants: `add_endpoint_sync()`, `remove_endpoint_sync()`, `update_endpoint_sync()`
+- [x] Sync variants: `add_endpoint_sync()`, `remove_endpoint_sync()`, `update_endpoint_sync()`
 
 **Modify `dephealth/__init__.py`:**
 
-- [ ] Export `EndpointNotFoundError` in `__all__`
+- [x] Export `EndpointNotFoundError` in `__all__`
 
 **Validation:**
 
 - [ ] `pytest` passes
 - [ ] `ruff check` passes
 
-**Status:** not started
+**Status:** done
 
 ---
 
@@ -193,27 +192,28 @@ Unit tests for the three new CheckScheduler methods. Use existing test patterns
 
 **Add to `tests/test_scheduler.py`:**
 
-- [ ] `test_add_endpoint` — add endpoint after start, wait, verify `health()` includes it
-- [ ] `test_add_endpoint_idempotent` — add same endpoint twice, no error, single entry
-- [ ] `test_add_endpoint_before_start` — raises `RuntimeError`
-- [ ] `test_add_endpoint_after_stop` — raises `RuntimeError`
-- [ ] `test_add_endpoint_metrics` — verify health gauge appears with correct labels
-- [ ] `test_remove_endpoint` — remove after start, verify disappears from `health()`
-- [ ] `test_remove_endpoint_idempotent` — remove non-existent, no error
-- [ ] `test_remove_endpoint_metrics_deleted` — verify all metric series removed
-- [ ] `test_remove_endpoint_before_start` — raises `RuntimeError`
-- [ ] `test_update_endpoint` — update, verify old gone and new appears in `health()`
-- [ ] `test_update_endpoint_not_found` — raises `EndpointNotFoundError`
-- [ ] `test_update_endpoint_metrics_swap` — old metrics deleted, new metrics present
-- [ ] `test_stop_after_dynamic_add` — add endpoint, then `stop()`, verify clean shutdown
-- [ ] `test_concurrent_add_remove_health` — run Add/Remove/Health from multiple threads/tasks
+- [x] `test_add_endpoint` — add endpoint after start, wait, verify `health()` includes it
+- [x] `test_add_endpoint_idempotent` — add same endpoint twice, no error, single entry
+- [x] `test_add_endpoint_before_start` — raises `RuntimeError`
+- [x] `test_add_endpoint_after_stop` — raises `RuntimeError`
+- [x] `test_add_endpoint_metrics` — verify health gauge appears with correct labels
+- [x] `test_remove_endpoint` — remove after start, verify disappears from `health()`
+- [x] `test_remove_endpoint_idempotent` — remove non-existent, no error
+- [x] `test_remove_endpoint_metrics_deleted` — verify all metric series removed
+- [x] `test_remove_endpoint_before_start` — raises `RuntimeError`
+- [x] `test_update_endpoint` — update, verify old gone and new appears in `health()`
+- [x] `test_update_endpoint_not_found` — raises `EndpointNotFoundError`
+- [x] `test_update_endpoint_metrics_swap` — old metrics deleted, new metrics present
+- [x] `test_stop_after_dynamic_add` — add endpoint, then `stop()`, verify clean shutdown
+- [x] `test_concurrent_add_remove_health` — run Add/Remove/Health from multiple tasks
+- [x] sync mode tests: add/remove/update_endpoint_sync + update_not_found
 
 **Validation:**
 
 - [ ] `pytest` passes (all tests)
 - [ ] No warnings or flaky tests
 
-**Status:** not started
+**Status:** done
 
 ---
 
@@ -223,23 +223,24 @@ Integration tests for the public API.
 
 **Add to `tests/test_api.py`:**
 
-- [ ] `test_add_endpoint` — create DependencyHealth, start, add_endpoint, verify `health()`
-- [ ] `test_add_endpoint_invalid_name` — invalid dep name, raises `ValueError`
-- [ ] `test_add_endpoint_invalid_type` — unknown type, raises `ValueError`
-- [ ] `test_add_endpoint_missing_host` — empty host, raises `ValueError`
-- [ ] `test_add_endpoint_reserved_label` — reserved label, raises `ValueError`
-- [ ] `test_remove_endpoint` — remove, verify gone from `health()`
-- [ ] `test_update_endpoint` — update, verify old gone and new present
-- [ ] `test_update_endpoint_missing_new_host` — empty new host, raises `ValueError`
-- [ ] `test_update_endpoint_not_found` — raises `EndpointNotFoundError`
-- [ ] `test_add_endpoint_inherits_global_config` — verify dynamic endpoint uses global interval/timeout
+- [x] `test_add_endpoint` — create DependencyHealth, start, add_endpoint, verify `health()`
+- [x] `test_add_endpoint_invalid_name` — invalid dep name, raises `ValueError`
+- [x] `test_add_endpoint_invalid_type` — unknown type, raises `ValueError`
+- [x] `test_add_endpoint_missing_host` — empty host, raises `ValueError`
+- [x] `test_add_endpoint_missing_port` — empty port, raises `ValueError`
+- [x] `test_add_endpoint_reserved_label` — reserved label, raises `ValueError`
+- [x] `test_remove_endpoint` — remove, verify gone from `health()`
+- [x] `test_update_endpoint` — update, verify old gone and new present
+- [x] `test_update_endpoint_missing_new_host` — empty new host, raises `ValueError`
+- [x] `test_update_endpoint_not_found` — raises `EndpointNotFoundError`
+- [x] `test_add_endpoint_inherits_global_config` — verify dynamic endpoint uses global interval/timeout
 
 **Validation:**
 
 - [ ] `pytest` passes (all tests)
 - [ ] `ruff check` passes
 
-**Status:** not started
+**Status:** done
 
 ---
 
@@ -289,6 +290,7 @@ Integration tests for the public API.
 - Merge to master (or PR — ask user)
 - Tag: `sdk-python/v0.6.0`
 - GitHub Release: sdk-python/v0.6.0
+- publish in pypi
 - Move this plan to `plans/archive/`
 
 **Status:** not started
