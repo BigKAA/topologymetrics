@@ -262,10 +262,10 @@ Java SDK имеет минимальную документацию. Нужно 
 
 ### 3C: Примеры
 
-- [ ] 3C.1 Создать `sdk-python/docs/examples/basic-fastapi/` — FastAPI интеграция
-- [ ] 3C.2 Создать `sdk-python/docs/examples/async-checks/` — асинхронные проверки
-- [ ] 3C.3 Создать `sdk-python/docs/examples/multi-dependency/`
-- [ ] 3C.4 Создать `sdk-python/docs/examples/dynamic-endpoints/`
+- [x] 3C.1 Создать `sdk-python/docs/examples/basic-fastapi/` — FastAPI интеграция
+- [x] 3C.2 Создать `sdk-python/docs/examples/async-checks/` — асинхронные проверки
+- [x] 3C.3 Создать `sdk-python/docs/examples/multi-dependency/`
+- [x] 3C.4 Создать `sdk-python/docs/examples/dynamic-endpoints/`
 
 ### 3D: Обновление ссылок
 
