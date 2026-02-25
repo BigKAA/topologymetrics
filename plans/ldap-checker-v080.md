@@ -610,9 +610,9 @@ covering different check methods and error scenarios:
 - [x] `./run.sh --lang all --scenario ldap-basic` — passes for all 4 SDKs
 - [x] `./run.sh --lang all --scenario ldap-failure` — passes for all 4 SDKs
 - [x] `./run.sh --lang all --scenario ldap-recovery` — passes for all 4 SDKs
-- [ ] Cross-verify: `cross_verify.py` shows identical LDAP metrics across all 4 SDKs
+- [x] Cross-verify: `cross_verify.py` shows identical LDAP metrics across all 4 SDKs
 
-**Status:** validation complete (cross_verify pending)
+**Status:** validation complete
 
 ---
 
