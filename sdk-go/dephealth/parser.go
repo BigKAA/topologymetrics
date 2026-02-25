@@ -21,6 +21,8 @@ var DefaultPorts = map[string]string{
 	"https":      "443",
 	"grpc":       "443",
 	"kafka":      "9092",
+	"ldap":       "389",
+	"ldaps":      "636",
 }
 
 // schemeToType maps URL schemes to DependencyType.
@@ -36,6 +38,8 @@ var schemeToType = map[string]DependencyType{
 	"https":      TypeHTTP,
 	"grpc":       TypeGRPC,
 	"kafka":      TypeKafka,
+	"ldap":       TypeLDAP,
+	"ldaps":      TypeLDAP,
 }
 
 // jdbcSubprotocolToType maps JDBC subprotocols to DependencyType.

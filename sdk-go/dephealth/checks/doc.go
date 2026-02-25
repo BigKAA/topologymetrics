@@ -16,6 +16,7 @@ import (
 	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/grpccheck"
 	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/httpcheck"
 	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/kafkacheck"
+	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/ldapcheck"
 	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/mysqlcheck"
 	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/pgcheck"
 	_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/redischeck"

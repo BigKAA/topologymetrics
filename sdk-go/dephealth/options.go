@@ -60,6 +60,15 @@ type DependencyConfig struct {
 	RedisDB       *int
 
 	AMQPURL string
+
+	LDAPCheckMethod   string // "anonymous_bind", "simple_bind", "root_dse", "search"
+	LDAPBindDN        string
+	LDAPBindPassword  string
+	LDAPBaseDN        string
+	LDAPSearchFilter  string
+	LDAPSearchScope   string // "base", "one", "sub"
+	LDAPStartTLS      *bool
+	LDAPTLSSkipVerify *bool
 }
 
 // dependencyEntry is a dependency with its checker, ready for registration.
@@ -292,6 +301,64 @@ func WithAMQPURL(url string) DependencyOption {
 	}
 }
 
+// WithLDAPCheckMethod sets the LDAP check method.
+// Valid values: "anonymous_bind", "simple_bind", "root_dse", "search".
+func WithLDAPCheckMethod(method string) DependencyOption {
+	return func(dc *DependencyConfig) {
+		dc.LDAPCheckMethod = method
+	}
+}
+
+// WithLDAPBindDN sets the DN for LDAP Simple Bind.
+func WithLDAPBindDN(dn string) DependencyOption {
+	return func(dc *DependencyConfig) {
+		dc.LDAPBindDN = dn
+	}
+}
+
+// WithLDAPBindPassword sets the password for LDAP Simple Bind.
+func WithLDAPBindPassword(password string) DependencyOption {
+	return func(dc *DependencyConfig) {
+		dc.LDAPBindPassword = password
+	}
+}
+
+// WithLDAPBaseDN sets the base DN for LDAP search method.
+func WithLDAPBaseDN(baseDN string) DependencyOption {
+	return func(dc *DependencyConfig) {
+		dc.LDAPBaseDN = baseDN
+	}
+}
+
+// WithLDAPSearchFilter sets the LDAP search filter.
+func WithLDAPSearchFilter(filter string) DependencyOption {
+	return func(dc *DependencyConfig) {
+		dc.LDAPSearchFilter = filter
+	}
+}
+
+// WithLDAPSearchScope sets the LDAP search scope.
+// Valid values: "base", "one", "sub".
+func WithLDAPSearchScope(scope string) DependencyOption {
+	return func(dc *DependencyConfig) {
+		dc.LDAPSearchScope = scope
+	}
+}
+
+// WithLDAPStartTLS enables StartTLS for LDAP connections (only with ldap://).
+func WithLDAPStartTLS(enabled bool) DependencyOption {
+	return func(dc *DependencyConfig) {
+		dc.LDAPStartTLS = &enabled
+	}
+}
+
+// WithLDAPTLSSkipVerify disables TLS certificate verification for LDAP.
+func WithLDAPTLSSkipVerify(skip bool) DependencyOption {
+	return func(dc *DependencyConfig) {
+		dc.LDAPTLSSkipVerify = &skip
+	}
+}
+
 // --- Dependency factories (Option) ---
 
 // makeDepOption creates a common dependency factory for the given type.
@@ -315,6 +382,11 @@ func makeDepOption(name string, depType DependencyType, opts []DependencyOption)
 		}
 		if depType == TypeGRPC {
 			if err := validateGRPCAuthConfig(dc); err != nil {
+				return fmt.Errorf("dependency %q: %w", name, err)
+			}
+		}
+		if depType == TypeLDAP {
+			if err := validateLDAPConfig(dc); err != nil {
 				return fmt.Errorf("dependency %q: %w", name, err)
 			}
 		}
@@ -375,6 +447,11 @@ func AMQP(name string, opts ...DependencyOption) Option {
 // Kafka registers a Kafka dependency.
 func Kafka(name string, opts ...DependencyOption) Option {
 	return makeDepOption(name, TypeKafka, opts)
+}
+
+// LDAP registers an LDAP dependency.
+func LDAP(name string, opts ...DependencyOption) Option {
+	return makeDepOption(name, TypeLDAP, opts)
 }
 
 // --- Contrib helper ---
@@ -549,6 +626,47 @@ func validateHTTPAuthConfig(dc *DependencyConfig) error {
 	if methods > 1 {
 		return fmt.Errorf("conflicting auth methods: specify only one of bearerToken, basicAuth, or Authorization header")
 	}
+	return nil
+}
+
+// validateLDAPConfig checks LDAP-specific configuration rules.
+func validateLDAPConfig(dc *DependencyConfig) error {
+	method := dc.LDAPCheckMethod
+	if method == "" {
+		method = "root_dse"
+	}
+
+	switch method {
+	case "anonymous_bind", "simple_bind", "root_dse", "search":
+		// valid
+	default:
+		return fmt.Errorf("invalid LDAP check method %q: must be one of anonymous_bind, simple_bind, root_dse, search", method)
+	}
+
+	if method == "simple_bind" && (dc.LDAPBindDN == "" || dc.LDAPBindPassword == "") {
+		return fmt.Errorf("simple_bind requires both bindDN and bindPassword")
+	}
+
+	if method == "search" && dc.LDAPBaseDN == "" {
+		return fmt.Errorf("search method requires baseDN")
+	}
+
+	// startTLS with ldaps:// is incompatible.
+	if dc.LDAPStartTLS != nil && *dc.LDAPStartTLS && dc.URL != "" &&
+		strings.HasPrefix(strings.ToLower(dc.URL), "ldaps://") {
+		return fmt.Errorf("startTLS is incompatible with ldaps:// scheme")
+	}
+
+	scope := dc.LDAPSearchScope
+	if scope != "" {
+		switch scope {
+		case "base", "one", "sub":
+			// valid
+		default:
+			return fmt.Errorf("invalid LDAP search scope %q: must be one of base, one, sub", scope)
+		}
+	}
+
 	return nil
 }
 

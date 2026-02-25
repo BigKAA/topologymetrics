@@ -186,49 +186,49 @@ Implement LDAP checker for Go SDK.
 
 **Add dependency:**
 
-- [ ] Add `github.com/go-ldap/ldap/v3` to `sdk-go/go.mod`
+- [x] Add `github.com/go-ldap/ldap/v3` to `sdk-go/go.mod`
 
 **Modify `sdk-go/dephealth/options.go`:**
 
-- [ ] Add `TypeLDAP DependencyType = "ldap"` constant
-- [ ] Add `LDAP()` factory function
-- [ ] Add LDAP-specific options: `WithLDAPCheckMethod`, `WithLDAPBindDN`, `WithLDAPBindPassword`, `WithLDAPBaseDN`, `WithLDAPSearchFilter`, `WithLDAPSearchScope`, `WithLDAPStartTLS`
-- [ ] Add LDAP fields to `DependencyConfig`
+- [x] Add `TypeLDAP DependencyType = "ldap"` constant
+- [x] Add `LDAP()` factory function
+- [x] Add LDAP-specific options: `WithLDAPCheckMethod`, `WithLDAPBindDN`, `WithLDAPBindPassword`, `WithLDAPBaseDN`, `WithLDAPSearchFilter`, `WithLDAPSearchScope`, `WithLDAPStartTLS`
+- [x] Add LDAP fields to `DependencyConfig`
 
 **Modify `sdk-go/dephealth/parser.go`:**
 
-- [ ] Add `ldap` → `TypeLDAP`, `ldaps` → `TypeLDAP` to scheme mapping
-- [ ] Add default ports: `ldap` → 389, `ldaps` → 636
+- [x] Add `ldap` → `TypeLDAP`, `ldaps` → `TypeLDAP` to scheme mapping
+- [x] Add default ports: `ldap` → 389, `ldaps` → 636
 
 **Create `sdk-go/dephealth/checks/ldapcheck/ldapcheck.go`:**
 
-- [ ] Implement `LdapChecker` struct with `Check(ctx, Endpoint) error` and `Type() string`
-- [ ] Factory `NewFromConfig(cfg dephealth.DependencyConfig) dephealth.HealthChecker`
-- [ ] `init()` with `RegisterCheckerFactory(TypeLDAP, NewFromConfig)`
-- [ ] Standalone mode: connect, optional StartTLS, execute check method, close
-- [ ] Pool mode: accept existing `*ldap.Conn`
-- [ ] Error classification: auth errors (LDAP result code 49, 50), TLS errors, connection errors
-- [ ] Options: `WithConn`, `WithCheckMethod`, `WithBindDN`, `WithBindPassword`, etc.
+- [x] Implement `LdapChecker` struct with `Check(ctx, Endpoint) error` and `Type() string`
+- [x] Factory `NewFromConfig(cfg dephealth.DependencyConfig) dephealth.HealthChecker`
+- [x] `init()` with `RegisterCheckerFactory(TypeLDAP, NewFromConfig)`
+- [x] Standalone mode: connect, optional StartTLS, execute check method, close
+- [x] Pool mode: accept existing `*ldap.Conn`
+- [x] Error classification: auth errors (LDAP result code 49, 50), TLS errors, connection errors
+- [x] Options: `WithConn`, `WithCheckMethod`, `WithBindDN`, `WithBindPassword`, etc.
 
 **Create `sdk-go/dephealth/checks/ldapcheck/ldapcheck_test.go`:**
 
-- [ ] Test RootDSE check (default) — mock or real LDAP
-- [ ] Test anonymous bind
-- [ ] Test simple bind with valid credentials
-- [ ] Test simple bind with invalid credentials (auth_error)
-- [ ] Test search method with baseDN
-- [ ] Test StartTLS
-- [ ] Test connection refused
-- [ ] Test `NewFromConfig` with URL parsing
-- [ ] Test validation: `simple_bind` without credentials, `search` without baseDN, `startTLS` with `ldaps://`
+- [x] Test RootDSE check (default) — mock or real LDAP
+- [x] Test anonymous bind
+- [x] Test simple bind with valid credentials
+- [x] Test simple bind with invalid credentials (auth_error)
+- [x] Test search method with baseDN
+- [x] Test StartTLS
+- [x] Test connection refused
+- [x] Test `NewFromConfig` with URL parsing
+- [x] Test validation: `simple_bind` without credentials, `search` without baseDN, `startTLS` with `ldaps://`
 
 **Validation:**
 
-- [ ] `make build` passes (in sdk-go/)
-- [ ] `make test` passes
-- [ ] `make lint` passes
+- [x] `make build` passes (in sdk-go/)
+- [x] `make test` passes
+- [x] `make lint` passes
 
-**Status:** todo
+**Status:** done
 
 ---
 
