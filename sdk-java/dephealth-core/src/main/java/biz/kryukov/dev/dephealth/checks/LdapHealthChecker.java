@@ -151,6 +151,11 @@ public final class LdapHealthChecker implements HealthChecker {
     }
 
     private void searchWithConfig(LDAPConnection conn) throws LDAPException {
+        // Bind before search if credentials are provided.
+        if (bindDN != null && !bindDN.isEmpty()) {
+            conn.bind(bindDN, bindPassword);
+        }
+
         String filter = searchFilter;
         if (filter == null || filter.isEmpty()) {
             filter = "(objectClass=*)";

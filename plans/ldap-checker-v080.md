@@ -602,17 +602,17 @@ covering different check methods and error scenarios:
 
 #### 7.7. Validation
 
-- [ ] `markdownlint` passes on all modified `.md` files
-- [ ] All 4 test service Docker images build successfully
-- [ ] Helm chart deploys without errors (including 389ds)
-- [ ] 389ds starts, accepts connections, test data imported
-- [ ] `./run.sh --lang all` — all existing scenarios still pass (regression)
-- [ ] `./run.sh --lang all --scenario ldap-basic` — passes for all 4 SDKs
-- [ ] `./run.sh --lang all --scenario ldap-failure` — passes for all 4 SDKs
-- [ ] `./run.sh --lang all --scenario ldap-recovery` — passes for all 4 SDKs
+- [x] `markdownlint` passes on all modified `.md` files
+- [x] All 4 test service Docker images build successfully
+- [x] Helm chart deploys without errors (including 389ds)
+- [x] 389ds starts, accepts connections, test data imported
+- [x] `./run.sh --lang all` — all existing scenarios still pass (regression)
+- [x] `./run.sh --lang all --scenario ldap-basic` — passes for all 4 SDKs
+- [x] `./run.sh --lang all --scenario ldap-failure` — passes for all 4 SDKs
+- [x] `./run.sh --lang all --scenario ldap-recovery` — passes for all 4 SDKs
 - [ ] Cross-verify: `cross_verify.py` shows identical LDAP metrics across all 4 SDKs
 
-**Status:** code complete, pending validation
+**Status:** validation complete (cross_verify pending)
 
 ---
 

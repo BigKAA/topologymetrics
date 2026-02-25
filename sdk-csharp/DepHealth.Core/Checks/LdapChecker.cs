@@ -203,6 +203,12 @@ public sealed class LdapChecker : IHealthChecker
 
     private async Task SearchWithConfigAsync(ILdapConnection conn, CancellationToken ct)
     {
+        // Bind before search if credentials are provided.
+        if (!string.IsNullOrEmpty(_bindDN))
+        {
+            await conn.BindAsync(_bindDN, _bindPassword, ct).ConfigureAwait(false);
+        }
+
         var filter = string.IsNullOrEmpty(_searchFilter) ? "(objectClass=*)" : _searchFilter;
         var scope = ToLdapScope(_searchScope);
         var constraints = new LdapSearchConstraints { MaxResults = 1 };

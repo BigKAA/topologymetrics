@@ -27,7 +27,7 @@ COPY conformance/test-service-csharp/ conformance/test-service-csharp/
 
 # Publish
 RUN dotnet publish conformance/test-service-csharp/conformance-service.csproj \
-    -c Release -o /app/publish --no-restore
+    -c Release -o /app/publish
 
 # Stage 2: Runtime
 ARG MCR_REGISTRY=mcr.microsoft.com

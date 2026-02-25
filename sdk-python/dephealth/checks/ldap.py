@@ -121,12 +121,13 @@ class LdapChecker:
                 validate=ssl.CERT_NONE if self._tls_skip_verify else ssl.CERT_REQUIRED,
             )
 
+        timeout_int = int(self._timeout)
         server = ldap3.Server(
             endpoint.host,
             port=int(endpoint.port),
             use_ssl=self._use_tls,
             tls=tls_obj,
-            connect_timeout=self._timeout,
+            connect_timeout=timeout_int,
             get_info=ldap3.NONE,
         )
 
@@ -136,7 +137,7 @@ class LdapChecker:
                 server,
                 auto_bind=False,
                 raise_exceptions=True,
-                receive_timeout=self._timeout,
+                receive_timeout=timeout_int,
             )
             conn.open()
 
@@ -195,6 +196,12 @@ class LdapChecker:
                 size_limit=1,
             )
         elif self._check_method == LdapCheckMethod.SEARCH:
+            # Bind before search if credentials are provided.
+            if self._bind_dn:
+                conn.user = self._bind_dn
+                conn.password = self._bind_password
+                conn.authentication = ldap3.SIMPLE
+                conn.bind()
             scope = getattr(ldap3, _SCOPE_MAP[self._search_scope])
             conn.search(
                 search_base=self._base_dn,

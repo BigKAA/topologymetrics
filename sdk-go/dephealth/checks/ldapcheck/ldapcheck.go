@@ -278,6 +278,13 @@ func (c *Checker) searchRootDSE(conn *ldap.Conn) error {
 }
 
 func (c *Checker) searchWithConfig(conn *ldap.Conn) error {
+	// Bind before search if credentials are provided.
+	if c.bindDN != "" {
+		if err := conn.Bind(c.bindDN, c.bindPassword); err != nil {
+			return err
+		}
+	}
+
 	filter := c.searchFilter
 	if filter == "" {
 		filter = "(objectClass=*)"

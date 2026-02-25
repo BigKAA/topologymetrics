@@ -108,12 +108,12 @@ services:
       DS_SUFFIX_NAME: dc=test,dc=local
       DS_DM_PASSWORD: password
     volumes:
-      - ./conformance/stubs/ldap-stub/init.ldif:/data/init.ldif
+      - ./conformance/stubs/ldap-stub/init.ldif:/ldap-init/init.ldif:ro
     healthcheck:
-      test: ["CMD-SHELL", "dsctl localhost healthcheck 2>/dev/null || nc -z localhost 3389"]
+      test: ["CMD-SHELL", "dsconf ldap://localhost:3389 -D 'cn=Directory Manager' -w password backend suffix list --suffix | grep -q dc=test,dc=local"]
       interval: 10s
       timeout: 10s
-      retries: 10
+      retries: 15
       start_period: 30s
 
 volumes:
