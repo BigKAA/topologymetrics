@@ -48,7 +48,76 @@ public sealed partial class DepHealthMonitor : IDisposable
     /// <summary>Returns detailed health status for all endpoints. Key: "name:host:port".</summary>
     public Dictionary<string, EndpointStatus> HealthDetails() => _scheduler.HealthDetails();
 
+    /// <summary>
+    /// Dynamically adds a new endpoint at runtime.
+    /// Validates inputs and delegates to the scheduler.
+    /// </summary>
+    public void AddEndpoint(string depName, DependencyType depType,
+        bool critical, Endpoint ep, IHealthChecker checker)
+    {
+        ValidateDynamicEndpointArgs(depName, depType, ep);
+        _scheduler.AddEndpoint(depName, depType, critical, ep, checker);
+    }
+
+    /// <summary>
+    /// Dynamically removes an endpoint at runtime.
+    /// </summary>
+    public void RemoveEndpoint(string depName, string host, string port)
+    {
+        _scheduler.RemoveEndpoint(depName, host, port);
+    }
+
+    /// <summary>
+    /// Dynamically replaces an endpoint with a new one at runtime.
+    /// Validates new endpoint inputs and delegates to the scheduler.
+    /// </summary>
+    public void UpdateEndpoint(string depName, string oldHost, string oldPort,
+        Endpoint newEp, IHealthChecker checker)
+    {
+        ValidateEndpointFields(newEp);
+        _scheduler.UpdateEndpoint(depName, oldHost, oldPort, newEp, checker);
+    }
+
     public void Dispose() => _scheduler.Dispose();
+
+    private static void ValidateDynamicEndpointArgs(string depName, DependencyType depType, Endpoint ep)
+    {
+        // Validate dependency name using same rules as Dependency.Builder
+        if (string.IsNullOrEmpty(depName) || depName.Length > MaxNameLength)
+        {
+            throw new ValidationException(
+                $"dependency name must be 1-{MaxNameLength} characters, got '{depName}' ({depName?.Length ?? 0} chars)");
+        }
+
+        if (!NamePattern().IsMatch(depName))
+        {
+            throw new ValidationException(
+                $"dependency name must match ^[a-z][a-z0-9-]*$, got '{depName}'");
+        }
+
+        if (!Enum.IsDefined(depType))
+        {
+            throw new ValidationException(
+                $"invalid dependency type: {depType}");
+        }
+
+        ValidateEndpointFields(ep);
+    }
+
+    private static void ValidateEndpointFields(Endpoint ep)
+    {
+        if (string.IsNullOrEmpty(ep.Host))
+        {
+            throw new ValidationException("endpoint host must not be empty");
+        }
+
+        if (string.IsNullOrEmpty(ep.Port))
+        {
+            throw new ValidationException("endpoint port must not be empty");
+        }
+
+        Endpoint.ValidateLabels(ep.Labels);
+    }
 
     /// <summary>Creates a new builder with a required application name and group.</summary>
     public static Builder CreateBuilder(string name, string group) => new(name, group);
@@ -261,15 +330,18 @@ public sealed partial class DepHealthMonitor : IDisposable
 
             var customLabelKeys = CollectCustomLabelKeys();
             var metrics = new PrometheusExporter(_name, _group, customLabelKeys, _registry);
-            var scheduler = new CheckScheduler(metrics, _logger);
+
+            var globalConfig = CheckConfig.CreateBuilder()
+                .WithInterval(_defaultInterval)
+                .WithTimeout(_defaultTimeout)
+                .WithInitialDelay(_defaultInitialDelay)
+                .Build();
+
+            var scheduler = new CheckScheduler(metrics, globalConfig, _logger);
 
             foreach (var entry in _entries)
             {
-                var config = CheckConfig.CreateBuilder()
-                    .WithInterval(_defaultInterval)
-                    .WithTimeout(_defaultTimeout)
-                    .WithInitialDelay(_defaultInitialDelay)
-                    .Build();
+                var config = globalConfig;
 
                 var depBuilder = Dependency.CreateBuilder(entry.Name, entry.Type)
                     .WithEndpoints(entry.Endpoints)

@@ -93,6 +93,12 @@ internal sealed class EndpointState
         }
     }
 
+    /// <summary>
+    /// Returns the dependency type parsed from the stored type label.
+    /// Used internally when reconstructing Dependency for metric deletion.
+    /// </summary>
+    public DependencyType ToDependencyType() => DependencyTypeExtensions.FromLabel(_depType);
+
     public void RecordFailure(int failureThreshold)
     {
         lock (_lock)

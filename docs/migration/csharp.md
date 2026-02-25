@@ -5,6 +5,41 @@
 Step-by-step instructions for adding dependency monitoring
 to a running microservice.
 
+## Migration to v0.6.0
+
+### New: Dynamic Endpoint Management
+
+v0.6.0 adds three new methods to `DepHealthMonitor` for dynamic endpoint
+management at runtime. No existing API changes — this is a purely additive
+feature.
+
+```csharp
+// After dh.Start()...
+
+// Add a new endpoint
+dh.AddEndpoint("api-backend", DependencyType.Http, true,
+    new Endpoint("backend-2.svc", "8080"),
+    new HttpChecker());
+
+// Remove an endpoint (cancels task, deletes metrics)
+dh.RemoveEndpoint("api-backend", "backend-2.svc", "8080");
+
+// Replace an endpoint atomically
+dh.UpdateEndpoint("api-backend", "backend-1.svc", "8080",
+    new Endpoint("backend-3.svc", "8080"),
+    new HttpChecker());
+```
+
+Key behaviors: thread-safe (lock + ConcurrentDictionary), idempotent add/remove,
+global config inheritance, full metrics cleanup on remove/update.
+
+New exception: `EndpointNotFoundException` (thrown by `UpdateEndpoint` when the
+old endpoint does not exist).
+
+For full details, see [migration guide v0.5.0 → v0.6.0](sdk-csharp-v050-to-v060.md).
+
+---
+
 ## Migration to v0.5.0
 
 ### Breaking: mandatory `group` parameter

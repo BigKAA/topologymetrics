@@ -9,7 +9,8 @@ public class HealthDetailsTests
     {
         var registry = Metrics.NewCustomRegistry();
         var metrics = new PrometheusExporter("test-app", "test-group", registry: registry);
-        return new CheckScheduler(metrics);
+        var config = CheckConfig.Defaults();
+        return new CheckScheduler(metrics, config);
     }
 
     private static Dependency CreateDep(

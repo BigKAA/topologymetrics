@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [sdk-csharp 0.6.0] - 2026-02-25
+
+Dynamic endpoint management: add, remove, and update monitored endpoints
+at runtime on a running `DepHealthMonitor` instance.
+
+### Added
+
+- **C# SDK**: `DepHealthMonitor.AddEndpoint()` — add a monitored endpoint
+  after `Start()`
+- **C# SDK**: `DepHealthMonitor.RemoveEndpoint()` — remove an endpoint
+  (cancels task, deletes metrics)
+- **C# SDK**: `DepHealthMonitor.UpdateEndpoint()` — atomically replace
+  an endpoint
+- **C# SDK**: `EndpointNotFoundException` exception
+- **C# SDK**: Per-endpoint `CancellationTokenSource` tracking for cancellation
+- **C# SDK**: `ConcurrentDictionary` for thread-safe health iteration
+- **C# SDK**: Global `CheckConfig` stored at build time for dynamic endpoints
+- Migration guide from C# SDK v0.5.0 to v0.6.0
+- API reference documentation (EN + RU)
+
 ## [sdk-python 0.6.0] - 2026-02-25
 
 Dynamic endpoint management: add, remove, and update monitored endpoints
@@ -383,6 +403,7 @@ verifying cross-language compatibility.
 - SDK comparison table
 - CONTRIBUTING.md with development workflow
 
+[sdk-csharp 0.6.0]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-csharp/v0.6.0
 [sdk-python 0.6.0]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-python/v0.6.0
 [sdk-java 0.6.0]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-java/v0.6.0
 [0.7.0]: https://github.com/BigKAA/topologymetrics/releases/tag/sdk-go/v0.7.0

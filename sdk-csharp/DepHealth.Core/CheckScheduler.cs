@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
+using DepHealth.Exceptions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -11,16 +13,20 @@ public sealed class CheckScheduler : IDisposable
 {
     private readonly PrometheusExporter _metrics;
     private readonly ILogger _logger;
+    private readonly CheckConfig _globalConfig;
     private readonly List<ScheduledDep> _deps = [];
-    private readonly Dictionary<string, EndpointState> _states = new();
-    private readonly List<CancellationTokenSource> _cancellations = [];
+    private readonly ConcurrentDictionary<string, EndpointState> _states = new();
+    private readonly ConcurrentDictionary<string, CancellationTokenSource> _cancellations = new();
+    private readonly object _mutationLock = new();
 
+    private CancellationTokenSource? _globalCts;
     private volatile bool _started;
     private volatile bool _stopped;
 
-    public CheckScheduler(PrometheusExporter metrics, ILogger? logger = null)
+    public CheckScheduler(PrometheusExporter metrics, CheckConfig globalConfig, ILogger? logger = null)
     {
         _metrics = metrics;
+        _globalConfig = globalConfig;
         _logger = logger ?? NullLogger.Instance;
     }
 
@@ -66,13 +72,16 @@ public sealed class CheckScheduler : IDisposable
             throw new InvalidOperationException("Scheduler already stopped");
         }
 
+        _globalCts = new CancellationTokenSource();
+
         foreach (var dep in _deps)
         {
             foreach (var ep in dep.Dependency.Endpoints)
             {
                 var config = dep.Dependency.Config;
-                var cts = new CancellationTokenSource();
-                _cancellations.Add(cts);
+                var key = StateKey(dep.Dependency.Name, ep);
+                var cts = CancellationTokenSource.CreateLinkedTokenSource(_globalCts.Token);
+                _cancellations[key] = cts;
 
                 _ = RunCheckLoopAsync(dep.Dependency, dep.Checker, ep, config, cts.Token);
             }
@@ -95,9 +104,12 @@ public sealed class CheckScheduler : IDisposable
 
         _stopped = true;
 
-        foreach (var cts in _cancellations)
+        // Cancel all via global token — linked CTS will propagate
+        _globalCts?.Cancel();
+        _globalCts?.Dispose();
+
+        foreach (var (_, cts) in _cancellations)
         {
-            cts.Cancel();
             cts.Dispose();
         }
 
@@ -135,6 +147,148 @@ public sealed class CheckScheduler : IDisposable
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Dynamically adds a new endpoint after the scheduler has started.
+    /// Idempotent: if the endpoint already exists, does nothing.
+    /// </summary>
+    public void AddEndpoint(string depName, DependencyType depType,
+        bool critical, Endpoint ep, IHealthChecker checker)
+    {
+        lock (_mutationLock)
+        {
+            if (!_started || _stopped)
+            {
+                throw new InvalidOperationException(
+                    "Cannot add endpoint: scheduler must be started and not stopped");
+            }
+
+            var key = StateKey(depName, ep);
+            if (_states.ContainsKey(key))
+            {
+                return; // idempotent
+            }
+
+            var dep = Dependency.CreateBuilder(depName, depType)
+                .WithCritical(critical)
+                .WithEndpoint(ep)
+                .WithConfig(_globalConfig)
+                .Build();
+
+            var state = new EndpointState();
+            state.SetStaticFields(depName, depType.Label(), ep.Host, ep.Port, critical, ep.Labels);
+            _states[key] = state;
+
+            var cts = CancellationTokenSource.CreateLinkedTokenSource(_globalCts!.Token);
+            _cancellations[key] = cts;
+
+            _ = RunCheckLoopAsync(dep, checker, ep, _globalConfig, cts.Token);
+
+            _logger.LogInformation(
+                "dephealth: dynamically added endpoint {Key}", key);
+        }
+    }
+
+    /// <summary>
+    /// Dynamically removes an endpoint after the scheduler has started.
+    /// Idempotent: if the endpoint does not exist, does nothing.
+    /// </summary>
+    public void RemoveEndpoint(string depName, string host, string port)
+    {
+        lock (_mutationLock)
+        {
+            if (!_started)
+            {
+                throw new InvalidOperationException(
+                    "Cannot remove endpoint: scheduler must be started");
+            }
+
+            var key = $"{depName}:{host}:{port}";
+            if (!_states.TryRemove(key, out var state))
+            {
+                return; // idempotent
+            }
+
+            if (_cancellations.TryRemove(key, out var cts))
+            {
+                cts.Cancel();
+                cts.Dispose();
+            }
+
+            // Build a minimal Dependency+Endpoint for metric deletion
+            var status = state.ToEndpointStatus();
+            var ep = new Endpoint(host, port, new Dictionary<string, string>(status.Labels ?? new Dictionary<string, string>()));
+            var dep = Dependency.CreateBuilder(depName, state.ToDependencyType())
+                .WithCritical(status.Critical)
+                .WithEndpoint(ep)
+                .Build();
+
+            _metrics.DeleteMetrics(dep, ep);
+
+            _logger.LogInformation(
+                "dephealth: dynamically removed endpoint {Key}", key);
+        }
+    }
+
+    /// <summary>
+    /// Dynamically replaces an endpoint with a new one.
+    /// Throws <see cref="EndpointNotFoundException"/> if the old endpoint does not exist.
+    /// </summary>
+    public void UpdateEndpoint(string depName, string oldHost, string oldPort,
+        Endpoint newEp, IHealthChecker checker)
+    {
+        lock (_mutationLock)
+        {
+            if (!_started || _stopped)
+            {
+                throw new InvalidOperationException(
+                    "Cannot update endpoint: scheduler must be started and not stopped");
+            }
+
+            var oldKey = $"{depName}:{oldHost}:{oldPort}";
+            if (!_states.TryRemove(oldKey, out var oldState))
+            {
+                throw new EndpointNotFoundException(depName, oldHost, oldPort);
+            }
+
+            // Cancel old check loop
+            if (_cancellations.TryRemove(oldKey, out var oldCts))
+            {
+                oldCts.Cancel();
+                oldCts.Dispose();
+            }
+
+            // Delete old metrics
+            var oldStatus = oldState.ToEndpointStatus();
+            var oldEp = new Endpoint(oldHost, oldPort, new Dictionary<string, string>(oldStatus.Labels ?? new Dictionary<string, string>()));
+            var oldDep = Dependency.CreateBuilder(depName, oldState.ToDependencyType())
+                .WithCritical(oldStatus.Critical)
+                .WithEndpoint(oldEp)
+                .Build();
+            _metrics.DeleteMetrics(oldDep, oldEp);
+
+            // Create new endpoint
+            var newKey = StateKey(depName, newEp);
+            var newDep = Dependency.CreateBuilder(depName, checker.Type)
+                .WithCritical(oldStatus.Critical)
+                .WithEndpoint(newEp)
+                .WithConfig(_globalConfig)
+                .Build();
+
+            var newState = new EndpointState();
+            newState.SetStaticFields(depName, checker.Type.Label(),
+                newEp.Host, newEp.Port, oldStatus.Critical, newEp.Labels);
+            _states[newKey] = newState;
+
+            var newCts = CancellationTokenSource.CreateLinkedTokenSource(_globalCts!.Token);
+            _cancellations[newKey] = newCts;
+
+            _ = RunCheckLoopAsync(newDep, checker, newEp, _globalConfig, newCts.Token);
+
+            _logger.LogInformation(
+                "dephealth: dynamically updated endpoint {OldKey} -> {NewKey}", oldKey, newKey);
+        }
     }
 
     public void Dispose()
@@ -177,7 +331,10 @@ public sealed class CheckScheduler : IDisposable
     private void RunCheck(Dependency dep, IHealthChecker checker, Endpoint ep, CheckConfig config)
     {
         var key = StateKey(dep.Name, ep);
-        var state = _states[key];
+        if (!_states.TryGetValue(key, out var state))
+        {
+            return; // endpoint was removed
+        }
         var sw = Stopwatch.StartNew();
 
         try

@@ -67,30 +67,30 @@ Prepare `CheckScheduler` for dynamic mutations without changing the public API y
 
 **Modify `DepHealth.Core/CheckScheduler.cs`:**
 
-- [ ] Add `CheckConfig _globalConfig` field (stored at construction, used for dynamic endpoints)
-- [ ] Change `_states` from `Dictionary<string, EndpointState>` to
+- [x] Add `CheckConfig _globalConfig` field (stored at construction, used for dynamic endpoints)
+- [x] Change `_states` from `Dictionary<string, EndpointState>` to
   `ConcurrentDictionary<string, EndpointState>`
-- [ ] Change `_cancellations` from `List<CancellationTokenSource>` to
+- [x] Change `_cancellations` from `List<CancellationTokenSource>` to
   `ConcurrentDictionary<string, CancellationTokenSource>` keyed by `"name:host:port"`
-- [ ] In `Start()`: store each `CancellationTokenSource` in the new dict with endpoint key
-- [ ] Store parent `CancellationTokenSource` for global stop — derive per-endpoint CTS via
+- [x] In `Start()`: store each `CancellationTokenSource` in the new dict with endpoint key
+- [x] Store parent `CancellationTokenSource` for global stop — derive per-endpoint CTS via
   `CancellationTokenSource.CreateLinkedTokenSource(_globalCts.Token)` so that `Stop()` still
   cancels everything
-- [ ] Add `object _lock` for synchronizing mutation operations (add/remove/update)
+- [x] Add `object _lock` for synchronizing mutation operations (add/remove/update)
   while keeping read operations lock-free via `ConcurrentDictionary`
 
 **Modify `DepHealth.Core/DepHealth.cs`:**
 
-- [ ] In `Build()`: compute `globalConfig` from builder-level interval/timeout/thresholds
+- [x] In `Build()`: compute `globalConfig` from builder-level interval/timeout/thresholds
   with `CheckConfig` defaults
-- [ ] Pass `globalConfig` to `CheckScheduler` constructor
+- [x] Pass `globalConfig` to `CheckScheduler` constructor
 
 **Validation:**
 
-- [ ] `dotnet build` passes
-- [ ] `dotnet test` passes (existing tests, no behavioral change)
+- [x] `dotnet build` passes
+- [x] `dotnet test` passes (existing tests, no behavioral change)
 
-**Status:** not started
+**Status:** done
 
 ---
 
@@ -100,7 +100,7 @@ Implement the three core methods on `CheckScheduler`.
 
 **Add to `DepHealth.Core/CheckScheduler.cs`:**
 
-- [ ] `AddEndpoint(string depName, DependencyType depType, bool critical, Endpoint ep, IHealthChecker checker)`
+- [x] `AddEndpoint(string depName, DependencyType depType, bool critical, Endpoint ep, IHealthChecker checker)`
   - `lock(_lock)` block
   - Check `_started && !_stopped`, else throw `InvalidOperationException`
   - Compute key `depName:host:port`, return if exists (idempotent)
@@ -109,14 +109,14 @@ Implement the three core methods on `CheckScheduler`.
   - Insert into `_states`
   - Create linked `CancellationTokenSource`, store in `_cancellations`
   - Fire-and-forget `RunCheckLoopAsync(...)` with the new CTS token
-- [ ] `RemoveEndpoint(string depName, string host, string port)`
+- [x] `RemoveEndpoint(string depName, string host, string port)`
   - `lock(_lock)` block
   - Check `_started`, else throw `InvalidOperationException`
   - Find state by key, return if not found (idempotent)
   - Cancel CTS (`cts.Cancel()`), dispose it, remove from `_cancellations`
   - Remove from `_states`
   - Call `_metrics.DeleteMetrics(dep, ep)` to clean up Prometheus series
-- [ ] `UpdateEndpoint(string depName, string oldHost, string oldPort, Endpoint newEp, IHealthChecker checker)`
+- [x] `UpdateEndpoint(string depName, string oldHost, string oldPort, Endpoint newEp, IHealthChecker checker)`
   - `lock(_lock)` block
   - Check `_started && !_stopped`
   - Find old state, throw `EndpointNotFoundException` if missing
@@ -125,16 +125,16 @@ Implement the three core methods on `CheckScheduler`.
 
 **Add `DepHealth.Core/Exceptions/EndpointNotFoundException.cs`:**
 
-- [ ] `public class EndpointNotFoundException : InvalidOperationException`
+- [x] `public class EndpointNotFoundException : InvalidOperationException`
   - Constructor: `(string depName, string host, string port)`
   - Message: `$"Endpoint not found: {depName}:{host}:{port}"`
 
 **Validation:**
 
-- [ ] `dotnet build` passes
-- [ ] `dotnet test` passes (existing tests unchanged)
+- [x] `dotnet build` passes
+- [x] `dotnet test` passes (existing tests unchanged)
 
-**Status:** not started
+**Status:** done
 
 ---
 
@@ -144,23 +144,23 @@ Thin wrappers with input validation, delegating to CheckScheduler.
 
 **Modify `DepHealth.Core/DepHealth.cs`:**
 
-- [ ] Add `AddEndpoint(string depName, DependencyType depType, bool critical, Endpoint ep, IHealthChecker checker)`
+- [x] Add `AddEndpoint(string depName, DependencyType depType, bool critical, Endpoint ep, IHealthChecker checker)`
   - Validate `depName` via existing `Dependency.ValidateName()`
   - Validate `depType` is defined enum value
   - Validate `ep.Host` and `ep.Port` non-empty
   - Validate `ep.Labels` via existing label validation (reserved names, pattern)
   - Delegate to `_scheduler.AddEndpoint()`
-- [ ] Add `RemoveEndpoint(string depName, string host, string port)`
+- [x] Add `RemoveEndpoint(string depName, string host, string port)`
   - Passthrough to `_scheduler.RemoveEndpoint()`
-- [ ] Add `UpdateEndpoint(string depName, string oldHost, string oldPort, Endpoint newEp, IHealthChecker checker)`
+- [x] Add `UpdateEndpoint(string depName, string oldHost, string oldPort, Endpoint newEp, IHealthChecker checker)`
   - Validate `newEp.Host`, `newEp.Port`, `newEp.Labels`
   - Delegate to `_scheduler.UpdateEndpoint()`
 
 **Validation:**
 
-- [ ] `dotnet build` passes
+- [x] `dotnet build` passes
 
-**Status:** not started
+**Status:** done
 
 ---
 
@@ -169,29 +169,29 @@ Thin wrappers with input validation, delegating to CheckScheduler.
 Unit tests for the three new CheckScheduler methods. Use existing test patterns
 (`FakeChecker`, xUnit `[Fact]`).
 
-**Add to `tests/DepHealth.Core.Tests/CheckSchedulerTests.cs`:**
+**Add to `tests/DepHealth.Core.Tests/CheckSchedulerDynamicTests.cs`:**
 
-- [ ] `AddEndpoint_AfterStart_AppearsInHealth` — add endpoint after start, wait, verify `Health()` includes it
-- [ ] `AddEndpoint_Idempotent` — add same endpoint twice, no exception, single entry
-- [ ] `AddEndpoint_BeforeStart_Throws` — throws `InvalidOperationException`
-- [ ] `AddEndpoint_AfterStop_Throws` — throws `InvalidOperationException`
-- [ ] `AddEndpoint_Metrics` — verify health gauge appears with correct labels
-- [ ] `RemoveEndpoint_AfterStart_DisappearsFromHealth` — remove after start, verify disappears from `Health()`
-- [ ] `RemoveEndpoint_Idempotent` — remove non-existent, no exception
-- [ ] `RemoveEndpoint_MetricsDeleted` — verify all metric series removed
-- [ ] `RemoveEndpoint_BeforeStart_Throws` — throws `InvalidOperationException`
-- [ ] `UpdateEndpoint_SwapsEndpoint` — update, verify old gone and new appears in `Health()`
-- [ ] `UpdateEndpoint_NotFound_Throws` — throws `EndpointNotFoundException`
-- [ ] `UpdateEndpoint_MetricsSwap` — old metrics deleted, new metrics present
-- [ ] `StopAfterDynamicAdd_CleansUp` — add endpoint, then `Stop()`, verify no task leak
-- [ ] `ConcurrentAddRemoveHealth_NoExceptions` — run Add/Remove/Health in parallel tasks
+- [x] `AddEndpoint_AfterStart_AppearsInHealth` — add endpoint after start, wait, verify `Health()` includes it
+- [x] `AddEndpoint_Idempotent` — add same endpoint twice, no exception, single entry
+- [x] `AddEndpoint_BeforeStart_Throws` — throws `InvalidOperationException`
+- [x] `AddEndpoint_AfterStop_Throws` — throws `InvalidOperationException`
+- [x] `AddEndpoint_Metrics` — verify health gauge appears with correct labels
+- [x] `RemoveEndpoint_AfterStart_DisappearsFromHealth` — remove after start, verify disappears from `Health()`
+- [x] `RemoveEndpoint_Idempotent` — remove non-existent, no exception
+- [x] `RemoveEndpoint_MetricsDeleted` — verify all metric series removed
+- [x] `RemoveEndpoint_BeforeStart_Throws` — throws `InvalidOperationException`
+- [x] `UpdateEndpoint_SwapsEndpoint` — update, verify old gone and new appears in `Health()`
+- [x] `UpdateEndpoint_NotFound_Throws` — throws `EndpointNotFoundException`
+- [x] `UpdateEndpoint_MetricsSwap` — old metrics deleted, new metrics present
+- [x] `StopAfterDynamicAdd_CleansUp` — add endpoint, then `Stop()`, verify no task leak
+- [x] `ConcurrentAddRemoveHealth_NoExceptions` — run Add/Remove/Health in parallel tasks
 
 **Validation:**
 
-- [ ] `dotnet test` passes (all tests)
-- [ ] No concurrency warnings
+- [x] `dotnet test` passes (all tests)
+- [x] No concurrency warnings
 
-**Status:** not started
+**Status:** done
 
 ---
 
@@ -199,24 +199,24 @@ Unit tests for the three new CheckScheduler methods. Use existing test patterns
 
 Integration tests for the public API.
 
-**Add to `tests/DepHealth.Core.Tests/DepHealthTests.cs`:**
+**Add to `tests/DepHealth.Core.Tests/DepHealthMonitorDynamicTests.cs`:**
 
-- [ ] `AddEndpoint_AfterStart_AppearsInHealth` — create DepHealthMonitor, start, AddEndpoint, verify `Health()`
-- [ ] `AddEndpoint_InvalidName_Throws` — invalid dep name, throws `ValidationException`
-- [ ] `AddEndpoint_InvalidType_Throws` — undefined enum value, throws exception
-- [ ] `AddEndpoint_MissingHost_Throws` — empty host, throws `ValidationException`
-- [ ] `AddEndpoint_ReservedLabel_Throws` — reserved label, throws `ValidationException`
-- [ ] `RemoveEndpoint_DisappearsFromHealth` — remove, verify gone from `Health()`
-- [ ] `UpdateEndpoint_SwapsEndpoint` — update, verify old gone and new present
-- [ ] `UpdateEndpoint_MissingNewHost_Throws` — empty new host, throws `ValidationException`
-- [ ] `UpdateEndpoint_NotFound_Throws` — throws `EndpointNotFoundException`
-- [ ] `AddEndpoint_InheritsGlobalConfig` — verify dynamic endpoint uses global interval/timeout
+- [x] `AddEndpoint_AfterStart_AppearsInHealth` — create DepHealthMonitor, start, AddEndpoint, verify `Health()`
+- [x] `AddEndpoint_InvalidName_Throws` — invalid dep name, throws `ValidationException`
+- [x] `AddEndpoint_InvalidType_Throws` — undefined enum value, throws exception
+- [x] `AddEndpoint_MissingHost_Throws` — empty host, throws `ValidationException`
+- [x] `AddEndpoint_ReservedLabel_Throws` — reserved label, throws `ValidationException`
+- [x] `RemoveEndpoint_DisappearsFromHealth` — remove, verify gone from `Health()`
+- [x] `UpdateEndpoint_SwapsEndpoint` — update, verify old gone and new present
+- [x] `UpdateEndpoint_MissingNewHost_Throws` — empty new host, throws `ValidationException`
+- [x] `UpdateEndpoint_NotFound_Throws` — throws `EndpointNotFoundException`
+- [x] `AddEndpoint_InheritsGlobalConfig` — verify dynamic endpoint uses global interval/timeout
 
 **Validation:**
 
-- [ ] `dotnet test` passes (all tests)
+- [x] `dotnet test` passes (all tests)
 
-**Status:** not started
+**Status:** done
 
 ---
 
@@ -224,29 +224,29 @@ Integration tests for the public API.
 
 **Version bump:**
 
-- [ ] `Directory.Build.props` → `<Version>0.6.0</Version>`
+- [x] `Directory.Build.props` → `<Version>0.6.0</Version>`
 
 **Documentation (EN):**
 
-- [ ] Update `sdk-csharp/docs/api-reference.md` — add `AddEndpoint`, `RemoveEndpoint`, `UpdateEndpoint`
-- [ ] Update `sdk-csharp/README.md` — add "Dynamic Endpoints" section with usage example
-- [ ] Create `docs/migration/sdk-csharp-v050-to-v060.md` — migration guide
+- [x] Create `sdk-csharp/docs/api-reference.md` — add `AddEndpoint`, `RemoveEndpoint`, `UpdateEndpoint`
+- [x] Create `sdk-csharp/README.md` — add "Dynamic Endpoints" section with usage example
+- [x] Create `docs/migration/sdk-csharp-v050-to-v060.md` — migration guide
 
 **Documentation (RU):**
 
-- [ ] Update `sdk-csharp/docs/api-reference.ru.md` — same as EN
-- [ ] Create `docs/migration/sdk-csharp-v050-to-v060.ru.md` — migration guide
+- [x] Create `sdk-csharp/docs/api-reference.ru.md` — same as EN
+- [x] Create `docs/migration/sdk-csharp-v050-to-v060.ru.md` — migration guide
 
 **Changelog:**
 
-- [ ] Update `CHANGELOG.md` — add `[sdk-csharp 0.6.0]` section
+- [x] Update `CHANGELOG.md` — add `[sdk-csharp 0.6.0]` section
 
 **Validation:**
 
-- [ ] `dotnet build && dotnet test` — all pass
-- [ ] `markdownlint` on all new/changed `.md` files — 0 issues
+- [x] `dotnet build && dotnet test` — all pass (206 tests, 0 failures)
+- [x] `markdownlint` on all new/changed `.md` files — 0 issues
 
-**Status:** not started
+**Status:** done
 
 ---
 
