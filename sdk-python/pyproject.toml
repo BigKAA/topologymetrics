@@ -51,8 +51,9 @@ fastapi = ["fastapi>=0.110", "uvicorn[standard]>=0.29"]
 all = [
     "dephealth[postgres,mysql,redis,amqp,kafka,ldap,grpc,fastapi]",
 ]
+docs = ["pdoc>=14.0"]
 dev = [
-    "dephealth[all]",
+    "dephealth[all,docs]",
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
     "pytest-cov>=5.0",

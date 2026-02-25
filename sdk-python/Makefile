@@ -7,6 +7,7 @@
 #   make test-coverage  — тесты с покрытием
 #   make lint           — ruff + mypy
 #   make fmt            — автоформатирование (ruff format + ruff check --fix)
+#   make docs           — генерация API-документации (pdoc → docs/_build/)
 #   make build          — сборка пакета (sdist + wheel)
 #   make publish        — публикация на PyPI (через ~/.pypirc)
 #   make image          — сборка Docker-образа тестового сервиса
@@ -56,7 +57,7 @@ DOCKER_RUN = docker run --rm \
 # Установка пакета с dev-зависимостями
 PIP_INSTALL = pip install -q -e ".[dev]" 2>/dev/null
 
-.PHONY: build test test-coverage lint fmt publish image push image-conformance push-conformance pull clean help
+.PHONY: build test test-coverage lint fmt docs publish image push image-conformance push-conformance pull clean help
 
 ## build: сборка пакета (sdist + wheel)
 build:
@@ -95,6 +96,14 @@ fmt:
 	$(call remove_old,fmt)
 	$(DOCKER_RUN) --name $(CN)-fmt $(PY_IMAGE) \
 		sh -c '$(PIP_INSTALL) && ruff format . && ruff check --fix .'
+
+## docs: генерация API-документации (pdoc)
+docs:
+	$(call remove_old,docs)
+	$(DOCKER_RUN) --name $(CN)-docs $(PY_IMAGE) \
+		sh -c 'pip install -q -e ".[all,docs]" 2>/dev/null && \
+		python -c "import pkgutil,dephealth,dephealth_fastapi; print(\" \".join(m.name for pkg in [dephealth,dephealth_fastapi] for m in pkgutil.walk_packages(pkg.__path__,pkg.__name__+\".\")))" \
+		| xargs pdoc -o docs/_build dephealth dephealth_fastapi'
 
 ## image: сборка Docker-образа тестового сервиса
 image:

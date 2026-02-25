@@ -6,6 +6,9 @@ __pycache__/
 dist/
 build/
 
+# Generated docs
+docs/_build/
+
 # Tools
 .mypy_cache/
 .ruff_cache/

@@ -226,13 +226,17 @@ Java SDK имеет минимальную документацию. Нужно 
 
 ### 3A: Docstrings и автогенерация
 
-- [ ] 3A.1 Проверить наличие docstrings во всех публичных классах/функциях
+- [x] 3A.1 Проверить наличие docstrings во всех публичных классах/функциях
   - `DepHealth`, `DepHealthBuilder`
   - Все checkers
   - FastAPI интеграция
-- [ ] 3A.2 Добавить конфигурацию pdoc или mkdocstrings в `sdk-python/`:
-  - `mkdocs.yml` или `pdoc` конфиг для автогенерации API docs
-- [ ] 3A.3 Добавить target `docs` в `sdk-python/Makefile`
+  - Проверено: все публичные классы, функции и модули уже имеют docstrings
+- [x] 3A.2 Добавить конфигурацию pdoc в `sdk-python/`:
+  - Добавлен optional extra `docs = ["pdoc>=14.0"]` в pyproject.toml
+  - pdoc генерирует HTML с автоматическим обнаружением подмодулей
+  - Результат в `docs/_build/` (в .gitignore)
+- [x] 3A.3 Добавить target `docs` в `sdk-python/Makefile`
+  - `make docs` — генерация через Docker (без локального Python)
 
 ### 3B: Markdown документация
 
