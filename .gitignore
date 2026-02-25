@@ -35,6 +35,7 @@ Thumbs.db
 .venv/
 __pycache__/
 *.pyc
+uv.lock
 
 # Environment
 .env
