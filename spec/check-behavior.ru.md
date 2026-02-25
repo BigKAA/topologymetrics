@@ -353,6 +353,63 @@ successThreshold = 2
 - Topic-level проверки не входят в v1.0.
 - Поддержка SASL-аутентификации не входит в v1.0.
 
+### 4.9. LDAP (`type: ldap`)
+
+| Параметр | Описание | Значение по умолчанию |
+| --- | --- | --- |
+| `checkMethod` | Метод проверки | `root_dse` |
+| `bindDN` | DN для Simple Bind | `""` |
+| `bindPassword` | Пароль для Simple Bind | `""` |
+| `baseDN` | Базовый DN для метода search | `""` |
+| `searchFilter` | LDAP-фильтр для метода search | `(objectClass=*)` |
+| `searchScope` | Область поиска: `base`, `one`, `sub` | `base` |
+| `startTLS` | Использовать StartTLS (только с `ldap://`) | `false` |
+| `tlsSkipVerify` | Пропуск проверки TLS-сертификата | `false` |
+
+**Методы проверки** (значения `checkMethod`):
+
+| Значение | Описание |
+| --- | --- |
+| `anonymous_bind` | Анонимный Bind |
+| `simple_bind` | Simple Bind с `bindDN` / `bindPassword` |
+| `root_dse` | Поиск: base=`""`, scope=base, filter=`(objectClass=*)` |
+| `search` | Поиск с `baseDN`, `searchScope`, `searchFilter` |
+
+**Автономный режим**:
+
+1. Установить TCP-соединение с `{host}:{port}` (с таймаутом `timeout`).
+2. Если схема `ldaps://` — выполнить TLS-рукопожатие.
+3. Если `startTLS=true` — отправить расширенную операцию StartTLS, затем TLS-рукопожатие.
+4. Выполнить проверку в зависимости от `checkMethod`:
+   - `anonymous_bind`: анонимный Bind.
+   - `simple_bind`: Simple Bind с `bindDN` / `bindPassword`.
+   - `root_dse`: поиск с base=`""`, scope=base, filter=`(objectClass=*)`.
+   - `search`: поиск с `baseDN`, `searchScope`, `searchFilter`.
+5. Если операция завершена без ошибки — **успех**.
+6. Закрыть соединение.
+
+**Режим с connection pool**:
+
+1. Использовать существующее LDAP-соединение.
+2. Выполнить метод проверки (аналогично шагу 4 автономного режима).
+3. Если операция завершена без ошибки — **успех**.
+
+**Правила валидации**:
+
+| Условие | Результат |
+| --- | --- |
+| `simple_bind` без `bindDN` или `bindPassword` | Ошибка конфигурации |
+| `search` без `baseDN` | Ошибка конфигурации |
+| `startTLS=true` со схемой `ldaps://` | Ошибка конфигурации (несовместимо) |
+
+**Особенности**:
+
+- LDAP-рефералы не отслеживаются.
+- LDAP result code 49 (Invalid Credentials) и 50 (Insufficient Access Rights)
+  классифицируются как `auth_error` (см. раздел 6.2.3).
+- Операционные ошибки LDAP (server down, busy, unavailable) классифицируются как `unhealthy`.
+- Проверка TLS-сертификата учитывает `tlsSkipVerify` как для `ldaps://`, так и для StartTLS.
+
 ---
 
 ## 5. Два режима работы
@@ -494,6 +551,7 @@ INFO dephealth: dependency recovered dependency=postgres-main host=pg.svc port=5
 | Redis | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `unhealthy`, `error` |
 | AMQP | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `unhealthy`, `error` |
 | Kafka | `ok`, `timeout`, `connection_refused`, `dns_error`, `no_brokers`, `error` |
+| LDAP | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `unhealthy`, `error` |
 
 #### 6.2.4. Маппинг detail → status
 

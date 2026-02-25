@@ -311,6 +311,32 @@ public sealed partial class DepHealthMonitor : IDisposable
             return AddDependency(name, DependencyType.Kafka, parsed, checker, critical, labels);
         }
 
+        public Builder AddLdap(string name, string host, string port,
+            LdapCheckMethod checkMethod = LdapCheckMethod.RootDse,
+            string bindDN = "", string bindPassword = "",
+            string baseDN = "", string searchFilter = "(objectClass=*)",
+            LdapSearchScope searchScope = LdapSearchScope.Base,
+            bool useTls = false, bool startTls = false,
+            bool tlsSkipVerify = false,
+            bool? critical = null, Dictionary<string, string>? labels = null)
+        {
+            var ep = ConfigParser.ParseParams(host, port);
+            var checker = new LdapChecker(
+                checkMethod: checkMethod,
+                bindDN: bindDN,
+                bindPassword: bindPassword,
+                baseDN: baseDN,
+                searchFilter: searchFilter,
+                searchScope: searchScope,
+                useTls: useTls,
+                startTls: startTls,
+                tlsSkipVerify: tlsSkipVerify);
+
+            return AddDependency(name, DependencyType.Ldap,
+                [new ParsedConnection(ep.Host, ep.Port, DependencyType.Ldap)],
+                checker, critical, labels);
+        }
+
         /// <summary>
         /// Adds a dependency with a custom health checker.
         /// </summary>

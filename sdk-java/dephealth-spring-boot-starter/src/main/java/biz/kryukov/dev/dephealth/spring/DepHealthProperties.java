@@ -119,6 +119,16 @@ public class DepHealthProperties {
         private String amqpPassword;
         private String virtualHost;
 
+        // LDAP
+        private String ldapCheckMethod;
+        private String ldapBindDn;
+        private String ldapBindPassword;
+        private String ldapBaseDn;
+        private String ldapSearchFilter;
+        private String ldapSearchScope;
+        private Boolean ldapStartTls;
+        private Boolean ldapTlsSkipVerify;
+
         public String getType() {
             return type;
         }
@@ -357,6 +367,70 @@ public class DepHealthProperties {
 
         public void setVirtualHost(String virtualHost) {
             this.virtualHost = virtualHost;
+        }
+
+        public String getLdapCheckMethod() {
+            return ldapCheckMethod;
+        }
+
+        public void setLdapCheckMethod(String ldapCheckMethod) {
+            this.ldapCheckMethod = ldapCheckMethod;
+        }
+
+        public String getLdapBindDn() {
+            return ldapBindDn;
+        }
+
+        public void setLdapBindDn(String ldapBindDn) {
+            this.ldapBindDn = ldapBindDn;
+        }
+
+        public String getLdapBindPassword() {
+            return ldapBindPassword;
+        }
+
+        public void setLdapBindPassword(String ldapBindPassword) {
+            this.ldapBindPassword = ldapBindPassword;
+        }
+
+        public String getLdapBaseDn() {
+            return ldapBaseDn;
+        }
+
+        public void setLdapBaseDn(String ldapBaseDn) {
+            this.ldapBaseDn = ldapBaseDn;
+        }
+
+        public String getLdapSearchFilter() {
+            return ldapSearchFilter;
+        }
+
+        public void setLdapSearchFilter(String ldapSearchFilter) {
+            this.ldapSearchFilter = ldapSearchFilter;
+        }
+
+        public String getLdapSearchScope() {
+            return ldapSearchScope;
+        }
+
+        public void setLdapSearchScope(String ldapSearchScope) {
+            this.ldapSearchScope = ldapSearchScope;
+        }
+
+        public Boolean getLdapStartTls() {
+            return ldapStartTls;
+        }
+
+        public void setLdapStartTls(Boolean ldapStartTls) {
+            this.ldapStartTls = ldapStartTls;
+        }
+
+        public Boolean getLdapTlsSkipVerify() {
+            return ldapTlsSkipVerify;
+        }
+
+        public void setLdapTlsSkipVerify(Boolean ldapTlsSkipVerify) {
+            this.ldapTlsSkipVerify = ldapTlsSkipVerify;
         }
     }
 }

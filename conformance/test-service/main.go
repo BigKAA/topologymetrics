@@ -38,6 +38,8 @@ type Config struct {
 	HTTPStubURL      string
 	GRPCStubHost     string
 	GRPCStubPort     string
+	LDAPHost         string
+	LDAPPort         string
 	CheckInterval    time.Duration
 }
 
@@ -53,6 +55,8 @@ func loadConfig() (*Config, error) {
 		HTTPStubURL:  getEnv("HTTP_STUB_URL", "http://http-stub.dephealth-conformance.svc:8080"),
 		GRPCStubHost: getEnv("GRPC_STUB_HOST", "grpc-stub.dephealth-conformance.svc"),
 		GRPCStubPort: getEnv("GRPC_STUB_PORT", "9090"),
+		LDAPHost:     getEnv("LDAP_HOST", "ldap.dephealth-conformance.svc"),
+		LDAPPort:     getEnv("LDAP_PORT", "3389"),
 	}
 
 	intervalStr := getEnv("CHECK_INTERVAL", "10")
@@ -206,6 +210,41 @@ func initDepHealth(cfg *Config, primaryDB, replicaDB *sql.DB, rdb *redis.Client,
 			dephealth.WithGRPCBearerToken("test-token-123"),
 			dephealth.Critical(false),
 		),
+
+		// LDAP — RootDSE (default check method)
+		dephealth.LDAP("ldap-rootdse",
+			dephealth.FromParams(cfg.LDAPHost, cfg.LDAPPort),
+			dephealth.WithLDAPCheckMethod("root_dse"),
+			dephealth.Critical(false),
+		),
+
+		// LDAP — simple bind with valid credentials
+		dephealth.LDAP("ldap-bind",
+			dephealth.FromParams(cfg.LDAPHost, cfg.LDAPPort),
+			dephealth.WithLDAPCheckMethod("simple_bind"),
+			dephealth.WithLDAPBindDN("cn=Directory Manager"),
+			dephealth.WithLDAPBindPassword("password"),
+			dephealth.Critical(false),
+		),
+
+		// LDAP — search
+		dephealth.LDAP("ldap-search",
+			dephealth.FromParams(cfg.LDAPHost, cfg.LDAPPort),
+			dephealth.WithLDAPCheckMethod("search"),
+			dephealth.WithLDAPBindDN("cn=Directory Manager"),
+			dephealth.WithLDAPBindPassword("password"),
+			dephealth.WithLDAPBaseDN("ou=People,dc=test,dc=local"),
+			dephealth.Critical(false),
+		),
+
+		// LDAP — invalid credentials (auth_error)
+		dephealth.LDAP("ldap-invalid-auth",
+			dephealth.FromParams(cfg.LDAPHost, cfg.LDAPPort),
+			dephealth.WithLDAPCheckMethod("simple_bind"),
+			dephealth.WithLDAPBindDN("cn=Directory Manager"),
+			dephealth.WithLDAPBindPassword("wrongpassword"),
+			dephealth.Critical(false),
+		),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка создания DepHealth: %w", err)
@@ -316,7 +355,7 @@ func main() {
 		logger.Error("ошибка запуска dephealth", "error", err)
 		os.Exit(1)
 	}
-	logger.Info("dephealth запущен", "dependencies", 12, "check_interval", cfg.CheckInterval)
+	logger.Info("dephealth запущен", "dependencies", 16, "check_interval", cfg.CheckInterval)
 
 	// HTTP-сервер
 	mux := http.NewServeMux()

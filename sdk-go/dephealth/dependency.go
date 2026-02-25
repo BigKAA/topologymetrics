@@ -21,6 +21,7 @@ const (
 	TypeRedis    DependencyType = "redis"
 	TypeAMQP     DependencyType = "amqp"
 	TypeKafka    DependencyType = "kafka"
+	TypeLDAP     DependencyType = "ldap"
 )
 
 // ValidTypes contains all valid dependency types.
@@ -33,6 +34,7 @@ var ValidTypes = map[DependencyType]bool{
 	TypeRedis:    true,
 	TypeAMQP:     true,
 	TypeKafka:    true,
+	TypeLDAP:     true,
 }
 
 // Default values from specification.

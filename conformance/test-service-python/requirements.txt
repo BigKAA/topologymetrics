@@ -8,3 +8,4 @@ aio-pika>=9.4
 aiokafka>=0.10
 grpcio>=1.60
 grpcio-health-checking>=1.60
+ldap3>=2.9

@@ -11,6 +11,7 @@ import (
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/grpccheck"
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/httpcheck"
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/kafkacheck"
+	"github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/ldapcheck"
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/mysqlcheck"
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/pgcheck"
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/redischeck"
@@ -252,3 +253,70 @@ type KafkaChecker = kafkacheck.Checker
 //
 // Deprecated: use [kafkacheck.New].
 var NewKafkaChecker = kafkacheck.New
+
+// --- LDAP ---
+
+// LDAPChecker is an alias for [ldapcheck.Checker].
+//
+// Deprecated: use [ldapcheck.Checker].
+type LDAPChecker = ldapcheck.Checker
+
+// LDAPOption is an alias for [ldapcheck.Option].
+//
+// Deprecated: use [ldapcheck.Option].
+type LDAPOption = ldapcheck.Option
+
+// NewLDAPChecker is a wrapper for [ldapcheck.New].
+//
+// Deprecated: use [ldapcheck.New].
+var NewLDAPChecker = ldapcheck.New
+
+// WithLDAPConn is a wrapper for [ldapcheck.WithConn].
+//
+// Deprecated: use [ldapcheck.WithConn].
+var WithLDAPConn = ldapcheck.WithConn
+
+// WithLDAPCheckMethod is a wrapper for [ldapcheck.WithCheckMethod].
+//
+// Deprecated: use [ldapcheck.WithCheckMethod].
+var WithLDAPCheckMethod = ldapcheck.WithCheckMethod
+
+// WithLDAPBindDN is a wrapper for [ldapcheck.WithBindDN].
+//
+// Deprecated: use [ldapcheck.WithBindDN].
+var WithLDAPBindDN = ldapcheck.WithBindDN
+
+// WithLDAPBindPassword is a wrapper for [ldapcheck.WithBindPassword].
+//
+// Deprecated: use [ldapcheck.WithBindPassword].
+var WithLDAPBindPassword = ldapcheck.WithBindPassword
+
+// WithLDAPBaseDN is a wrapper for [ldapcheck.WithBaseDN].
+//
+// Deprecated: use [ldapcheck.WithBaseDN].
+var WithLDAPBaseDN = ldapcheck.WithBaseDN
+
+// WithLDAPSearchFilter is a wrapper for [ldapcheck.WithSearchFilter].
+//
+// Deprecated: use [ldapcheck.WithSearchFilter].
+var WithLDAPSearchFilter = ldapcheck.WithSearchFilter
+
+// WithLDAPSearchScope is a wrapper for [ldapcheck.WithSearchScope].
+//
+// Deprecated: use [ldapcheck.WithSearchScope].
+var WithLDAPSearchScope = ldapcheck.WithSearchScope
+
+// WithLDAPTLS is a wrapper for [ldapcheck.WithTLS].
+//
+// Deprecated: use [ldapcheck.WithTLS].
+var WithLDAPTLS = ldapcheck.WithTLS
+
+// WithLDAPStartTLS is a wrapper for [ldapcheck.WithStartTLS].
+//
+// Deprecated: use [ldapcheck.WithStartTLS].
+var WithLDAPStartTLS = ldapcheck.WithStartTLS
+
+// WithLDAPTLSSkipVerify is a wrapper for [ldapcheck.WithTLSSkipVerify].
+//
+// Deprecated: use [ldapcheck.WithTLSSkipVerify].
+var WithLDAPTLSSkipVerify = ldapcheck.WithTLSSkipVerify

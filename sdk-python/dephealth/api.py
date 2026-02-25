@@ -15,6 +15,7 @@ from dephealth.checks.amqp import AMQPChecker
 from dephealth.checks.grpc import GRPCChecker
 from dephealth.checks.http import HTTPChecker
 from dephealth.checks.kafka import KafkaChecker
+from dephealth.checks.ldap import LdapChecker, LdapCheckMethod, LdapSearchScope
 from dephealth.checks.mysql import MySQLChecker
 from dephealth.checks.postgres import PostgresChecker
 from dephealth.checks.redis import RedisChecker
@@ -546,6 +547,93 @@ def amqp_check(
     return _DependencySpec(
         name=name,
         dep_type=DependencyType.AMQP,
+        checker=checker,
+        endpoints=endpoints,
+        critical=critical,
+        interval=interval,
+        timeout=timeout,
+        labels=labels,
+    )
+
+
+def ldap_check(
+    name: str,
+    *,
+    url: str = "",
+    host: str = "",
+    port: str = "389",
+    check_method: str = "root_dse",
+    bind_dn: str = "",
+    bind_password: str = "",
+    base_dn: str = "",
+    search_filter: str = "(objectClass=*)",
+    search_scope: str = "base",
+    start_tls: bool = False,
+    tls_skip_verify: bool = False,
+    client: Any = None,  # noqa: ANN401
+    critical: bool,
+    timeout: timedelta | None = None,
+    interval: timedelta | None = None,
+    labels: dict[str, str] | None = None,
+) -> _DependencySpec:
+    """Create an LDAP health check.
+
+    Args:
+        name: Dependency name.
+        url: LDAP URL (ldap:// or ldaps://).
+        host: LDAP server host (alternative to url).
+        port: LDAP server port (default 389).
+        check_method: Check method: anonymous_bind, simple_bind, root_dse, search.
+        bind_dn: DN for simple_bind method.
+        bind_password: Password for simple_bind method.
+        base_dn: Base DN for search method.
+        search_filter: LDAP filter for search method.
+        search_scope: Search scope: base, one, sub.
+        start_tls: Use StartTLS (only with ldap://).
+        tls_skip_verify: Skip TLS certificate verification.
+        client: Existing ldap3 Connection for pool mode.
+        critical: Whether this dependency is critical.
+        timeout: Check timeout.
+        interval: Check interval.
+        labels: Custom labels.
+    """
+    method = LdapCheckMethod(check_method)
+    scope = LdapSearchScope(search_scope)
+
+    if method == LdapCheckMethod.SIMPLE_BIND and (not bind_dn or not bind_password):
+        msg = "simple_bind requires bind_dn and bind_password"
+        raise ValueError(msg)
+    if method == LdapCheckMethod.SEARCH and not base_dn:
+        msg = "search method requires base_dn"
+        raise ValueError(msg)
+
+    use_tls = False
+    if url:
+        if url.lower().startswith("ldaps://"):
+            use_tls = True
+        if use_tls and start_tls:
+            msg = "startTLS is incompatible with ldaps:// scheme"
+            raise ValueError(msg)
+        endpoints = _endpoints_from_url(url)
+    else:
+        endpoints = [parse_params(host, port)]
+
+    checker = LdapChecker(
+        timeout=timeout.total_seconds() if timeout else 5.0,
+        check_method=method,
+        bind_dn=bind_dn,
+        bind_password=bind_password,
+        base_dn=base_dn,
+        search_filter=search_filter,
+        search_scope=scope,
+        use_tls=use_tls,
+        start_tls=start_tls,
+        tls_skip_verify=tls_skip_verify,
+        client=client,
+    )
+    return _DependencySpec(
+        name=name,
+        dep_type=DependencyType.LDAP,
         checker=checker,
         endpoints=endpoints,
         critical=critical,

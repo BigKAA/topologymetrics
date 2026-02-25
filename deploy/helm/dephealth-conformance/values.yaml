@@ -28,6 +28,8 @@ dephealth-infra:
     enabled: true
   rabbitmq:
     enabled: true
+  ldap:
+    enabled: true
   stubs:
     httpStub:
       enabled: true
@@ -41,6 +43,9 @@ credentials:
   postgresDatabase: dephealth
   rabbitmqUser: dephealth
   rabbitmqPassword: dephealth-test-pass
+  ldapAdminDN: "cn=Directory Manager"
+  ldapAdminPassword: password
+  ldapBaseDN: dc=test,dc=local
 
 # --- Conformance-сервисы ---
 services:

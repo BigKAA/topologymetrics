@@ -14,7 +14,7 @@ conformance/
 │   ├── utils.py            # Утилиты kubectl
 │   ├── Dockerfile          # Контейнер runner (для CI)
 │   └── requirements.txt    # Python-зависимости
-├── scenarios/              # YAML-сценарии (8 шт.)
+├── scenarios/              # YAML-сценарии (17 шт.)
 │   ├── basic-health.yml    # Базовая проверка: все зависимости healthy
 │   ├── partial-failure.yml # Частичный сбой: часть зависимостей unhealthy
 │   ├── full-failure.yml    # Полный сбой: все зависимости unhealthy
@@ -22,7 +22,14 @@ conformance/
 │   ├── latency.yml         # Проверка histogram латентности
 │   ├── labels.yml          # Корректность меток (dependency, type, host, port)
 │   ├── timeout.yml         # Таймаут проверки (сервис недоступен)
-│   └── initial-state.yml   # Начальное состояние при запуске
+│   ├── initial-state.yml   # Начальное состояние при запуске
+│   ├── ldap-basic.yml      # LDAP: rootdse, bind, search — healthy; invalid-auth — auth_error
+│   ├── ldap-failure.yml    # LDAP сервер недоступен — connection_error
+│   └── ldap-recovery.yml   # LDAP восстановление после сбоя
+├── stubs/
+│   ├── http-stub/          # HTTP-заглушка
+│   ├── grpc-stub/          # gRPC-заглушка
+│   └── ldap-stub/          # LDAP test data (init.ldif для 389ds)
 ├── test-service/           # Go conformance-сервис
 ├── test-service-python/    # Python conformance-сервис
 ├── test-service-java/      # Java conformance-сервис
@@ -34,7 +41,7 @@ conformance/
 ### Helm (рекомендуется)
 
 Helm-чарт `dephealth-conformance` разворачивает инфраструктуру (PostgreSQL, Redis,
-RabbitMQ, Kafka, HTTP/gRPC-заглушки) и все 4 тестовых сервиса в одном релизе.
+RabbitMQ, Kafka, HTTP/gRPC-заглушки, 389ds LDAP) и все 4 тестовых сервиса в одном релизе.
 
 ```bash
 # Все языки
@@ -97,6 +104,9 @@ RabbitMQ, Kafka, HTTP/gRPC-заглушки) и все 4 тестовых сер
 | `labels` | Обязательные метки (name, dependency, type, host, port, critical), status enum полнота, detail валидность |
 | `timeout` | Поведение при таймауте: status=timeout, detail=timeout |
 | `initial-state` | Начальное состояние, health/status consistency |
+| `ldap-basic` | LDAP: rootdse, bind, search — healthy; invalid-auth — auth\_error |
+| `ldap-failure` | LDAP сервер недоступен — connection\_error |
+| `ldap-recovery` | LDAP восстановление после сбоя |
 
 ## Типы проверок (check types)
 

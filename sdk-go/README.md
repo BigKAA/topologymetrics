@@ -4,7 +4,7 @@ Go SDK for monitoring microservice dependencies via Prometheus metrics.
 
 ## Features
 
-- Automatic health checking for dependencies (PostgreSQL, MySQL, Redis, RabbitMQ, Kafka, HTTP, gRPC, TCP)
+- Automatic health checking for dependencies (PostgreSQL, MySQL, Redis, RabbitMQ, Kafka, HTTP, gRPC, TCP, LDAP)
 - Prometheus metrics export: `app_dependency_health` (Gauge 0/1), `app_dependency_latency_seconds` (Histogram), `app_dependency_status` (enum), `app_dependency_status_detail` (info)
 - Connection pool support (preferred) and standalone checks
 - Functional options pattern for configuration
@@ -92,6 +92,43 @@ func main() {
 | HTTP | `http://host:8080/health` |
 | gRPC | via `dephealth.FromParams(host, port)` |
 | TCP | `tcp://host:port` |
+| LDAP | `ldap://host:389` or `ldaps://host:636` |
+
+## LDAP Checker
+
+LDAP health checker supports four check methods and multiple TLS modes:
+
+```go
+import _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/ldapcheck"
+
+dephealth.LDAP("directory",
+    dephealth.FromURL("ldap://ldap.svc:389"),
+    dephealth.Critical(true),
+    dephealth.WithLDAPCheckMethod("root_dse"),
+)
+
+// Simple bind with credentials
+dephealth.LDAP("ad",
+    dephealth.FromURL("ldaps://ad.corp:636"),
+    dephealth.Critical(true),
+    dephealth.WithLDAPCheckMethod("simple_bind"),
+    dephealth.WithLDAPBindDN("cn=monitor,dc=corp,dc=com"),
+    dephealth.WithLDAPBindPassword("secret"),
+)
+
+// Search with StartTLS
+dephealth.LDAP("openldap",
+    dephealth.FromURL("ldap://openldap.svc:389"),
+    dephealth.Critical(false),
+    dephealth.WithLDAPCheckMethod("search"),
+    dephealth.WithLDAPBaseDN("dc=example,dc=com"),
+    dephealth.WithLDAPSearchFilter("(objectClass=organizationalUnit)"),
+    dephealth.WithLDAPSearchScope("one"),
+    dephealth.WithLDAPStartTLS(true),
+)
+```
+
+Check methods: `anonymous_bind`, `simple_bind`, `root_dse` (default), `search`.
 
 ## Health Details
 
@@ -167,7 +204,7 @@ import (
 ```
 
 Available sub-packages: `tcpcheck`, `httpcheck`, `grpccheck`, `pgcheck`,
-`mysqlcheck`, `redischeck`, `amqpcheck`, `kafkacheck`.
+`mysqlcheck`, `redischeck`, `amqpcheck`, `kafkacheck`, `ldapcheck`.
 
 ## Authentication
 
@@ -206,6 +243,7 @@ See [Authentication](docs/authentication.md) for all options.
 | [Quick Start Guide](../docs/quickstart/go.md) | Extended examples with environment variables |
 | [Migration v0.5 to v0.6](../docs/migration/v050-to-v060.md) | Migration guide for v0.6.0 split checkers |
 | [Migration v0.6 to v0.7](../docs/migration/v060-to-v070.md) | Migration guide for v0.7.0 dynamic endpoints |
+| [Migration v0.7 to v0.8](../docs/migration/v070-to-v080.md) | Migration guide for v0.8.0 LDAP checker |
 
 ## License
 

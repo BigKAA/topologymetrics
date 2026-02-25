@@ -46,6 +46,8 @@ SDK должен корректно извлечь из любого форма�
 | `https://` | `http` | `443` |
 | `grpc://` | `grpc` | `443` |
 | `kafka://` | `kafka` | `9092` |
+| `ldap://` | `ldap` | `389` |
+| `ldaps://` | `ldap` | `636` |
 
 ### 2.2. Правила парсинга URL
 
@@ -117,6 +119,10 @@ postgres://user:pass@primary:5432,replica:5432/db?target_session_attrs=read-writ
 | `amqp://user:pass@rabbit.svc/orders` | `rabbit.svc` | `5672` | `amqp` |
 | `kafka://broker-0.svc:9092` | `broker-0.svc` | `9092` | `kafka` |
 | `postgres://[::1]:5432/db` | `::1` | `5432` | `postgres` |
+| `ldap://ldap.svc:389` | `ldap.svc` | `389` | `ldap` |
+| `ldap://ldap.svc` | `ldap.svc` | `389` | `ldap` |
+| `ldaps://ldap.svc:636` | `ldap.svc` | `636` | `ldap` |
+| `ldaps://ldap.svc` | `ldap.svc` | `636` | `ldap` |
 
 ---
 
@@ -227,6 +233,8 @@ jdbc:<subprotocol>://host[:port][/database][?parameters]
 | `http` (TLS) | `443` | TCP + TLS |
 | `grpc` | `443` | TCP (HTTP/2) |
 | `kafka` | `9092` | TCP |
+| `ldap` | `389` | TCP |
+| `ldap` (TLS) | `636` | TCP + TLS |
 | `tcp` | — | TCP (порт обязателен) |
 
 Для `type: tcp` порт по умолчанию **не определён** — разработчик обязан указать его явно.
@@ -249,6 +257,7 @@ dephealth.MySQL(name, source, ...opts)
 dephealth.Redis(name, source, ...opts)
 dephealth.AMQP(name, source, ...opts)
 dephealth.Kafka(name, source, ...opts)
+dephealth.LDAP(name, source, ...opts)
 ```
 
 **Параметры**:
@@ -308,6 +317,15 @@ dephealth.WithHTTPBasicAuth("admin", "secret")
 dephealth.WithGRPCMetadata(map[string]string{"x-custom": "value"})
 dephealth.WithGRPCBearerToken("eyJhbG...")
 dephealth.WithGRPCBasicAuth("admin", "secret")
+
+// LDAP-специфичные
+dephealth.WithLDAPCheckMethod("root_dse")     // anonymous_bind, simple_bind, root_dse, search
+dephealth.WithLDAPBindDN("cn=admin,dc=example,dc=com")
+dephealth.WithLDAPBindPassword("secret")
+dephealth.WithLDAPBaseDN("dc=example,dc=com")
+dephealth.WithLDAPSearchFilter("(objectClass=*)")
+dephealth.WithLDAPSearchScope("base")         // base, one, sub
+dephealth.WithLDAPStartTLS(true)
 
 // Произвольные метки (custom labels)
 dephealth.WithLabel("role", "primary")
@@ -429,6 +447,13 @@ DEPHEALTH_<DEPENDENCY_NAME>_<PARAM>=<value>
 | `DEPHEALTH_<NAME>_BEARER_TOKEN` | Bearer token (HTTP/gRPC) | `DEPHEALTH_PAYMENT_SERVICE_BEARER_TOKEN=eyJhbG...` |
 | `DEPHEALTH_<NAME>_BASIC_USERNAME` | Имя пользователя Basic Auth (HTTP/gRPC) | `DEPHEALTH_PAYMENT_SERVICE_BASIC_USERNAME=admin` |
 | `DEPHEALTH_<NAME>_BASIC_PASSWORD` | Пароль Basic Auth (HTTP/gRPC) | `DEPHEALTH_PAYMENT_SERVICE_BASIC_PASSWORD=secret` |
+| `DEPHEALTH_<NAME>_LDAP_CHECK_METHOD` | Метод проверки LDAP | `DEPHEALTH_LDAP_MAIN_LDAP_CHECK_METHOD=root_dse` |
+| `DEPHEALTH_<NAME>_LDAP_BIND_DN` | LDAP Bind DN | `DEPHEALTH_LDAP_MAIN_LDAP_BIND_DN=cn=admin,dc=example,dc=com` |
+| `DEPHEALTH_<NAME>_LDAP_BIND_PASSWORD` | Пароль LDAP Bind | `DEPHEALTH_LDAP_MAIN_LDAP_BIND_PASSWORD=secret` |
+| `DEPHEALTH_<NAME>_LDAP_BASE_DN` | LDAP Base DN | `DEPHEALTH_LDAP_MAIN_LDAP_BASE_DN=dc=example,dc=com` |
+| `DEPHEALTH_<NAME>_LDAP_SEARCH_FILTER` | Фильтр поиска LDAP | `DEPHEALTH_LDAP_MAIN_LDAP_SEARCH_FILTER=(objectClass=*)` |
+| `DEPHEALTH_<NAME>_LDAP_SEARCH_SCOPE` | Область поиска LDAP | `DEPHEALTH_LDAP_MAIN_LDAP_SEARCH_SCOPE=base` |
+| `DEPHEALTH_<NAME>_LDAP_START_TLS` | LDAP StartTLS (`yes` / `no`) | `DEPHEALTH_LDAP_MAIN_LDAP_START_TLS=yes` |
 
 #### Произвольные метки
 

@@ -12,7 +12,8 @@ public enum DependencyType
     MySql,
     Redis,
     Amqp,
-    Kafka
+    Kafka,
+    Ldap
 }
 
 /// <summary>
@@ -33,6 +34,7 @@ public static class DependencyTypeExtensions
         DependencyType.Redis => "redis",
         DependencyType.Amqp => "amqp",
         DependencyType.Kafka => "kafka",
+        DependencyType.Ldap => "ldap",
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
     };
 
@@ -49,6 +51,7 @@ public static class DependencyTypeExtensions
         "redis" => DependencyType.Redis,
         "amqp" => DependencyType.Amqp,
         "kafka" => DependencyType.Kafka,
+        "ldap" => DependencyType.Ldap,
         _ => throw new ArgumentException($"Unknown dependency type: {label}", nameof(label))
     };
 }

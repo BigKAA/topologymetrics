@@ -29,7 +29,9 @@ public final class ConfigParser {
             Map.entry("http", DependencyType.HTTP),
             Map.entry("https", DependencyType.HTTP),
             Map.entry("grpc", DependencyType.GRPC),
-            Map.entry("kafka", DependencyType.KAFKA)
+            Map.entry("kafka", DependencyType.KAFKA),
+            Map.entry("ldap", DependencyType.LDAP),
+            Map.entry("ldaps", DependencyType.LDAP)
     );
 
     private static final Map<String, DependencyType> JDBC_SUBPROTOCOL_TO_TYPE = Map.of(

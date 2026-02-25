@@ -15,7 +15,7 @@ The core package providing dependency health monitoring with Prometheus metrics.
 #### Version
 
 ```go
-const Version = "0.7.0"
+const Version = "0.8.0"
 ```
 
 SDK version used in User-Agent headers.
@@ -59,6 +59,7 @@ type DependencyType string
 | `TypeRedis` | `"redis"` |
 | `TypeAMQP` | `"amqp"` |
 | `TypeKafka` | `"kafka"` |
+| `TypeLDAP` | `"ldap"` |
 
 #### StatusCategory
 
@@ -268,6 +269,17 @@ type DependencyConfig struct {
     RedisPassword     string
     RedisDB           *int
     AMQPURL           string
+
+    // LDAP options
+    LDAPCheckMethod   string
+    LDAPBindDN        string
+    LDAPBindPassword  string
+    LDAPBaseDN        string
+    LDAPSearchFilter  string
+    LDAPSearchScope   string
+    LDAPStartTLS      *bool
+    LDAPTLSSkipVerify *bool
+    LDAPUseTLS        bool
 }
 ```
 
@@ -342,6 +354,7 @@ func MySQL(name string, opts ...DependencyOption) Option
 func Redis(name string, opts ...DependencyOption) Option
 func AMQP(name string, opts ...DependencyOption) Option
 func Kafka(name string, opts ...DependencyOption) Option
+func LDAP(name string, opts ...DependencyOption) Option
 ```
 
 #### AddDependency
@@ -361,7 +374,7 @@ func ParseURL(rawURL string) ([]ParsedConnection, error)
 
 Parses a URL into host/port/type. Supported schemes: `http`, `https`,
 `grpc`, `tcp`, `postgresql`, `postgres`, `mysql`, `redis`, `rediss`,
-`amqp`, `amqps`, `kafka`. Kafka multi-host URLs
+`amqp`, `amqps`, `kafka`, `ldap`, `ldaps`. Kafka multi-host URLs
 (`kafka://host1:9092,host2:9092`) return multiple connections.
 
 ```go
@@ -519,13 +532,26 @@ Passed to `New()`, apply to all dependencies unless overridden per-dependency.
 | --- | --- | --- |
 | `WithAMQPURL` | `(url string) DependencyOption` | Full AMQP URL |
 
+#### LDAP
+
+| Function | Signature | Description |
+| --- | --- | --- |
+| `WithLDAPCheckMethod` | `(method string) DependencyOption` | Check method: `anonymous_bind`, `simple_bind`, `root_dse`, `search` |
+| `WithLDAPBindDN` | `(dn string) DependencyOption` | DN for simple bind |
+| `WithLDAPBindPassword` | `(password string) DependencyOption` | Password for simple bind |
+| `WithLDAPBaseDN` | `(baseDN string) DependencyOption` | Base DN for search method |
+| `WithLDAPSearchFilter` | `(filter string) DependencyOption` | LDAP search filter (default `(objectClass=*)`) |
+| `WithLDAPSearchScope` | `(scope string) DependencyOption` | Search scope: `base`, `one`, `sub` |
+| `WithLDAPStartTLS` | `(enabled bool) DependencyOption` | Use StartTLS (only with `ldap://`) |
+| `WithLDAPTLSSkipVerify` | `(skip bool) DependencyOption` | Skip TLS certificate verification |
+
 ---
 
 ## Package `checks`
 
 **Import:** `github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks`
 
-Importing this package registers factories for **all 8 checker types**
+Importing this package registers factories for **all 9 checker types**
 via blank imports of sub-packages. Also provides backward-compatible
 type aliases and constructor wrappers.
 
@@ -839,6 +865,67 @@ No checker-specific options.
 | Condition | Category | Detail |
 | --- | --- | --- |
 | No brokers in metadata | `unhealthy` | `no_brokers` |
+
+### `checks/ldapcheck`
+
+**Import:** `github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/ldapcheck`
+
+LDAP health checker. Supports four check methods: anonymous bind, simple
+bind, RootDSE query, and search. Handles LDAP, LDAPS, and StartTLS
+connections. Uses `go-ldap/ldap/v3`.
+
+```go
+type Checker struct{ /* private */ }
+type Option func(*Checker)
+
+func New(opts ...Option) *Checker
+func NewFromConfig(dc *dephealth.DependencyConfig) dephealth.HealthChecker
+
+func (c *Checker) Check(ctx context.Context, endpoint dephealth.Endpoint) error
+func (c *Checker) Type() string  // returns "ldap"
+```
+
+| Option | Signature | Description |
+| --- | --- | --- |
+| `WithConn` | `(conn *ldap.Conn) Option` | Use existing LDAP connection (pool mode) |
+| `WithCheckMethod` | `(method CheckMethod) Option` | Check method (default `MethodRootDSE`) |
+| `WithBindDN` | `(dn string) Option` | DN for simple bind |
+| `WithBindPassword` | `(password string) Option` | Password for simple bind |
+| `WithBaseDN` | `(baseDN string) Option` | Base DN for search |
+| `WithSearchFilter` | `(filter string) Option` | Search filter (default `(objectClass=*)`) |
+| `WithSearchScope` | `(scope SearchScope) Option` | Search scope (default `ScopeBase`) |
+| `WithStartTLS` | `(enabled bool) Option` | Enable StartTLS |
+| `WithUseTLS` | `(enabled bool) Option` | Use TLS (LDAPS) |
+| `WithTLSSkipVerify` | `(skip bool) Option` | Skip TLS certificate verification |
+
+**Constants:**
+
+| Constant | Type | Value |
+| --- | --- | --- |
+| `MethodAnonymousBind` | `CheckMethod` | `"anonymous_bind"` |
+| `MethodSimpleBind` | `CheckMethod` | `"simple_bind"` |
+| `MethodRootDSE` | `CheckMethod` | `"root_dse"` |
+| `MethodSearch` | `CheckMethod` | `"search"` |
+| `ScopeBase` | `SearchScope` | `"base"` |
+| `ScopeOne` | `SearchScope` | `"one"` |
+| `ScopeSub` | `SearchScope` | `"sub"` |
+
+**Error classification:**
+
+| Condition | Category | Detail |
+| --- | --- | --- |
+| LDAP result code 49 (Invalid Credentials) | `auth_error` | `auth_error` |
+| LDAP result code 50 (Insufficient Access Rights) | `auth_error` | `auth_error` |
+| TLS/StartTLS handshake failure | `tls_error` | `tls_error` |
+| LDAP server down/busy/unavailable | `unhealthy` | `unhealthy` |
+
+**Validation errors (returned from `New` or `NewFromConfig`):**
+
+| Condition | Error |
+| --- | --- |
+| `simple_bind` without `bindDN` or `bindPassword` | `"simple_bind requires bindDN and bindPassword"` |
+| `search` without `baseDN` | `"search requires baseDN"` |
+| `startTLS` with `useTLS` (LDAPS) | `"startTLS and useTLS are mutually exclusive"` |
 
 ---
 

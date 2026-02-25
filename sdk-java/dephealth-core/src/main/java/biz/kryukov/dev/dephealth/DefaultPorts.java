@@ -20,17 +20,20 @@ public final class DefaultPorts {
             Map.entry("http", "80"),
             Map.entry("https", "443"),
             Map.entry("grpc", "443"),
-            Map.entry("kafka", "9092")
+            Map.entry("kafka", "9092"),
+            Map.entry("ldap", "389"),
+            Map.entry("ldaps", "636")
     );
 
-    private static final Map<DependencyType, String> TYPE_TO_PORT = Map.of(
-            DependencyType.POSTGRES, "5432",
-            DependencyType.MYSQL, "3306",
-            DependencyType.REDIS, "6379",
-            DependencyType.AMQP, "5672",
-            DependencyType.HTTP, "80",
-            DependencyType.GRPC, "443",
-            DependencyType.KAFKA, "9092"
+    private static final Map<DependencyType, String> TYPE_TO_PORT = Map.ofEntries(
+            Map.entry(DependencyType.POSTGRES, "5432"),
+            Map.entry(DependencyType.MYSQL, "3306"),
+            Map.entry(DependencyType.REDIS, "6379"),
+            Map.entry(DependencyType.AMQP, "5672"),
+            Map.entry(DependencyType.HTTP, "80"),
+            Map.entry(DependencyType.GRPC, "443"),
+            Map.entry(DependencyType.KAFKA, "9092"),
+            Map.entry(DependencyType.LDAP, "389")
     );
 
     /** Returns the default port for a URL scheme (lowercase). */

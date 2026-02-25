@@ -108,6 +108,22 @@ checks:
         host: grpc-stub.dephealth-conformance.svc
         port: 9090
         status: ok
+      - dependency: ldap-rootdse
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        status: ok
+      - dependency: ldap-bind
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        status: ok
+      - dependency: ldap-search
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        status: ok
+      - dependency: ldap-invalid-auth
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        status: auth_error
 
   - type: expected_detail
     endpoints:
@@ -159,6 +175,22 @@ checks:
         host: grpc-stub.dephealth-conformance.svc
         port: 9090
         detail: ok
+      - dependency: ldap-rootdse
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        detail: ok
+      - dependency: ldap-bind
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        detail: ok
+      - dependency: ldap-search
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        detail: ok
+      - dependency: ldap-invalid-auth
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        detail: auth_error
 
   # --- Health metric dependencies ---
 
@@ -248,3 +280,31 @@ checks:
         name: conformance-service
         critical: "no"
         value: 1
+      - dependency: ldap-rootdse
+        type: ldap
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        name: conformance-service
+        critical: "no"
+        value: 1
+      - dependency: ldap-bind
+        type: ldap
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        name: conformance-service
+        critical: "no"
+        value: 1
+      - dependency: ldap-search
+        type: ldap
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        name: conformance-service
+        critical: "no"
+        value: 1
+      - dependency: ldap-invalid-auth
+        type: ldap
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        name: conformance-service
+        critical: "no"
+        value: 0

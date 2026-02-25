@@ -11,7 +11,8 @@ public enum DependencyType {
     MYSQL("mysql"),
     REDIS("redis"),
     AMQP("amqp"),
-    KAFKA("kafka");
+    KAFKA("kafka"),
+    LDAP("ldap");
 
     private final String label;
 
