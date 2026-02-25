@@ -1,0 +1,90 @@
+name: "ldap-failure"
+description: "LDAP сервер недоступен — все LDAP зависимости connection_error"
+
+pre_actions:
+  - type: scale
+    kind: deployment
+    name: ldap
+    replicas: 0
+  - type: wait
+    seconds: 30
+
+checks:
+  - type: expected_dependencies
+    dependencies:
+      - dependency: ldap-rootdse
+        type: ldap
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        name: conformance-service
+        critical: "no"
+        value: 0
+      - dependency: ldap-bind
+        type: ldap
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        name: conformance-service
+        critical: "no"
+        value: 0
+      - dependency: ldap-search
+        type: ldap
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        name: conformance-service
+        critical: "no"
+        value: 0
+      - dependency: ldap-invalid-auth
+        type: ldap
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        name: conformance-service
+        critical: "no"
+        value: 0
+
+  - type: expected_status
+    endpoints:
+      - dependency: ldap-rootdse
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        status: connection_error
+      - dependency: ldap-bind
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        status: connection_error
+      - dependency: ldap-search
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        status: connection_error
+      - dependency: ldap-invalid-auth
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        status: connection_error
+
+  - type: expected_detail
+    endpoints:
+      - dependency: ldap-rootdse
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        detail: connection_refused
+      - dependency: ldap-bind
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        detail: connection_refused
+      - dependency: ldap-search
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        detail: connection_refused
+      - dependency: ldap-invalid-auth
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        detail: connection_refused
+
+post_actions:
+  - type: scale
+    kind: deployment
+    name: ldap
+    replicas: 1
+  - type: wait_ready
+    kind: deployment
+    name: ldap
+    timeout: 120

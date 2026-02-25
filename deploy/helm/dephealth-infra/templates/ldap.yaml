@@ -1,0 +1,98 @@
+{{- if .Values.ldap.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ldap-init
+  namespace: {{ include "dephealth-infra.namespace" . }}
+  labels:
+    {{- include "dephealth-infra.labels" . | nindent 4 }}
+    {{- include "dephealth-infra.selectorLabels" (dict "name" "ldap") | nindent 4 }}
+data:
+  init.ldif: |
+    dn: ou=People,dc=test,dc=local
+    objectClass: top
+    objectClass: organizationalUnit
+    ou: People
+
+    dn: uid=testuser,ou=People,dc=test,dc=local
+    objectClass: top
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    cn: Test User
+    sn: User
+    uid: testuser
+    userPassword: testpassword
+    mail: testuser@test.local
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ldap
+  namespace: {{ include "dephealth-infra.namespace" . }}
+  labels:
+    {{- include "dephealth-infra.labels" . | nindent 4 }}
+    {{- include "dephealth-infra.selectorLabels" (dict "name" "ldap") | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "dephealth-infra.selectorLabels" (dict "name" "ldap") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "dephealth-infra.selectorLabels" (dict "name" "ldap") | nindent 8 }}
+    spec:
+      containers:
+        - name: ldap
+          image: {{ include "dephealth-infra.image" (dict "registry" .Values.global.imageRegistry "image" .Values.ldap.image "tag" .Values.ldap.tag) }}
+          ports:
+            - containerPort: {{ .Values.ldap.port }}
+              name: ldap
+            - containerPort: {{ .Values.ldap.securePort }}
+              name: ldaps
+          env:
+            - name: DS_SUFFIX_NAME
+              value: {{ .Values.ldap.suffix | quote }}
+            - name: DS_DM_PASSWORD
+              value: {{ .Values.ldap.adminPassword | quote }}
+          volumeMounts:
+            - name: ldap-init
+              mountPath: /data/init.ldif
+              subPath: init.ldif
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.ldap.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.ldap.port }}
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.ldap.resources | nindent 12 }}
+      volumes:
+        - name: ldap-init
+          configMap:
+            name: ldap-init
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ldap
+  namespace: {{ include "dephealth-infra.namespace" . }}
+  labels:
+    {{- include "dephealth-infra.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "dephealth-infra.selectorLabels" (dict "name" "ldap") | nindent 4 }}
+  ports:
+    - port: {{ .Values.ldap.port }}
+      targetPort: {{ .Values.ldap.port }}
+      name: ldap
+    - port: {{ .Values.ldap.securePort }}
+      targetPort: {{ .Values.ldap.securePort }}
+      name: ldaps
+{{- end }}

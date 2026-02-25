@@ -426,34 +426,193 @@ Documentation for all SDKs, Go version bump, TODO update.
 
 ---
 
-### Phase 7: Integration tests with 389ds
+### Phase 7: Conformance testing — LDAP integration
 
-Integration tests using real 389ds LDAP server in Docker.
+Add LDAP to existing conformance framework: infrastructure (389ds), test services (all 4 SDK),
+scenarios, runner, Helm chart. Uses the same approach as existing checkers (Postgres, Redis, etc.).
 
-**Setup:**
+#### 7.1. Infrastructure — 389ds LDAP server
 
-- [ ] Create `tests/ldap/docker-compose.yml` with `389ds/dirsrv:3.1` container
-- [ ] Create `tests/ldap/init.ldif` — initialize test entries (OUs, users)
-- [ ] Container config: base DN `dc=test,dc=local`, admin `cn=Directory Manager`/`password`, ports 3389/3636
+**Create `conformance/stubs/ldap-stub/` directory:**
 
-**Integration tests:**
+- [x] Create `conformance/stubs/ldap-stub/init.ldif` — LDIF for test data:
+  - Base suffix: `dc=test,dc=local` (auto-created by 389ds)
+  - OU: `ou=People,dc=test,dc=local`
+  - Test user: `uid=testuser,ou=People,dc=test,dc=local` (password: `testpassword`)
+- [x] Create `conformance/stubs/ldap-stub/Dockerfile` (optional, if custom image needed)
+  - Image: `389ds/dirsrv:3.1` (via `${REGISTRY}/389ds/dirsrv:3.1`)
+  - Ports: 3389 (LDAP), 3636 (LDAPS)
+  - Base DN: `dc=test,dc=local`
+  - Admin: `cn=Directory Manager` / `password`
+  - Copy `init.ldif` for auto-import on startup
+  - **Note:** No custom Dockerfile needed — using stock 389ds image with init.ldif mount
 
-- [ ] Test RootDSE query — successful check (all SDKs)
-- [ ] Test anonymous bind — successful check (all SDKs)
-- [ ] Test simple bind — valid credentials (all SDKs)
-- [ ] Test simple bind — invalid credentials → auth_error (all SDKs)
-- [ ] Test search with baseDN (all SDKs)
-- [ ] Test LDAPS connection (all SDKs)
-- [ ] Test StartTLS connection (all SDKs)
-- [ ] Test connection refused (wrong port) (all SDKs)
-- [ ] Test TLS error (invalid cert with `tlsSkipVerify=false`) (all SDKs)
+**Add 389ds to Helm subchart (`deploy/helm/dephealth-infra/`):**
 
-**Validation:**
+- [x] Add LDAP section to `values.yaml`:
+  - `ldap.enabled: true`
+  - `ldap.image: 389ds/dirsrv`
+  - `ldap.tag: "3.1"`
+  - `ldap.port: 3389`
+  - `ldap.securePort: 3636`
+  - `ldap.suffix: dc=test,dc=local`
+  - `ldap.adminPassword: password`
+- [x] Create `templates/ldap.yaml` — Deployment + Service:
+  - Deployment: single replica, ports 3389/3636
+  - ConfigMap with `init.ldif` (mounted for auto-import)
+  - Service: `ldap.<ns>.svc` exposing ports 3389, 3636
+  - Readiness probe: TCP 3389
+  - Environment: `DS_SUFFIX_NAME`, `DS_DM_PASSWORD`
+- [x] Update `values-homelab.yaml` — no changes needed (uses global.imageRegistry)
 
-- [ ] All integration tests pass against 389ds container
-- [ ] Tests are documented in README
+**Add 389ds to root `docker-compose.yml`:**
 
-**Status:** todo
+- [x] Add `ldap` service (profile: `full`):
+  - Image: `${IMAGE_REGISTRY:-docker.io}/389ds/dirsrv:3.1`
+  - Ports: `3389:3389`, `3636:3636`
+  - Environment: `DS_SUFFIX_NAME=dc=test,dc=local`, `DS_DM_PASSWORD=password`
+  - Volume: `./conformance/stubs/ldap-stub/init.ldif:/data/init.ldif`
+  - Healthcheck: TCP check on port 3389
+
+#### 7.2. Test services — add LDAP dependencies
+
+Add LDAP endpoints to all 4 conformance test services. Each service gets 4 LDAP dependencies
+covering different check methods and error scenarios:
+
+| Dependency name | Check method | Credentials | Expected state |
+|----------------|-------------|-------------|----------------|
+| `ldap-rootdse` | `root_dse` | — | healthy |
+| `ldap-bind` | `simple_bind` | `cn=Directory Manager` / `password` | healthy |
+| `ldap-search` | `search` | `cn=Directory Manager` / `password` | healthy |
+| `ldap-invalid-auth` | `simple_bind` | `cn=Directory Manager` / `wrongpassword` | auth_error |
+
+**Modify `conformance/test-service/main.go` (Go):**
+
+- [x] Add `LDAP_HOST` and `LDAP_PORT` to `Config` struct and `loadConfig()`
+- [x] Add import for `_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/ldapcheck"`
+  - Already imported via `_ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks"` (compat.go)
+- [x] Add 4 LDAP dependencies to `initDepHealth()`:
+  - `dephealth.LDAP("ldap-rootdse", ...)` — RootDSE, no auth
+  - `dephealth.LDAP("ldap-bind", ...)` — simple bind, valid credentials
+  - `dephealth.LDAP("ldap-search", ...)` — search `ou=People,dc=test,dc=local`
+  - `dephealth.LDAP("ldap-invalid-auth", ...)` — simple bind, wrong password
+- [x] Update dependency count comment (12 → 16)
+
+**Modify `conformance/test-service-python/main.py` (Python):**
+
+- [x] Add `LDAP_HOST`, `LDAP_PORT` to environment config
+- [x] Add 4 LDAP dependencies using `ldap_check`:
+  - Same 4 endpoints as Go (rootdse, bind, search, invalid-auth)
+- [x] Update dependency count
+
+**Modify `conformance/test-service-java/` (Java):**
+
+- [x] Add LDAP dependencies to `application.yml`
+- [x] Add `unboundid-ldapsdk` — inherited from dephealth-spring-boot-starter
+- [x] Add 4 LDAP dependencies with same configuration
+- [x] Update dependency count
+- [x] Update dephealth-spring-boot-starter version 0.5.0 → 0.8.0
+
+**Modify `conformance/test-service-csharp/Program.cs` (C#):**
+
+- [x] Add `LDAP_HOST`, `LDAP_PORT` to environment config
+- [x] Add 4 LDAP dependencies using `AddLdap` (new builder method)
+- [x] Update dependency count
+
+**Additional SDK changes (7.0):**
+
+- [x] Add `AddLdap()` convenience method to C# `DepHealthMonitor.Builder`
+- [x] Add LDAP properties to Java Spring Boot `DepHealthProperties`
+- [x] Add LDAP mapping to Java `DepHealthAutoConfiguration`
+
+**Rebuild Docker images for all 4 test services.**
+
+#### 7.3. Helm chart — wire LDAP env vars to test services
+
+**Modify `deploy/helm/dephealth-conformance/templates/conformance-services.yml`:**
+
+- [x] Add `LDAP_HOST` and `LDAP_PORT` environment variables to all 4 service deployments:
+  - `LDAP_HOST: ldap.{{ $ns }}.svc`
+  - `LDAP_PORT: "3389"`
+- [x] Credentials hard-coded in test services (conformance values are fixed)
+
+**Update `values.yaml` and `values-homelab.yaml`:**
+
+- [x] Add LDAP credentials to values (for reference):
+  - `ldapAdminDN: cn=Directory Manager`
+  - `ldapAdminPassword: password`
+  - `ldapBaseDN: dc=test,dc=local`
+- [x] Add `ldap.enabled: true` to conformance subchart config
+
+#### 7.4. Conformance runner — update `verify.py`
+
+**Modify `conformance/runner/verify.py`:**
+
+- [x] Add `"ldap"` to `VALID_TYPES` set
+- [x] Add `"ldap"` entry to `VALID_DETAILS_BY_TYPE`:
+  ```python
+  "ldap": {"ok", "timeout", "connection_refused", "dns_error",
+           "auth_error", "tls_error", "unhealthy", "error"},
+  ```
+- [x] Verify `DETAIL_TO_STATUS` mapping already covers all LDAP details (it does — no changes needed)
+
+#### 7.5. Conformance scenarios — LDAP
+
+**Create `conformance/scenarios/ldap-basic.yml`:**
+
+- [x] Test all 4 LDAP dependencies in healthy/expected state:
+  - `ldap-rootdse`: health=1, status=ok, detail=ok
+  - `ldap-bind`: health=1, status=ok, detail=ok
+  - `ldap-search`: health=1, status=ok, detail=ok
+  - `ldap-invalid-auth`: health=0, status=auth_error, detail=auth_error
+- [x] Validate type=ldap label on all LDAP endpoints
+- [x] Validate host and port labels
+
+**Create `conformance/scenarios/ldap-failure.yml`:**
+
+- [x] Pre-action: scale LDAP deployment to 0
+- [x] Wait 30s for check cycle
+- [x] Check all LDAP dependencies: health=0, status=connection_error, detail=connection_refused
+- [x] Post-action: scale LDAP deployment back to 1
+- [x] Wait for readiness
+
+**Create `conformance/scenarios/ldap-recovery.yml`:**
+
+- [x] Pre-action: scale LDAP to 0, wait, scale back to 1, wait
+- [x] Check all healthy LDAP dependencies recover to health=1
+
+**Update existing scenarios:**
+
+- [x] Modify `conformance/scenarios/basic-health.yml`:
+  - Add 4 LDAP dependencies to `expected_dependencies` (16 total)
+  - Add LDAP endpoints to `expected_status` and `expected_detail`
+- [x] Modify `conformance/scenarios/health-details.yml`:
+  - Add 4 LDAP endpoints to `health_details_expected`
+- [x] Modify `conformance/scenarios/labels.yml`:
+  - No changes needed (generic label checks apply to all types)
+
+#### 7.6. Documentation
+
+**Update `conformance/README.md`:**
+
+- [x] Add LDAP to the list of tested dependency types
+- [x] Add LDAP dependencies to the dependency table
+- [x] Document new LDAP scenarios (`ldap-basic`, `ldap-failure`, `ldap-recovery`)
+- [x] Add 389ds to infrastructure components list
+
+#### 7.7. Validation
+
+- [ ] `markdownlint` passes on all modified `.md` files
+- [ ] All 4 test service Docker images build successfully
+- [ ] Helm chart deploys without errors (including 389ds)
+- [ ] 389ds starts, accepts connections, test data imported
+- [ ] `./run.sh --lang all` — all existing scenarios still pass (regression)
+- [ ] `./run.sh --lang all --scenario ldap-basic` — passes for all 4 SDKs
+- [ ] `./run.sh --lang all --scenario ldap-failure` — passes for all 4 SDKs
+- [ ] `./run.sh --lang all --scenario ldap-recovery` — passes for all 4 SDKs
+- [ ] Cross-verify: `cross_verify.py` shows identical LDAP metrics across all 4 SDKs
+
+**Status:** code complete, pending validation
 
 ---
 
@@ -462,7 +621,7 @@ Integration tests using real 389ds LDAP server in Docker.
 **Pre-merge checklist:**
 
 - [ ] All unit tests pass (Go, Java, Python, C#)
-- [ ] All integration tests pass
+- [ ] All conformance scenarios pass (`./run.sh --lang all`)
 - [ ] All linters pass
 - [ ] Spec updated (EN + RU)
 - [ ] Docs complete (EN + RU, all SDKs)

@@ -2,6 +2,7 @@ package biz.kryukov.dev.dephealth.spring;
 
 import biz.kryukov.dev.dephealth.DepHealth;
 import biz.kryukov.dev.dephealth.DependencyType;
+import biz.kryukov.dev.dephealth.checks.LdapHealthChecker;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
@@ -162,6 +163,34 @@ public class DepHealthAutoConfiguration {
         }
         if (props.getVirtualHost() != null) {
             d.amqpVirtualHost(props.getVirtualHost());
+        }
+
+        // LDAP
+        if (props.getLdapCheckMethod() != null) {
+            d.ldapCheckMethod(LdapHealthChecker.CheckMethod.valueOf(
+                    props.getLdapCheckMethod().toUpperCase()));
+        }
+        if (props.getLdapBindDn() != null) {
+            d.ldapBindDN(props.getLdapBindDn());
+        }
+        if (props.getLdapBindPassword() != null) {
+            d.ldapBindPassword(props.getLdapBindPassword());
+        }
+        if (props.getLdapBaseDn() != null) {
+            d.ldapBaseDN(props.getLdapBaseDn());
+        }
+        if (props.getLdapSearchFilter() != null) {
+            d.ldapSearchFilter(props.getLdapSearchFilter());
+        }
+        if (props.getLdapSearchScope() != null) {
+            d.ldapSearchScope(LdapHealthChecker.LdapSearchScope.valueOf(
+                    props.getLdapSearchScope().toUpperCase()));
+        }
+        if (props.getLdapStartTls() != null) {
+            d.ldapStartTLS(props.getLdapStartTls());
+        }
+        if (props.getLdapTlsSkipVerify() != null) {
+            d.ldapTlsSkipVerify(props.getLdapTlsSkipVerify());
         }
     }
 }

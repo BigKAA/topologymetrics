@@ -84,3 +84,34 @@ dephealth:
       port: ${GRPC_STUB_PORT:9090}
       grpc-bearer-token: test-token-123
       critical: false
+    ldap-rootdse:
+      type: ldap
+      host: ${LDAP_HOST:localhost}
+      port: ${LDAP_PORT:3389}
+      ldap-check-method: ROOT_DSE
+      critical: false
+    ldap-bind:
+      type: ldap
+      host: ${LDAP_HOST:localhost}
+      port: ${LDAP_PORT:3389}
+      ldap-check-method: SIMPLE_BIND
+      ldap-bind-dn: "cn=Directory Manager"
+      ldap-bind-password: password
+      critical: false
+    ldap-search:
+      type: ldap
+      host: ${LDAP_HOST:localhost}
+      port: ${LDAP_PORT:3389}
+      ldap-check-method: SEARCH
+      ldap-bind-dn: "cn=Directory Manager"
+      ldap-bind-password: password
+      ldap-base-dn: "ou=People,dc=test,dc=local"
+      critical: false
+    ldap-invalid-auth:
+      type: ldap
+      host: ${LDAP_HOST:localhost}
+      port: ${LDAP_PORT:3389}
+      ldap-check-method: SIMPLE_BIND
+      ldap-bind-dn: "cn=Directory Manager"
+      ldap-bind-password: wrongpassword
+      critical: false

@@ -98,6 +98,24 @@ services:
       - "9090:9090"
       - "8082:8080"
 
+  ldap:
+    image: ${IMAGE_REGISTRY:-docker.io}/389ds/dirsrv:3.1
+    profiles: ["full"]
+    ports:
+      - "3389:3389"
+      - "3636:3636"
+    environment:
+      DS_SUFFIX_NAME: dc=test,dc=local
+      DS_DM_PASSWORD: password
+    volumes:
+      - ./conformance/stubs/ldap-stub/init.ldif:/data/init.ldif
+    healthcheck:
+      test: ["CMD-SHELL", "dsctl localhost healthcheck 2>/dev/null || nc -z localhost 3389"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
 volumes:
   postgres-data:
   kafka-data:

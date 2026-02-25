@@ -1,0 +1,75 @@
+name: "ldap-recovery"
+description: "LDAP восстановление: сервер падает, затем поднимается — healthy зависимости recovery"
+
+pre_actions:
+  - type: scale
+    kind: deployment
+    name: ldap
+    replicas: 0
+  - type: wait
+    seconds: 30
+  - type: scale
+    kind: deployment
+    name: ldap
+    replicas: 1
+  - type: wait_ready
+    kind: deployment
+    name: ldap
+    timeout: 120
+  - type: wait
+    seconds: 30
+
+checks:
+  - type: expected_dependencies
+    dependencies:
+      - dependency: ldap-rootdse
+        type: ldap
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        name: conformance-service
+        critical: "no"
+        value: 1
+      - dependency: ldap-bind
+        type: ldap
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        name: conformance-service
+        critical: "no"
+        value: 1
+      - dependency: ldap-search
+        type: ldap
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        name: conformance-service
+        critical: "no"
+        value: 1
+
+  - type: expected_status
+    endpoints:
+      - dependency: ldap-rootdse
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        status: ok
+      - dependency: ldap-bind
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        status: ok
+      - dependency: ldap-search
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        status: ok
+
+  - type: expected_detail
+    endpoints:
+      - dependency: ldap-rootdse
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        detail: ok
+      - dependency: ldap-bind
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        detail: ok
+      - dependency: ldap-search
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        detail: ok

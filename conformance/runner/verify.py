@@ -29,7 +29,7 @@ HEALTH_METRIC = "app_dependency_health"
 LATENCY_METRIC = "app_dependency_latency_seconds"
 REQUIRED_LABELS = {"name", "group", "dependency", "type", "host", "port", "critical"}
 EXPECTED_BUCKETS = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0]
-VALID_TYPES = {"http", "grpc", "tcp", "postgres", "mysql", "redis", "amqp", "kafka"}
+VALID_TYPES = {"http", "grpc", "tcp", "postgres", "mysql", "redis", "amqp", "kafka", "ldap"}
 
 HELP_HEALTH = "Health status of a dependency (1 = healthy, 0 = unhealthy)"
 HELP_LATENCY = "Latency of dependency health check in seconds"
@@ -61,6 +61,7 @@ VALID_DETAILS_BY_TYPE = {
     "redis": {"ok", "timeout", "connection_refused", "dns_error", "auth_error", "unhealthy", "error"},
     "amqp": {"ok", "timeout", "connection_refused", "dns_error", "auth_error", "tls_error", "unhealthy", "error"},
     "kafka": {"ok", "timeout", "connection_refused", "dns_error", "no_brokers", "error"},
+    "ldap": {"ok", "timeout", "connection_refused", "dns_error", "auth_error", "tls_error", "unhealthy", "error"},
 }
 
 

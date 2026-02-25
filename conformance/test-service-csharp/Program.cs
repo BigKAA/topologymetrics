@@ -1,5 +1,6 @@
 using DepHealth;
 using DepHealth.AspNetCore;
+using DepHealth.Checks;
 using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,11 +24,15 @@ var grpcStubHost = Environment.GetEnvironmentVariable("GRPC_STUB_HOST")
     ?? "grpc-stub.dephealth-conformance.svc";
 var grpcStubPort = Environment.GetEnvironmentVariable("GRPC_STUB_PORT")
     ?? "9090";
+var ldapHost = Environment.GetEnvironmentVariable("LDAP_HOST")
+    ?? "ldap.dephealth-conformance.svc";
+var ldapPort = Environment.GetEnvironmentVariable("LDAP_PORT")
+    ?? "3389";
 var intervalStr = Environment.GetEnvironmentVariable("CHECK_INTERVAL") ?? "10";
 
 var checkInterval = TimeSpan.FromSeconds(int.Parse(intervalStr));
 
-// --- Регистрация DepHealth с 12 зависимостями ---
+// --- Регистрация DepHealth с 16 зависимостями ---
 builder.Services.AddDepHealth("conformance-service", "conformance-test", dh =>
 {
     dh.AddPostgres("postgres-primary", primaryDbUrl, critical: true);
@@ -48,6 +53,21 @@ builder.Services.AddDepHealth("conformance-service", "conformance-test", dh =>
     dh.AddGrpc("grpc-service", grpcStubHost, grpcStubPort, critical: false);
     dh.AddGrpc("grpc-auth-bearer", grpcStubHost, grpcStubPort,
         bearerToken: "test-token-123", critical: false);
+    dh.AddLdap("ldap-rootdse", ldapHost, ldapPort,
+        checkMethod: LdapCheckMethod.RootDse, critical: false);
+    dh.AddLdap("ldap-bind", ldapHost, ldapPort,
+        checkMethod: LdapCheckMethod.SimpleBind,
+        bindDN: "cn=Directory Manager", bindPassword: "password",
+        critical: false);
+    dh.AddLdap("ldap-search", ldapHost, ldapPort,
+        checkMethod: LdapCheckMethod.Search,
+        bindDN: "cn=Directory Manager", bindPassword: "password",
+        baseDN: "ou=People,dc=test,dc=local",
+        critical: false);
+    dh.AddLdap("ldap-invalid-auth", ldapHost, ldapPort,
+        checkMethod: LdapCheckMethod.SimpleBind,
+        bindDN: "cn=Directory Manager", bindPassword: "wrongpassword",
+        critical: false);
     dh.WithCheckInterval(checkInterval);
 });
 

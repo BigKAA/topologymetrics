@@ -1,5 +1,5 @@
 name: "health-details"
-description: "HealthDetails() API returns correct endpoint data for all 12 dependencies"
+description: "HealthDetails() API returns correct endpoint data for all 16 dependencies"
 
 checks:
   # Wait for all dependencies to be healthy before checking /health-details
@@ -65,6 +65,26 @@ checks:
         host: grpc-stub.dephealth-conformance.svc
         port: 9090
         value: 1
+      - dependency: ldap-rootdse
+        type: ldap
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        value: 1
+      - dependency: ldap-bind
+        type: ldap
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        value: 1
+      - dependency: ldap-search
+        type: ldap
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        value: 1
+      - dependency: ldap-invalid-auth
+        type: ldap
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        value: 0
 
   - type: health_details_endpoint_exists
 
@@ -185,4 +205,40 @@ checks:
         detail: ok
         type: grpc
         name: grpc-auth-bearer
+        critical: false
+      - dependency: ldap-rootdse
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        healthy: true
+        status: ok
+        detail: ok
+        type: ldap
+        name: ldap-rootdse
+        critical: false
+      - dependency: ldap-bind
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        healthy: true
+        status: ok
+        detail: ok
+        type: ldap
+        name: ldap-bind
+        critical: false
+      - dependency: ldap-search
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        healthy: true
+        status: ok
+        detail: ok
+        type: ldap
+        name: ldap-search
+        critical: false
+      - dependency: ldap-invalid-auth
+        host: ldap.dephealth-conformance.svc
+        port: 3389
+        healthy: false
+        status: auth_error
+        detail: auth_error
+        type: ldap
+        name: ldap-invalid-auth
         critical: false

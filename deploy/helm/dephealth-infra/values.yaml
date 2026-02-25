@@ -86,6 +86,23 @@ rabbitmq:
       cpu: 500m
       memory: 512Mi
 
+# --- LDAP (389ds) ---
+ldap:
+  enabled: false
+  image: 389ds/dirsrv
+  tag: "3.1"
+  port: 3389
+  securePort: 3636
+  suffix: dc=test,dc=local
+  adminPassword: password
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
 # --- Stubs ---
 stubs:
   httpStub:

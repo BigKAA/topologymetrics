@@ -1,7 +1,7 @@
 {{/*
   Генерация Deployment + Service + ConfigMap для каждого conformance-сервиса.
-  Все 4 сервиса подключаются к одним и тем же 7 зависимостям (postgres-primary,
-  postgres-replica, redis, rabbitmq, kafka, http-stub, grpc-stub).
+  Все 4 сервиса подключаются к зависимостям (postgres-primary,
+  postgres-replica, redis, rabbitmq, kafka, http-stub, grpc-stub, ldap).
 */}}
 {{- $ns := include "dephealth-conformance.namespace" . -}}
 {{- $creds := .Values.credentials -}}
@@ -69,6 +69,10 @@ spec:
               value: "grpc-stub.{{ $ns }}.svc"
             - name: GRPC_STUB_PORT
               value: "9090"
+            - name: LDAP_HOST
+              value: "ldap.{{ $ns }}.svc"
+            - name: LDAP_PORT
+              value: "3389"
             - name: DEPHEALTH_GROUP
               value: "conformance-test"
             - name: CHECK_INTERVAL

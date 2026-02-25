@@ -29,6 +29,7 @@ from dephealth.api import (
     grpc_check,
     http_check,
     kafka_check,
+    ldap_check,
     postgres_check,
     redis_check,
 )
@@ -62,6 +63,8 @@ HTTP_STUB_URL = os.environ.get(
 )
 GRPC_STUB_HOST = os.environ.get("GRPC_STUB_HOST", "grpc-stub.dephealth-conformance.svc")
 GRPC_STUB_PORT = os.environ.get("GRPC_STUB_PORT", "9090")
+LDAP_HOST = os.environ.get("LDAP_HOST", "ldap.dephealth-conformance.svc")
+LDAP_PORT = os.environ.get("LDAP_PORT", "3389")
 CHECK_INTERVAL = int(os.environ.get("CHECK_INTERVAL", "10"))
 
 # --- Приложение ---
@@ -110,6 +113,33 @@ app = FastAPI(
         grpc_check(
             "grpc-auth-bearer", host=GRPC_STUB_HOST, port=GRPC_STUB_PORT,
             bearer_token="test-token-123", critical=False,
+        ),
+        # LDAP — RootDSE
+        ldap_check(
+            "ldap-rootdse", host=LDAP_HOST, port=LDAP_PORT,
+            check_method="root_dse", critical=False,
+        ),
+        # LDAP — simple bind
+        ldap_check(
+            "ldap-bind", host=LDAP_HOST, port=LDAP_PORT,
+            check_method="simple_bind",
+            bind_dn="cn=Directory Manager", bind_password="password",
+            critical=False,
+        ),
+        # LDAP — search
+        ldap_check(
+            "ldap-search", host=LDAP_HOST, port=LDAP_PORT,
+            check_method="search",
+            bind_dn="cn=Directory Manager", bind_password="password",
+            base_dn="ou=People,dc=test,dc=local",
+            critical=False,
+        ),
+        # LDAP — invalid auth
+        ldap_check(
+            "ldap-invalid-auth", host=LDAP_HOST, port=LDAP_PORT,
+            check_method="simple_bind",
+            bind_dn="cn=Directory Manager", bind_password="wrongpassword",
+            critical=False,
         ),
         check_interval=timedelta(seconds=CHECK_INTERVAL),
     ),
