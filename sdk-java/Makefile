@@ -1,4 +1,4 @@
-.PHONY: build test test-coverage lint fmt publish image push image-conformance push-conformance pull clean help
+.PHONY: build test test-coverage lint fmt docs publish image push image-conformance push-conformance pull clean help
 
 ## Конфигурация
 -include ../.env
@@ -49,6 +49,10 @@ lint:
 ## fmt: Проверка форматирования (Checkstyle)
 fmt:
 	$(DOCKER_RUN) mvn checkstyle:check
+
+## docs: Генерация Javadoc
+docs:
+	$(DOCKER_RUN) mvn javadoc:aggregate -q
 
 ## publish: Публикация на Maven Central (release-профиль)
 publish:

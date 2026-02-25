@@ -27,22 +27,27 @@ public final class Dependency {
         this.config = builder.config;
     }
 
+    /** Returns the dependency name. */
     public String name() {
         return name;
     }
 
+    /** Returns the dependency type. */
     public DependencyType type() {
         return type;
     }
 
+    /** Returns whether this dependency is marked as critical. */
     public boolean critical() {
         return critical;
     }
 
+    /** Returns the immutable list of endpoints. */
     public List<Endpoint> endpoints() {
         return endpoints;
     }
 
+    /** Returns the health check configuration. */
     public CheckConfig config() {
         return config;
     }
@@ -74,10 +79,18 @@ public final class Dependency {
         }
     }
 
+    /**
+     * Creates a new builder for a dependency.
+     *
+     * @param name dependency name
+     * @param type dependency type
+     * @return a new builder instance
+     */
     public static Builder builder(String name, DependencyType type) {
         return new Builder(name, type);
     }
 
+    /** Builder for {@link Dependency}. */
     public static final class Builder {
         private final String name;
         private final DependencyType type;
@@ -98,21 +111,25 @@ public final class Dependency {
             return this;
         }
 
+        /** Sets the list of endpoints. */
         public Builder endpoints(List<Endpoint> endpoints) {
             this.endpoints = List.copyOf(endpoints);
             return this;
         }
 
+        /** Sets a single endpoint. */
         public Builder endpoint(Endpoint endpoint) {
             this.endpoints = List.of(endpoint);
             return this;
         }
 
+        /** Sets the health check configuration. */
         public Builder config(CheckConfig config) {
             this.config = Objects.requireNonNull(config, "config");
             return this;
         }
 
+        /** Builds and validates the dependency. */
         public Dependency build() {
             validate();
             return new Dependency(this);

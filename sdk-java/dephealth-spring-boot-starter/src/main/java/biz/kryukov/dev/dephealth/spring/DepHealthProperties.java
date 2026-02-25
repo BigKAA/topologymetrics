@@ -73,6 +73,7 @@ public class DepHealthProperties {
         this.dependencies = dependencies;
     }
 
+    /** Configuration properties for a single dependency. */
     public static class DependencyProperties {
         private String type;
         private String url;

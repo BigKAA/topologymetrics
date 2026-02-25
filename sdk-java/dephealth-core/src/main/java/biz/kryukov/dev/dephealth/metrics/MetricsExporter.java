@@ -185,6 +185,9 @@ public final class MetricsExporter {
     /**
      * Deletes all metric series for the given dependency endpoint.
      * Removes health gauge, latency summary, all 8 status gauges, and status detail gauge.
+     *
+     * @param dep dependency
+     * @param ep  endpoint to remove metrics for
      */
     public void deleteMetrics(Dependency dep, Endpoint ep) {
         String key = metricKey(dep.name(), ep);

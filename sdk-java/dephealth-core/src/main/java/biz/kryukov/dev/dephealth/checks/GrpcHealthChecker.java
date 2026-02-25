@@ -104,10 +104,12 @@ public final class GrpcHealthChecker implements HealthChecker {
         return DependencyType.GRPC;
     }
 
+    /** Creates a new builder with default settings. */
     public static Builder builder() {
         return new Builder();
     }
 
+    /** Builder for {@link GrpcHealthChecker}. */
     public static final class Builder {
         private String serviceName = "";
         private boolean tlsEnabled;
@@ -120,37 +122,44 @@ public final class GrpcHealthChecker implements HealthChecker {
 
         private Builder() {}
 
+        /** Sets the gRPC service name (empty string for overall health). */
         public Builder serviceName(String serviceName) {
             this.serviceName = serviceName;
             return this;
         }
 
+        /** Enables or disables TLS. */
         public Builder tlsEnabled(boolean tlsEnabled) {
             this.tlsEnabled = tlsEnabled;
             return this;
         }
 
+        /** Skips TLS certificate verification. */
         public Builder tlsSkipVerify(boolean tlsSkipVerify) {
             this.tlsSkipVerify = tlsSkipVerify;
             return this;
         }
 
+        /** Sets custom gRPC metadata. */
         public Builder metadata(Map<String, String> metadata) {
             this.customMetadata = new LinkedHashMap<>(metadata);
             return this;
         }
 
+        /** Sets a Bearer token for authentication. */
         public Builder bearerToken(String token) {
             this.bearerToken = token;
             return this;
         }
 
+        /** Sets Basic authentication credentials. */
         public Builder basicAuth(String username, String password) {
             this.basicAuthUsername = username;
             this.basicAuthPassword = password;
             return this;
         }
 
+        /** Builds the checker, validating auth configuration. */
         public GrpcHealthChecker build() {
             validateAuthConflicts();
             buildResolvedMetadata();

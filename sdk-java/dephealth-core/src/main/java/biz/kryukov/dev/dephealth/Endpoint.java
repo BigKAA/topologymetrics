@@ -24,24 +24,29 @@ public final class Endpoint {
     private final String port;
     private final Map<String, String> metadata;
 
+    /** Creates an endpoint with no custom labels. */
     public Endpoint(String host, String port) {
         this(host, port, Map.of());
     }
 
+    /** Creates an endpoint with custom labels. */
     public Endpoint(String host, String port, Map<String, String> metadata) {
         this.host = Objects.requireNonNull(host, "host");
         this.port = Objects.requireNonNull(port, "port");
         this.metadata = metadata == null ? Map.of() : Collections.unmodifiableMap(metadata);
     }
 
+    /** Returns the endpoint host. */
     public String host() {
         return host;
     }
 
+    /** Returns the endpoint port as a string. */
     public String port() {
         return port;
     }
 
+    /** Returns the endpoint port as an integer. */
     public int portAsInt() {
         return Integer.parseInt(port);
     }

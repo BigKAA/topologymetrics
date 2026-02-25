@@ -163,17 +163,17 @@ Java SDK имеет минимальную документацию. Нужно 
 
 ### 2A: Javadoc аннотации
 
-- [ ] 2A.1 Добавить Javadoc аннотации во все публичные классы `dephealth-core`:
+- [x] 2A.1 Добавить Javadoc аннотации во все публичные классы `dephealth-core`:
   - `DepHealth`, `DepHealthBuilder`, `Dependency`, `DependencyType`, `Endpoint`
   - `HealthChecker` interface и все реализации
   - `CheckScheduler`, `MetricsExporter`
   - Все `Option`-классы и конфигурация
-- [ ] 2A.2 Добавить Javadoc аннотации в `dephealth-spring-boot-starter`:
+- [x] 2A.2 Добавить Javadoc аннотации в `dephealth-spring-boot-starter`:
   - `DepHealthAutoConfiguration`
   - `DepHealthProperties`
   - Все `@Bean` методы
-- [ ] 2A.3 Проверить сборку Javadoc: `make docs` (или `mvn javadoc:javadoc`)
-- [ ] 2A.4 Добавить target `docs` в `sdk-java/Makefile` для генерации Javadoc
+- [x] 2A.3 Проверить сборку Javadoc: `make docs` (или `mvn javadoc:javadoc`)
+- [x] 2A.4 Добавить target `docs` в `sdk-java/Makefile` для генерации Javadoc
 
 ### 2B: Markdown документация
 

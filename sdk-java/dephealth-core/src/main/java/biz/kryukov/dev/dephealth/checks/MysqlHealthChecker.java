@@ -81,10 +81,12 @@ public final class MysqlHealthChecker implements HealthChecker {
         return DependencyType.MYSQL;
     }
 
+    /** Creates a new builder with default settings. */
     public static Builder builder() {
         return new Builder();
     }
 
+    /** Builder for {@link MysqlHealthChecker}. */
     public static final class Builder {
         private String query = DEFAULT_QUERY;
         private String username;
@@ -94,31 +96,37 @@ public final class MysqlHealthChecker implements HealthChecker {
 
         private Builder() {}
 
+        /** Sets the health check query (default: {@code SELECT 1}). */
         public Builder query(String query) {
             this.query = query;
             return this;
         }
 
+        /** Sets the database username. */
         public Builder username(String username) {
             this.username = username;
             return this;
         }
 
+        /** Sets the database password. */
         public Builder password(String password) {
             this.password = password;
             return this;
         }
 
+        /** Sets the database name. */
         public Builder database(String database) {
             this.database = database;
             return this;
         }
 
+        /** Sets a connection pool DataSource (preferred over standalone). */
         public Builder dataSource(DataSource dataSource) {
             this.dataSource = dataSource;
             return this;
         }
 
+        /** Builds the checker. */
         public MysqlHealthChecker build() {
             return new MysqlHealthChecker(this);
         }

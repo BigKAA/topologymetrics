@@ -20,6 +20,13 @@ import org.springframework.context.annotation.Bean;
 @EnableConfigurationProperties(DepHealthProperties.class)
 public class DepHealthAutoConfiguration {
 
+    /**
+     * Creates a {@link DepHealth} bean configured from application properties.
+     *
+     * @param properties    dephealth configuration properties
+     * @param meterRegistry Micrometer meter registry
+     * @return configured DepHealth instance
+     */
     @Bean
     @ConditionalOnMissingBean
     public DepHealth depHealth(DepHealthProperties properties, MeterRegistry meterRegistry) {
@@ -41,18 +48,21 @@ public class DepHealthAutoConfiguration {
         return builder.build();
     }
 
+    /** Creates a lifecycle bean for automatic start/stop of health checks. */
     @Bean
     @ConditionalOnMissingBean
     public DepHealthLifecycle depHealthLifecycle(DepHealth depHealth) {
         return new DepHealthLifecycle(depHealth);
     }
 
+    /** Creates a Spring Boot Actuator HealthIndicator for dependency health. */
     @Bean
     @ConditionalOnMissingBean
     public DepHealthIndicator depHealthIndicator(DepHealth depHealth) {
         return new DepHealthIndicator(depHealth);
     }
 
+    /** Creates an Actuator endpoint exposing dependency health at {@code /actuator/dependencies}. */
     @Bean
     @ConditionalOnMissingBean
     public DependenciesEndpoint dependenciesEndpoint(DepHealth depHealth) {

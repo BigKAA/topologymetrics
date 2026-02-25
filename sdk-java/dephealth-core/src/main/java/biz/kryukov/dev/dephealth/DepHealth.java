@@ -160,7 +160,10 @@ public final class DepHealth {
     }
 
     /**
-     * Dependency configuration using the builder pattern.
+     * Builder for configuring a single dependency within the {@link DepHealth.Builder}.
+     *
+     * <p>Provides fluent setters for connection parameters, credentials, and
+     * protocol-specific options (HTTP, gRPC, DB, Redis, AMQP, LDAP).
      */
     public static final class DependencyBuilder {
         private String url;
@@ -225,21 +228,25 @@ public final class DepHealth {
 
         private DependencyBuilder() {}
 
+        /** Sets the connection URL (e.g. {@code postgres://host:5432/db}). */
         public DependencyBuilder url(String url) {
             this.url = url;
             return this;
         }
 
+        /** Sets the JDBC connection URL (e.g. {@code jdbc:postgresql://host:5432/db}). */
         public DependencyBuilder jdbcUrl(String jdbcUrl) {
             this.jdbcUrl = jdbcUrl;
             return this;
         }
 
+        /** Sets the host for direct host/port configuration. */
         public DependencyBuilder host(String host) {
             this.host = host;
             return this;
         }
 
+        /** Sets the port for direct host/port configuration. */
         public DependencyBuilder port(String port) {
             this.port = port;
             return this;
@@ -268,179 +275,219 @@ public final class DepHealth {
             return this;
         }
 
+        /** Sets the per-dependency check interval (overrides global). */
         public DependencyBuilder interval(Duration interval) {
             this.interval = interval;
             return this;
         }
 
+        /** Sets the per-dependency check timeout (overrides global). */
         public DependencyBuilder timeout(Duration timeout) {
             this.timeout = timeout;
             return this;
         }
 
+        /** Sets the HTTP health check path (default: {@code /health}). */
         public DependencyBuilder httpHealthPath(String healthPath) {
             this.httpHealthPath = healthPath;
             return this;
         }
 
+        /** Enables or disables TLS for HTTP checks. Auto-detected from {@code https://} URLs. */
         public DependencyBuilder httpTls(boolean tls) {
             this.httpTls = tls;
             return this;
         }
 
+        /** Skips TLS certificate verification for HTTP checks. */
         public DependencyBuilder httpTlsSkipVerify(boolean skip) {
             this.httpTlsSkipVerify = skip;
             return this;
         }
 
+        /** Sets custom HTTP headers for health check requests. */
         public DependencyBuilder httpHeaders(Map<String, String> headers) {
             this.httpHeaders = headers;
             return this;
         }
 
+        /** Sets a Bearer token for HTTP authentication. */
         public DependencyBuilder httpBearerToken(String token) {
             this.httpBearerToken = token;
             return this;
         }
 
+        /** Sets Basic authentication credentials for HTTP checks. */
         public DependencyBuilder httpBasicAuth(String username, String password) {
             this.httpBasicUsername = username;
             this.httpBasicPassword = password;
             return this;
         }
 
+        /** Sets the gRPC service name for the Health Checking Protocol. */
         public DependencyBuilder grpcServiceName(String serviceName) {
             this.grpcServiceName = serviceName;
             return this;
         }
 
+        /** Enables or disables TLS for gRPC checks. */
         public DependencyBuilder grpcTls(boolean tls) {
             this.grpcTls = tls;
             return this;
         }
 
+        /** Sets custom gRPC metadata (headers) for health check calls. */
         public DependencyBuilder grpcMetadata(Map<String, String> metadata) {
             this.grpcMetadata = metadata;
             return this;
         }
 
+        /** Sets a Bearer token for gRPC authentication. */
         public DependencyBuilder grpcBearerToken(String token) {
             this.grpcBearerToken = token;
             return this;
         }
 
+        /** Sets Basic authentication credentials for gRPC checks. */
         public DependencyBuilder grpcBasicAuth(String username, String password) {
             this.grpcBasicUsername = username;
             this.grpcBasicPassword = password;
             return this;
         }
 
+        /** Sets the database username for Postgres/MySQL checks. */
         public DependencyBuilder dbUsername(String username) {
             this.dbUsername = username;
             return this;
         }
 
+        /** Sets the database password for Postgres/MySQL checks. */
         public DependencyBuilder dbPassword(String password) {
             this.dbPassword = password;
             return this;
         }
 
+        /** Sets the database name for Postgres/MySQL checks. */
         public DependencyBuilder dbDatabase(String database) {
             this.dbDatabase = database;
             return this;
         }
 
+        /** Sets a custom health check SQL query (default: {@code SELECT 1}). */
         public DependencyBuilder dbQuery(String query) {
             this.dbQuery = query;
             return this;
         }
 
+        /** Sets a connection pool DataSource for Postgres/MySQL checks (preferred). */
         public DependencyBuilder dataSource(javax.sql.DataSource dataSource) {
             this.dataSource = dataSource;
             return this;
         }
 
+        /** Sets the Redis password for standalone connections. */
         public DependencyBuilder redisPassword(String password) {
             this.redisPassword = password;
             return this;
         }
 
+        /** Sets the Redis database index for standalone connections. */
         public DependencyBuilder redisDb(int db) {
             this.redisDb = db;
             return this;
         }
 
+        /** Sets a JedisPool for Redis checks (preferred over standalone). */
         public DependencyBuilder jedisPool(redis.clients.jedis.JedisPool jedisPool) {
             this.jedisPool = jedisPool;
             return this;
         }
 
+        /** Sets the AMQP connection URL (overrides host/port/credentials). */
         public DependencyBuilder amqpUrl(String amqpUrl) {
             this.amqpUrl = amqpUrl;
             return this;
         }
 
+        /** Sets the AMQP username. */
         public DependencyBuilder amqpUsername(String username) {
             this.amqpUsername = username;
             return this;
         }
 
+        /** Sets the AMQP password. */
         public DependencyBuilder amqpPassword(String password) {
             this.amqpPassword = password;
             return this;
         }
 
+        /** Sets the AMQP virtual host. */
         public DependencyBuilder amqpVirtualHost(String virtualHost) {
             this.amqpVirtualHost = virtualHost;
             return this;
         }
 
+        /** Sets the LDAP check method (default: {@code ROOT_DSE}). */
         public DependencyBuilder ldapCheckMethod(LdapHealthChecker.CheckMethod method) {
             this.ldapCheckMethod = method;
             return this;
         }
 
+        /** Sets the LDAP bind DN for simple bind or search authentication. */
         public DependencyBuilder ldapBindDN(String bindDN) {
             this.ldapBindDN = bindDN;
             return this;
         }
 
+        /** Sets the LDAP bind password. */
         public DependencyBuilder ldapBindPassword(String bindPassword) {
             this.ldapBindPassword = bindPassword;
             return this;
         }
 
+        /** Sets the LDAP base DN for search operations. */
         public DependencyBuilder ldapBaseDN(String baseDN) {
             this.ldapBaseDN = baseDN;
             return this;
         }
 
+        /** Sets the LDAP search filter (default: {@code (objectClass=*)}). */
         public DependencyBuilder ldapSearchFilter(String searchFilter) {
             this.ldapSearchFilter = searchFilter;
             return this;
         }
 
+        /** Sets the LDAP search scope (default: {@code BASE}). */
         public DependencyBuilder ldapSearchScope(LdapHealthChecker.LdapSearchScope scope) {
             this.ldapSearchScope = scope;
             return this;
         }
 
+        /** Enables StartTLS for LDAP connections (incompatible with {@code ldaps://}). */
         public DependencyBuilder ldapStartTLS(boolean startTLS) {
             this.ldapStartTLS = startTLS;
             return this;
         }
 
+        /** Skips TLS certificate verification for LDAP connections. */
         public DependencyBuilder ldapTlsSkipVerify(boolean skip) {
             this.ldapTlsSkipVerify = skip;
             return this;
         }
 
+        /** Sets an existing LDAP connection for pool integration. */
         public DependencyBuilder ldapConnection(com.unboundid.ldap.sdk.LDAPConnection connection) {
             this.ldapConnection = connection;
             return this;
         }
     }
 
+    /**
+     * Main builder for constructing a {@link DepHealth} instance.
+     *
+     * <p>Requires application name, group, and a Micrometer MeterRegistry.
+     * Dependencies are added via {@link #dependency(String, DependencyType, java.util.function.Consumer)}.
+     */
     public static final class Builder {
         private final String instanceName;
         private final String instanceGroup;
@@ -476,11 +523,13 @@ public final class DepHealth {
             this.instanceGroup = resolvedGroup;
         }
 
+        /** Sets the global check interval for all dependencies (default: 15s). */
         public Builder checkInterval(Duration interval) {
             this.globalInterval = interval;
             return this;
         }
 
+        /** Sets the global check timeout for all dependencies (default: 5s). */
         public Builder timeout(Duration timeout) {
             this.globalTimeout = timeout;
             return this;
@@ -510,6 +559,7 @@ public final class DepHealth {
             return this;
         }
 
+        /** Builds and returns a new {@link DepHealth} instance. */
         public DepHealth build() {
             // Collect all unique custom label keys from all dependencies
             List<String> customLabelKeys = collectCustomLabelKeys();

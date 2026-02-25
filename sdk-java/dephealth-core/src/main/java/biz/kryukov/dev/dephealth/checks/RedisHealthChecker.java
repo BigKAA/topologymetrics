@@ -109,10 +109,12 @@ public final class RedisHealthChecker implements HealthChecker {
         return DependencyType.REDIS;
     }
 
+    /** Creates a new builder with default settings. */
     public static Builder builder() {
         return new Builder();
     }
 
+    /** Builder for {@link RedisHealthChecker}. */
     public static final class Builder {
         private String password;
         private int database;
@@ -120,21 +122,25 @@ public final class RedisHealthChecker implements HealthChecker {
 
         private Builder() {}
 
+        /** Sets the Redis password. */
         public Builder password(String password) {
             this.password = password;
             return this;
         }
 
+        /** Sets the Redis database index. */
         public Builder database(int database) {
             this.database = database;
             return this;
         }
 
+        /** Sets a JedisPool for connection pool integration. */
         public Builder jedisPool(JedisPool jedisPool) {
             this.jedisPool = jedisPool;
             return this;
         }
 
+        /** Builds the checker. */
         public RedisHealthChecker build() {
             return new RedisHealthChecker(this);
         }

@@ -13,6 +13,9 @@ public class DepHealthIndicator implements HealthIndicator {
 
     private final DepHealth depHealth;
 
+    /**
+     * @param depHealth the DepHealth instance to monitor
+     */
     public DepHealthIndicator(DepHealth depHealth) {
         this.depHealth = depHealth;
     }

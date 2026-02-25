@@ -45,10 +45,23 @@ public final class CheckScheduler {
     private volatile boolean started;
     private volatile boolean stopped;
 
+    /**
+     * Creates a scheduler with the given metrics exporter and global configuration.
+     *
+     * @param metrics      metrics exporter for recording health check results
+     * @param globalConfig default configuration for dynamic endpoints
+     */
     public CheckScheduler(MetricsExporter metrics, CheckConfig globalConfig) {
         this(metrics, globalConfig, LOG);
     }
 
+    /**
+     * Creates a scheduler with a custom logger (for testing).
+     *
+     * @param metrics      metrics exporter
+     * @param globalConfig default configuration for dynamic endpoints
+     * @param logger       SLF4J logger
+     */
     public CheckScheduler(MetricsExporter metrics, CheckConfig globalConfig, Logger logger) {
         this.metrics = metrics;
         this.globalConfig = globalConfig;

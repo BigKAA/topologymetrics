@@ -11,6 +11,9 @@ public class DepHealthLifecycle implements SmartLifecycle {
     private final DepHealth depHealth;
     private volatile boolean running;
 
+    /**
+     * @param depHealth the DepHealth instance to manage
+     */
     public DepHealthLifecycle(DepHealth depHealth) {
         this.depHealth = depHealth;
     }

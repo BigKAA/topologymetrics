@@ -14,10 +14,14 @@ public class DependenciesEndpoint {
 
     private final DepHealth depHealth;
 
+    /**
+     * @param depHealth the DepHealth instance to expose
+     */
     public DependenciesEndpoint(DepHealth depHealth) {
         this.depHealth = depHealth;
     }
 
+    /** Returns the health status of all dependency endpoints. */
     @ReadOperation
     public Map<String, Boolean> dependencies() {
         return depHealth.health();

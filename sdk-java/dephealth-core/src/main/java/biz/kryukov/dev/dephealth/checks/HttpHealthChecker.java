@@ -90,18 +90,22 @@ public final class HttpHealthChecker implements HealthChecker {
         return DependencyType.HTTP;
     }
 
+    /** Returns the configured health check path. */
     public String healthPath() {
         return healthPath;
     }
 
+    /** Returns whether TLS is enabled. */
     public boolean tlsEnabled() {
         return tlsEnabled;
     }
 
+    /** Creates a new builder with default settings. */
     public static Builder builder() {
         return new Builder();
     }
 
+    /** Builder for {@link HttpHealthChecker}. */
     public static final class Builder {
         private String healthPath = DEFAULT_HEALTH_PATH;
         private boolean tlsEnabled;
@@ -114,37 +118,44 @@ public final class HttpHealthChecker implements HealthChecker {
 
         private Builder() {}
 
+        /** Sets the health check path (default: {@code /health}). */
         public Builder healthPath(String healthPath) {
             this.healthPath = healthPath;
             return this;
         }
 
+        /** Enables or disables TLS. */
         public Builder tlsEnabled(boolean tlsEnabled) {
             this.tlsEnabled = tlsEnabled;
             return this;
         }
 
+        /** Skips TLS certificate verification. */
         public Builder tlsSkipVerify(boolean tlsSkipVerify) {
             this.tlsSkipVerify = tlsSkipVerify;
             return this;
         }
 
+        /** Sets custom HTTP headers. */
         public Builder headers(Map<String, String> headers) {
             this.customHeaders = new LinkedHashMap<>(headers);
             return this;
         }
 
+        /** Sets a Bearer token for authentication. */
         public Builder bearerToken(String token) {
             this.bearerToken = token;
             return this;
         }
 
+        /** Sets Basic authentication credentials. */
         public Builder basicAuth(String username, String password) {
             this.basicAuthUsername = username;
             this.basicAuthPassword = password;
             return this;
         }
 
+        /** Builds the checker, validating auth configuration. */
         public HttpHealthChecker build() {
             validateAuthConflicts();
             buildResolvedHeaders();

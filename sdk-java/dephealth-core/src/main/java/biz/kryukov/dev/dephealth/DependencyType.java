@@ -1,7 +1,7 @@
 package biz.kryukov.dev.dephealth;
 
 /**
- * Dependency type.
+ * Supported dependency types, corresponding to the {@code type} Prometheus label value.
  */
 public enum DependencyType {
     HTTP("http"),

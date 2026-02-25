@@ -257,10 +257,12 @@ public final class LdapHealthChecker implements HealthChecker {
         return DependencyType.LDAP;
     }
 
+    /** Creates a new builder with default settings. */
     public static Builder builder() {
         return new Builder();
     }
 
+    /** Builder for {@link LdapHealthChecker}. */
     public static final class Builder {
         private CheckMethod checkMethod = CheckMethod.ROOT_DSE;
         private String bindDN = "";
@@ -275,56 +277,67 @@ public final class LdapHealthChecker implements HealthChecker {
 
         private Builder() {}
 
+        /** Sets the check method (default: {@code ROOT_DSE}). */
         public Builder checkMethod(CheckMethod checkMethod) {
             this.checkMethod = checkMethod;
             return this;
         }
 
+        /** Sets the bind DN. */
         public Builder bindDN(String bindDN) {
             this.bindDN = bindDN;
             return this;
         }
 
+        /** Sets the bind password. */
         public Builder bindPassword(String bindPassword) {
             this.bindPassword = bindPassword;
             return this;
         }
 
+        /** Sets the base DN for search operations. */
         public Builder baseDN(String baseDN) {
             this.baseDN = baseDN;
             return this;
         }
 
+        /** Sets the search filter. */
         public Builder searchFilter(String searchFilter) {
             this.searchFilter = searchFilter;
             return this;
         }
 
+        /** Sets the search scope. */
         public Builder searchScope(LdapSearchScope searchScope) {
             this.searchScope = searchScope;
             return this;
         }
 
+        /** Enables TLS (LDAPS) connections. */
         public Builder useTLS(boolean useTLS) {
             this.useTLS = useTLS;
             return this;
         }
 
+        /** Enables StartTLS (incompatible with LDAPS). */
         public Builder startTLS(boolean startTLS) {
             this.startTLS = startTLS;
             return this;
         }
 
+        /** Skips TLS certificate verification. */
         public Builder tlsSkipVerify(boolean tlsSkipVerify) {
             this.tlsSkipVerify = tlsSkipVerify;
             return this;
         }
 
+        /** Sets an existing LDAP connection for pool integration. */
         public Builder connection(LDAPConnection connection) {
             this.connection = connection;
             return this;
         }
 
+        /** Builds and validates the checker. */
         public LdapHealthChecker build() {
             validate();
             return new LdapHealthChecker(this);
