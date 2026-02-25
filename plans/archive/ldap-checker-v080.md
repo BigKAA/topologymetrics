@@ -636,7 +636,7 @@ covering different check methods and error scenarios:
 - [x] Tag: `sdk-java/v0.8.0`
 - [x] Tag: `sdk-python/v0.8.0`
 - [x] Tag: `sdk-csharp/v0.8.0`
-- [ ] GitHub Releases (4 releases, one per SDK)
+- [x] GitHub Releases (4 releases, one per SDK)
 - [x] Move this plan to `plans/archive/`
 
 **Status:** done
