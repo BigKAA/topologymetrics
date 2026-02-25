@@ -269,8 +269,11 @@ Java SDK имеет минимальную документацию. Нужно 
 
 ### 3D: Обновление ссылок
 
-- [ ] 3D.1 Обновить `sdk-python/README.md` (создать если нет) — ссылки на `docs/`
-- [ ] 3D.2 Создать `sdk-python/README.ru.md` — русская версия README
+- [x] 3D.1 Обновить `sdk-python/README.md` (создать если нет) — ссылки на `docs/`
+  - Добавлена ссылка на русскую версию
+  - Исправлены битые ссылки (migration guide → `docs/migration.md`, auth → `docs/authentication.md`)
+  - Добавлена секция «Documentation» со ссылкой на `docs/README.md`
+- [x] 3D.2 Создать `sdk-python/README.ru.md` — русская версия README
 
 ## Фаза 4: C# SDK — создание документации
 

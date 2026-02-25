@@ -1,3 +1,5 @@
+*[Русская версия](README.ru.md)*
+
 # dephealth
 
 SDK for monitoring microservice dependencies via Prometheus metrics.
@@ -85,7 +87,7 @@ await dh.update_endpoint(
 Synchronous variants are available: `add_endpoint_sync()`,
 `remove_endpoint_sync()`, `update_endpoint_sync()`.
 
-See [migration guide](../docs/migration/sdk-python-v050-to-v060.md) for details.
+See [migration guide](docs/migration.md#v050-to-v060) for details.
 
 ## Health Details
 
@@ -166,7 +168,11 @@ grpc_check("grpc-backend",
 )
 ```
 
-See [quickstart guide](../docs/quickstart/python.md#authentication) for all options.
+See [authentication guide](docs/authentication.md) for all options.
+
+## Documentation
+
+Full documentation is available in the [docs/](docs/README.md) directory.
 
 ## License
 
