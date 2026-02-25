@@ -278,19 +278,19 @@ Integration tests for the public API.
 
 **Pre-merge checklist:**
 
-- [ ] All unit tests pass (including new dynamic endpoint tests)
-- [ ] No concurrency issues in tests
-- [ ] All linters pass (`ruff`, `mypy`)
-- [ ] Backward compatibility verified (existing API unchanged)
-- [ ] Docs complete (EN + RU)
-- [ ] CHANGELOG updated
+- [x] All unit tests pass (212 passed)
+- [x] No concurrency issues in tests
+- [x] All linters pass (`ruff`, `mypy`)
+- [x] Backward compatibility verified (existing API unchanged)
+- [x] Docs complete (EN + RU)
+- [x] CHANGELOG updated
 
 **Actions:**
 
-- Merge to master (or PR — ask user)
-- Tag: `sdk-python/v0.6.0`
-- GitHub Release: sdk-python/v0.6.0
-- publish in pypi
-- Move this plan to `plans/archive/`
+- [x] Pushed to master
+- [x] Tag: `sdk-python/v0.6.0`
+- [x] GitHub Release: sdk-python/v0.6.0
+- [x] Published to PyPI
+- [x] Move this plan to `plans/archive/`
 
-**Status:** not started
+**Status:** done
