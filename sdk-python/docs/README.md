@@ -1,3 +1,5 @@
+*[Русская версия](README.ru.md)*
+
 # Python SDK Documentation
 
 ## Overview
@@ -27,7 +29,7 @@ with first-class FastAPI integration.
 
 ## Quick Links
 
-- [pdoc API docs](../docs/_build/) (generated via `make docs`)
+- [pdoc API docs](_build/) (generated via `make docs`)
 - [Specification](../../spec/) — cross-SDK metric contracts and behavior
 - [Grafana Dashboards](../../docs/grafana-dashboards.md) — dashboard configuration
 - [Alert Rules](../../docs/alerting/alert-rules.md) — alerting configuration

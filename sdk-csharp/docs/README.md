@@ -1,3 +1,5 @@
+*[Русская версия](README.ru.md)*
+
 # C# SDK Documentation
 
 ## Overview
@@ -28,7 +30,7 @@ and ASP.NET Core integration with Entity Framework support.
 
 ## Quick Links
 
-- [XML Documentation](../docs/_build/) (generated via `make docs`)
+- [XML Documentation](_build/) (generated via `make docs`)
 - [Specification](../../spec/) — cross-SDK metric contracts and behavior
 - [Grafana Dashboards](../../docs/grafana-dashboards.md) — dashboard configuration
 - [Alert Rules](../../docs/alerting/alert-rules.md) — alerting configuration
