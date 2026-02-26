@@ -328,8 +328,11 @@ Java SDK имеет минимальную документацию. Нужно 
 
 ### 4D: Обновление ссылок
 
-- [ ] 4D.1 Обновить `sdk-csharp/README.md` (создать если нет) — ссылки на `docs/`
-- [ ] 4D.2 Создать `sdk-csharp/README.ru.md` — русская версия README
+- [x] 4D.1 Обновить `sdk-csharp/README.md` (создать если нет) — ссылки на `docs/`
+  - Добавлена ссылка на русскую версию
+  - Исправлены битые ссылки (migration guide → `docs/migration.md`, auth → `docs/authentication.md`)
+  - Добавлена секция «Documentation» со ссылкой на `docs/README.md`
+- [x] 4D.2 Создать `sdk-csharp/README.ru.md` — русская версия README
 
 ## Фаза 5: Очистка общего `docs/`
 

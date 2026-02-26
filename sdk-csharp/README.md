@@ -1,3 +1,5 @@
+*[Русская версия](README.ru.md)*
+
 # dephealth
 
 SDK for monitoring microservice dependencies via Prometheus metrics.
@@ -88,7 +90,7 @@ dh.UpdateEndpoint(
     new HttpChecker());
 ```
 
-See [migration guide](../docs/migration/sdk-csharp-v050-to-v060.md) for details.
+See [migration guide](docs/migration.md#v050-to-v060) for details.
 
 ## Health Details
 
@@ -165,7 +167,11 @@ builder.AddGrpc("grpc-backend", "backend.svc", "9090",
     bearerToken: "eyJhbG...");
 ```
 
-See [quickstart guide](../docs/quickstart/csharp.md#authentication) for all options.
+See [authentication guide](docs/authentication.md) for all options.
+
+## Documentation
+
+Full documentation is available in the [docs/](docs/README.md) directory.
 
 ## License
 
