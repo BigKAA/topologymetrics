@@ -5,14 +5,31 @@ namespace DepHealth;
 /// </summary>
 public enum DependencyType
 {
+    /// <summary>HTTP/HTTPS service.</summary>
     Http,
+
+    /// <summary>gRPC service.</summary>
     Grpc,
+
+    /// <summary>Raw TCP connection.</summary>
     Tcp,
+
+    /// <summary>PostgreSQL database.</summary>
     Postgres,
+
+    /// <summary>MySQL database.</summary>
     MySql,
+
+    /// <summary>Redis cache.</summary>
     Redis,
+
+    /// <summary>AMQP broker (RabbitMQ).</summary>
     Amqp,
+
+    /// <summary>Apache Kafka broker.</summary>
     Kafka,
+
+    /// <summary>LDAP directory server.</summary>
     Ldap
 }
 

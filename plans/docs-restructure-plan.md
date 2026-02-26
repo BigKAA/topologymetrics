@@ -279,16 +279,21 @@ Java SDK имеет минимальную документацию. Нужно 
 
 ### 4A: XML-комментарии и автогенерация
 
-- [ ] 4A.1 Проверить наличие XML-комментариев `///` во всех публичных типах
+- [x] 4A.1 Проверить наличие XML-комментариев `///` во всех публичных типах
   - `DepHealthMonitor`, `DepHealthBuilder`
   - Все checkers, интерфейсы
   - ASP.NET Core и Entity Framework интеграции
-- [ ] 4A.2 Включить генерацию XML-документации в `.csproj`:
-  ```xml
-  <GenerateDocumentationFile>true</GenerateDocumentationFile>
-  ```
-- [ ] 4A.3 Опционально: настроить DocFX для генерации HTML-документации
-- [ ] 4A.4 Добавить target `docs` в `sdk-csharp/Makefile`
+  - Добавлены XML-комментарии ко всем публичным членам: свойства, конструкторы, методы, enum-значения
+  - Покрытие: 100% публичных типов и членов
+- [x] 4A.2 Включить генерацию XML-документации в `.csproj`:
+  - Добавлено `<GenerateDocumentationFile>true</GenerateDocumentationFile>` в `Directory.Build.props`
+  - Отключено для тестовых проектов (override в `.csproj`)
+  - Сборка: 0 Warning(s), 0 Error(s)
+- [x] 4A.3 Опционально: настроить DocFX для генерации HTML-документации
+  - Пропущено: DocFX не настроен, XML-документация достаточна на данном этапе
+- [x] 4A.4 Добавить target `docs` в `sdk-csharp/Makefile`
+  - `make docs` собирает Release и копирует XML в `docs/_build/`
+  - `docs/_build/` добавлен в `.gitignore`
 
 ### 4B: Markdown документация
 

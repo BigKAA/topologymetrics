@@ -12,8 +12,15 @@ public sealed class GrpcChecker : IHealthChecker
     private readonly bool _tlsEnabled;
     private readonly Metadata? _metadata;
 
+    /// <summary>Gets the dependency type for this checker.</summary>
     public DependencyType Type => DependencyType.Grpc;
 
+    /// <summary>Creates a new instance of <see cref="GrpcChecker"/>.</summary>
+    /// <param name="tlsEnabled">Whether to use HTTPS (TLS) for the gRPC channel.</param>
+    /// <param name="metadata">Optional gRPC metadata entries to include in the health check call.</param>
+    /// <param name="bearerToken">Optional Bearer token for authentication.</param>
+    /// <param name="basicAuthUsername">Optional username for Basic authentication.</param>
+    /// <param name="basicAuthPassword">Optional password for Basic authentication.</param>
     public GrpcChecker(
         bool tlsEnabled = false,
         IDictionary<string, string>? metadata = null,
@@ -26,6 +33,7 @@ public sealed class GrpcChecker : IHealthChecker
         _metadata = BuildResolvedMetadata(metadata, bearerToken, basicAuthUsername, basicAuthPassword);
     }
 
+    /// <inheritdoc />
     public async Task CheckAsync(Endpoint endpoint, CancellationToken ct)
     {
         var scheme = _tlsEnabled ? "https" : "http";

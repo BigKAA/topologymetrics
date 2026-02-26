@@ -78,6 +78,7 @@ public sealed partial class DepHealthMonitor : IDisposable
         _scheduler.UpdateEndpoint(depName, oldHost, oldPort, newEp, checker);
     }
 
+    /// <inheritdoc />
     public void Dispose() => _scheduler.Dispose();
 
     private static void ValidateDynamicEndpointArgs(string depName, DependencyType depType, Endpoint ep)
@@ -170,30 +171,35 @@ public sealed partial class DepHealthMonitor : IDisposable
             _group = resolvedGroup;
         }
 
+        /// <summary>Sets a custom Prometheus <see cref="CollectorRegistry"/>.</summary>
         public Builder WithRegistry(CollectorRegistry registry)
         {
             _registry = registry;
             return this;
         }
 
+        /// <summary>Sets a logger for diagnostic messages.</summary>
         public Builder WithLogger(ILogger logger)
         {
             _logger = logger;
             return this;
         }
 
+        /// <summary>Sets the default check interval for all dependencies.</summary>
         public Builder WithCheckInterval(TimeSpan interval)
         {
             _defaultInterval = interval;
             return this;
         }
 
+        /// <summary>Sets the default check timeout for all dependencies.</summary>
         public Builder WithCheckTimeout(TimeSpan timeout)
         {
             _defaultTimeout = timeout;
             return this;
         }
 
+        /// <summary>Sets the default initial delay before the first check.</summary>
         public Builder WithInitialDelay(TimeSpan initialDelay)
         {
             _defaultInitialDelay = initialDelay;
@@ -202,6 +208,16 @@ public sealed partial class DepHealthMonitor : IDisposable
 
         // --- Convenience methods ---
 
+        /// <summary>Adds an HTTP dependency to monitor.</summary>
+        /// <param name="name">Dependency name.</param>
+        /// <param name="url">HTTP(S) URL of the service.</param>
+        /// <param name="healthPath">Health check path (default: "/health").</param>
+        /// <param name="critical">Whether the dependency is critical.</param>
+        /// <param name="labels">Custom Prometheus labels.</param>
+        /// <param name="headers">Custom HTTP headers.</param>
+        /// <param name="bearerToken">Bearer token for authentication.</param>
+        /// <param name="basicAuthUsername">Basic auth username.</param>
+        /// <param name="basicAuthPassword">Basic auth password.</param>
         public Builder AddHttp(string name, string url,
             string healthPath = "/health", bool? critical = null,
             Dictionary<string, string>? labels = null,
@@ -222,6 +238,17 @@ public sealed partial class DepHealthMonitor : IDisposable
             return AddDependency(name, DependencyType.Http, parsed, checker, critical, labels);
         }
 
+        /// <summary>Adds a gRPC dependency to monitor.</summary>
+        /// <param name="name">Dependency name.</param>
+        /// <param name="host">gRPC server host.</param>
+        /// <param name="port">gRPC server port.</param>
+        /// <param name="tlsEnabled">Whether TLS is enabled.</param>
+        /// <param name="critical">Whether the dependency is critical.</param>
+        /// <param name="labels">Custom Prometheus labels.</param>
+        /// <param name="metadata">gRPC metadata headers.</param>
+        /// <param name="bearerToken">Bearer token for authentication.</param>
+        /// <param name="basicAuthUsername">Basic auth username.</param>
+        /// <param name="basicAuthPassword">Basic auth password.</param>
         public Builder AddGrpc(string name, string host, string port,
             bool tlsEnabled = false, bool? critical = null,
             Dictionary<string, string>? labels = null,
@@ -243,6 +270,12 @@ public sealed partial class DepHealthMonitor : IDisposable
                 checker, critical, labels);
         }
 
+        /// <summary>Adds a raw TCP dependency to monitor.</summary>
+        /// <param name="name">Dependency name.</param>
+        /// <param name="host">TCP server host.</param>
+        /// <param name="port">TCP server port.</param>
+        /// <param name="critical">Whether the dependency is critical.</param>
+        /// <param name="labels">Custom Prometheus labels.</param>
         public Builder AddTcp(string name, string host, string port,
             bool? critical = null, Dictionary<string, string>? labels = null)
         {
@@ -254,6 +287,11 @@ public sealed partial class DepHealthMonitor : IDisposable
                 checker, critical, labels);
         }
 
+        /// <summary>Adds a PostgreSQL dependency to monitor.</summary>
+        /// <param name="name">Dependency name.</param>
+        /// <param name="url">PostgreSQL connection URL.</param>
+        /// <param name="critical">Whether the dependency is critical.</param>
+        /// <param name="labels">Custom Prometheus labels.</param>
         public Builder AddPostgres(string name, string url,
             bool? critical = null, Dictionary<string, string>? labels = null)
         {
@@ -265,6 +303,11 @@ public sealed partial class DepHealthMonitor : IDisposable
             return AddDependency(name, DependencyType.Postgres, parsed, checker, critical, labels);
         }
 
+        /// <summary>Adds a MySQL dependency to monitor.</summary>
+        /// <param name="name">Dependency name.</param>
+        /// <param name="url">MySQL connection URL.</param>
+        /// <param name="critical">Whether the dependency is critical.</param>
+        /// <param name="labels">Custom Prometheus labels.</param>
         public Builder AddMySql(string name, string url,
             bool? critical = null, Dictionary<string, string>? labels = null)
         {
@@ -276,6 +319,11 @@ public sealed partial class DepHealthMonitor : IDisposable
             return AddDependency(name, DependencyType.MySql, parsed, checker, critical, labels);
         }
 
+        /// <summary>Adds a Redis dependency to monitor.</summary>
+        /// <param name="name">Dependency name.</param>
+        /// <param name="url">Redis connection URL.</param>
+        /// <param name="critical">Whether the dependency is critical.</param>
+        /// <param name="labels">Custom Prometheus labels.</param>
         public Builder AddRedis(string name, string url,
             bool? critical = null, Dictionary<string, string>? labels = null)
         {
@@ -291,6 +339,11 @@ public sealed partial class DepHealthMonitor : IDisposable
             return AddDependency(name, DependencyType.Redis, parsed, checker, critical, labels);
         }
 
+        /// <summary>Adds an AMQP (RabbitMQ) dependency to monitor.</summary>
+        /// <param name="name">Dependency name.</param>
+        /// <param name="url">AMQP connection URL.</param>
+        /// <param name="critical">Whether the dependency is critical.</param>
+        /// <param name="labels">Custom Prometheus labels.</param>
         public Builder AddAmqp(string name, string url,
             bool? critical = null, Dictionary<string, string>? labels = null)
         {
@@ -302,6 +355,11 @@ public sealed partial class DepHealthMonitor : IDisposable
             return AddDependency(name, DependencyType.Amqp, parsed, checker, critical, labels);
         }
 
+        /// <summary>Adds a Kafka dependency to monitor.</summary>
+        /// <param name="name">Dependency name.</param>
+        /// <param name="url">Kafka bootstrap server URL.</param>
+        /// <param name="critical">Whether the dependency is critical.</param>
+        /// <param name="labels">Custom Prometheus labels.</param>
         public Builder AddKafka(string name, string url,
             bool? critical = null, Dictionary<string, string>? labels = null)
         {
@@ -311,6 +369,21 @@ public sealed partial class DepHealthMonitor : IDisposable
             return AddDependency(name, DependencyType.Kafka, parsed, checker, critical, labels);
         }
 
+        /// <summary>Adds an LDAP dependency to monitor.</summary>
+        /// <param name="name">Dependency name.</param>
+        /// <param name="host">LDAP server host.</param>
+        /// <param name="port">LDAP server port.</param>
+        /// <param name="checkMethod">LDAP check method (default: RootDse).</param>
+        /// <param name="bindDN">Bind DN for authentication.</param>
+        /// <param name="bindPassword">Bind password for authentication.</param>
+        /// <param name="baseDN">Base DN for search operations.</param>
+        /// <param name="searchFilter">LDAP search filter.</param>
+        /// <param name="searchScope">LDAP search scope.</param>
+        /// <param name="useTls">Whether to use LDAPS (TLS).</param>
+        /// <param name="startTls">Whether to use StartTLS.</param>
+        /// <param name="tlsSkipVerify">Whether to skip TLS certificate verification.</param>
+        /// <param name="critical">Whether the dependency is critical.</param>
+        /// <param name="labels">Custom Prometheus labels.</param>
         public Builder AddLdap(string name, string host, string port,
             LdapCheckMethod checkMethod = LdapCheckMethod.RootDse,
             string bindDN = "", string bindPassword = "",
@@ -350,6 +423,8 @@ public sealed partial class DepHealthMonitor : IDisposable
                 checker, critical, labels);
         }
 
+        /// <summary>Validates configuration and builds the <see cref="DepHealthMonitor"/> instance.</summary>
+        /// <exception cref="ValidationException">Thrown when configuration validation fails.</exception>
         public DepHealthMonitor Build()
         {
             ApplyEnvVars();

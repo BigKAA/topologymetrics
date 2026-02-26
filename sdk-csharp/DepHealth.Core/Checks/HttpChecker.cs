@@ -14,8 +14,17 @@ public sealed class HttpChecker : IHealthChecker
     private readonly bool _tlsSkipVerify;
     private readonly IReadOnlyDictionary<string, string> _headers;
 
+    /// <summary>Gets the dependency type for this checker.</summary>
     public DependencyType Type => DependencyType.Http;
 
+    /// <summary>Creates a new instance of <see cref="HttpChecker"/>.</summary>
+    /// <param name="healthPath">HTTP path to query for health status (default: <c>/health</c>).</param>
+    /// <param name="tlsEnabled">Whether to use HTTPS instead of HTTP.</param>
+    /// <param name="tlsSkipVerify">Whether to skip TLS certificate verification.</param>
+    /// <param name="headers">Optional custom HTTP headers to include in the request.</param>
+    /// <param name="bearerToken">Optional Bearer token for authentication.</param>
+    /// <param name="basicAuthUsername">Optional username for HTTP Basic authentication.</param>
+    /// <param name="basicAuthPassword">Optional password for HTTP Basic authentication.</param>
     public HttpChecker(
         string healthPath = DefaultHealthPath,
         bool tlsEnabled = false,
@@ -32,6 +41,7 @@ public sealed class HttpChecker : IHealthChecker
         _headers = BuildResolvedHeaders(headers, bearerToken, basicAuthUsername, basicAuthPassword);
     }
 
+    /// <inheritdoc />
     public async Task CheckAsync(Endpoint endpoint, CancellationToken ct)
     {
         var scheme = _tlsEnabled ? "https" : "http";

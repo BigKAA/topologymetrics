@@ -7,8 +7,10 @@ namespace DepHealth.Checks;
 /// </summary>
 public sealed class TcpChecker : IHealthChecker
 {
+    /// <summary>Gets the dependency type for this checker.</summary>
     public DependencyType Type => DependencyType.Tcp;
 
+    /// <inheritdoc />
     public async Task CheckAsync(Endpoint endpoint, CancellationToken ct)
     {
         using var client = new TcpClient();

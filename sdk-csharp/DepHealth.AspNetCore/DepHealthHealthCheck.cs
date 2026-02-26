@@ -9,11 +9,18 @@ public sealed class DepHealthHealthCheck : IHealthCheck
 {
     private readonly DepHealthMonitor _monitor;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DepHealthHealthCheck"/> class.
+    /// </summary>
+    /// <param name="monitor">The dephealth monitor instance to query.</param>
     public DepHealthHealthCheck(DepHealthMonitor monitor)
     {
         _monitor = monitor;
     }
 
+    /// <summary>
+    /// Runs the health check, returning the aggregated status of all monitored dependencies.
+    /// </summary>
     public Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
         CancellationToken cancellationToken = default)

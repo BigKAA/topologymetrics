@@ -11,8 +11,13 @@ public sealed class AmqpChecker : IHealthChecker
     private readonly string? _password;
     private readonly string _vhost;
 
+    /// <summary>Gets the dependency type for this checker.</summary>
     public DependencyType Type => DependencyType.Amqp;
 
+    /// <summary>Creates a new instance of <see cref="AmqpChecker"/>.</summary>
+    /// <param name="username">Optional AMQP username for authentication.</param>
+    /// <param name="password">Optional AMQP password for authentication.</param>
+    /// <param name="vhost">Virtual host to connect to (default: <c>/</c>).</param>
     public AmqpChecker(string? username = null, string? password = null, string vhost = "/")
     {
         _username = username;
@@ -20,6 +25,7 @@ public sealed class AmqpChecker : IHealthChecker
         _vhost = vhost;
     }
 
+    /// <inheritdoc />
     public Task CheckAsync(Endpoint endpoint, CancellationToken ct)
     {
         var factory = new ConnectionFactory

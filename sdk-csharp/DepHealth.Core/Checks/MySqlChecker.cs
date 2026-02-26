@@ -9,13 +9,17 @@ public sealed class MySqlChecker : IHealthChecker
 {
     private readonly string? _connectionString;
 
+    /// <summary>Gets the dependency type for this checker.</summary>
     public DependencyType Type => DependencyType.MySql;
 
+    /// <summary>Creates a new instance of <see cref="MySqlChecker"/>.</summary>
+    /// <param name="connectionString">Optional MySQL connection string. If <c>null</c>, a default string is built from the endpoint.</param>
     public MySqlChecker(string? connectionString = null)
     {
         _connectionString = connectionString;
     }
 
+    /// <inheritdoc />
     public async Task CheckAsync(Endpoint endpoint, CancellationToken ct)
     {
         var connStr = _connectionString ??

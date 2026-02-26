@@ -7,8 +7,10 @@ namespace DepHealth.Checks;
 /// </summary>
 public sealed class KafkaChecker : IHealthChecker
 {
+    /// <summary>Gets the dependency type for this checker.</summary>
     public DependencyType Type => DependencyType.Kafka;
 
+    /// <inheritdoc />
     public Task CheckAsync(Endpoint endpoint, CancellationToken ct)
     {
         var config = new AdminClientConfig

@@ -13,10 +13,19 @@ public sealed partial class Dependency
     [GeneratedRegex("^[a-z][a-z0-9-]*$")]
     private static partial Regex NamePattern();
 
+    /// <summary>Dependency name (lowercase, alphanumeric with hyphens).</summary>
     public string Name { get; }
+
+    /// <summary>Type of the dependency (e.g. Http, Postgres, Redis).</summary>
     public DependencyType Type { get; }
+
+    /// <summary>Whether this dependency is critical for the application.</summary>
     public bool Critical { get; }
+
+    /// <summary>Endpoints to monitor for this dependency.</summary>
     public IReadOnlyList<Endpoint> Endpoints { get; }
+
+    /// <summary>Health check configuration (intervals, timeouts, thresholds).</summary>
     public CheckConfig Config { get; }
 
     private Dependency(Builder builder)
@@ -28,10 +37,17 @@ public sealed partial class Dependency
         Config = builder.ConfigValue;
     }
 
+    /// <summary>Converts a boolean to "yes"/"no" string.</summary>
     public static string BoolToYesNo(bool value) => value ? "yes" : "no";
 
+    /// <summary>Creates a new builder for constructing a <see cref="Dependency"/>.</summary>
+    /// <param name="name">Dependency name (lowercase, alphanumeric with hyphens, max 63 chars).</param>
+    /// <param name="type">Type of the dependency.</param>
     public static Builder CreateBuilder(string name, DependencyType type) => new(name, type);
 
+    /// <summary>
+    /// Fluent builder for constructing a <see cref="Dependency"/> instance.
+    /// </summary>
     public sealed class Builder
     {
         internal string NameValue;
@@ -46,30 +62,40 @@ public sealed partial class Dependency
             TypeValue = type;
         }
 
+        /// <summary>Sets whether this dependency is critical.</summary>
+        /// <param name="critical"><c>true</c> if the dependency is critical for the application.</param>
         public Builder WithCritical(bool critical)
         {
             CriticalValue = critical;
             return this;
         }
 
+        /// <summary>Sets the endpoints to monitor.</summary>
+        /// <param name="endpoints">Collection of endpoints.</param>
         public Builder WithEndpoints(IEnumerable<Endpoint> endpoints)
         {
             EndpointsValue = new List<Endpoint>(endpoints);
             return this;
         }
 
+        /// <summary>Sets a single endpoint to monitor.</summary>
+        /// <param name="endpoint">The endpoint.</param>
         public Builder WithEndpoint(Endpoint endpoint)
         {
             EndpointsValue = [endpoint];
             return this;
         }
 
+        /// <summary>Sets the health check configuration.</summary>
+        /// <param name="config">Check configuration with intervals, timeouts, and thresholds.</param>
         public Builder WithConfig(CheckConfig config)
         {
             ConfigValue = config ?? throw new ArgumentNullException(nameof(config));
             return this;
         }
 
+        /// <summary>Validates and builds the <see cref="Dependency"/> instance.</summary>
+        /// <exception cref="ValidationException">Thrown when validation fails.</exception>
         public Dependency Build()
         {
             Validate();

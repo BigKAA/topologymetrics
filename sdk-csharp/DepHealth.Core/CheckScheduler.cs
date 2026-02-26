@@ -23,6 +23,10 @@ public sealed class CheckScheduler : IDisposable
     private volatile bool _started;
     private volatile bool _stopped;
 
+    /// <summary>Creates a new CheckScheduler.</summary>
+    /// <param name="metrics">Prometheus metrics exporter.</param>
+    /// <param name="globalConfig">Global check configuration.</param>
+    /// <param name="logger">Optional logger for diagnostic messages.</param>
     public CheckScheduler(PrometheusExporter metrics, CheckConfig globalConfig, ILogger? logger = null)
     {
         _metrics = metrics;
@@ -291,6 +295,7 @@ public sealed class CheckScheduler : IDisposable
         }
     }
 
+    /// <inheritdoc />
     public void Dispose()
     {
         Stop();

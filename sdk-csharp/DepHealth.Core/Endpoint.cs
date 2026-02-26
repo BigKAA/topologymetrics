@@ -16,18 +16,31 @@ public sealed partial class Endpoint : IEquatable<Endpoint>
     [GeneratedRegex("^[a-zA-Z_][a-zA-Z0-9_]*$")]
     private static partial Regex LabelNamePattern();
 
+    /// <summary>Endpoint hostname or IP address.</summary>
     public string Host { get; }
+
+    /// <summary>Endpoint port number as string.</summary>
     public string Port { get; }
+
+    /// <summary>Custom Prometheus labels for this endpoint.</summary>
     public IReadOnlyDictionary<string, string> Labels { get; }
 
+    /// <summary>Additional metadata key-value pairs.</summary>
     [Obsolete("Use Labels instead")]
     public IReadOnlyDictionary<string, string> Metadata => Labels;
 
+    /// <summary>Creates an endpoint with host and port.</summary>
+    /// <param name="host">Hostname or IP address.</param>
+    /// <param name="port">Port number as string.</param>
     public Endpoint(string host, string port)
         : this(host, port, new Dictionary<string, string>())
     {
     }
 
+    /// <summary>Creates an endpoint with host, port, and custom labels.</summary>
+    /// <param name="host">Hostname or IP address.</param>
+    /// <param name="port">Port number as string.</param>
+    /// <param name="labels">Custom Prometheus labels.</param>
     public Endpoint(string host, string port, IDictionary<string, string> labels)
     {
         Host = host ?? throw new ArgumentNullException(nameof(host));
@@ -36,6 +49,7 @@ public sealed partial class Endpoint : IEquatable<Endpoint>
             new Dictionary<string, string>(labels ?? new Dictionary<string, string>()));
     }
 
+    /// <summary>Returns the port as an integer.</summary>
     public int PortAsInt() => int.Parse(Port);
 
     /// <summary>
@@ -72,6 +86,7 @@ public sealed partial class Endpoint : IEquatable<Endpoint>
         }
     }
 
+    /// <inheritdoc />
     public bool Equals(Endpoint? other)
     {
         if (other is null)
@@ -82,9 +97,12 @@ public sealed partial class Endpoint : IEquatable<Endpoint>
         return Host == other.Host && Port == other.Port;
     }
 
+    /// <inheritdoc />
     public override bool Equals(object? obj) => Equals(obj as Endpoint);
 
+    /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(Host, Port);
 
+    /// <inheritdoc />
     public override string ToString() => $"{Host}:{Port}";
 }

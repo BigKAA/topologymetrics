@@ -11,6 +11,7 @@ public sealed class PostgresChecker : IHealthChecker
     private readonly NpgsqlDataSource? _dataSource;
     private readonly string? _connectionString;
 
+    /// <summary>Gets the dependency type for this checker.</summary>
     public DependencyType Type => DependencyType.Postgres;
 
     /// <summary>
@@ -29,6 +30,7 @@ public sealed class PostgresChecker : IHealthChecker
         _dataSource = dataSource ?? throw new ArgumentNullException(nameof(dataSource));
     }
 
+    /// <inheritdoc />
     public async Task CheckAsync(Endpoint endpoint, CancellationToken ct)
     {
         try

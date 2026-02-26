@@ -1,4 +1,4 @@
-.PHONY: build test test-coverage lint fmt image push image-conformance push-conformance pull clean help
+.PHONY: build test test-coverage lint fmt docs image push image-conformance push-conformance pull clean help
 
 ## Конфигурация
 -include ../.env
@@ -49,6 +49,16 @@ lint:
 ## fmt: Автоформатирование кода
 fmt:
 	$(DOCKER_RUN) dotnet format --verbosity minimal
+
+## docs: Генерация XML-документации (в docs/_build/)
+docs:
+	$(DOCKER_RUN) bash -c '\
+		dotnet build --configuration Release --verbosity minimal && \
+		mkdir -p docs/_build && \
+		cp DepHealth.Core/bin/Release/net8.0/DepHealth.Core.xml docs/_build/ && \
+		cp DepHealth.AspNetCore/bin/Release/net8.0/DepHealth.AspNetCore.xml docs/_build/ && \
+		cp DepHealth.EntityFramework/bin/Release/net8.0/DepHealth.EntityFramework.xml docs/_build/'
+	@echo "XML documentation generated in docs/_build/"
 
 ## image: Сборка Docker-образа тестового сервиса
 image:

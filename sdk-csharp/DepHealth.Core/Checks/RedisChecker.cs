@@ -12,6 +12,7 @@ public sealed class RedisChecker : IHealthChecker
     private readonly IConnectionMultiplexer? _multiplexer;
     private readonly string? _connectionString;
 
+    /// <summary>Gets the dependency type for this checker.</summary>
     public DependencyType Type => DependencyType.Redis;
 
     /// <summary>
@@ -30,6 +31,7 @@ public sealed class RedisChecker : IHealthChecker
         _multiplexer = multiplexer ?? throw new ArgumentNullException(nameof(multiplexer));
     }
 
+    /// <inheritdoc />
     public async Task CheckAsync(Endpoint endpoint, CancellationToken ct)
     {
         if (_multiplexer is not null)

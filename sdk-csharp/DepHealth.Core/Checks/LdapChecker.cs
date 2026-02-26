@@ -8,9 +8,16 @@ namespace DepHealth.Checks;
 /// </summary>
 public enum LdapCheckMethod
 {
+    /// <summary>Performs an anonymous LDAP bind (no credentials).</summary>
     AnonymousBind,
+
+    /// <summary>Performs a simple LDAP bind with a distinguished name and password.</summary>
     SimpleBind,
+
+    /// <summary>Queries the RootDSE entry to verify server availability.</summary>
     RootDse,
+
+    /// <summary>Executes a configured LDAP search against the directory.</summary>
     Search
 }
 
@@ -19,8 +26,13 @@ public enum LdapCheckMethod
 /// </summary>
 public enum LdapSearchScope
 {
+    /// <summary>Searches only the base object (scope 0).</summary>
     Base,
+
+    /// <summary>Searches one level below the base object (scope 1).</summary>
     One,
+
+    /// <summary>Searches the entire subtree below the base object (scope 2).</summary>
     Sub
 }
 
@@ -42,6 +54,7 @@ public sealed class LdapChecker : IHealthChecker
     private readonly bool _tlsSkipVerify;
     private readonly ILdapConnection? _connection;
 
+    /// <summary>Gets the dependency type for this checker.</summary>
     public DependencyType Type => DependencyType.Ldap;
 
     /// <summary>
@@ -92,6 +105,7 @@ public sealed class LdapChecker : IHealthChecker
         _searchScope = searchScope;
     }
 
+    /// <inheritdoc />
     public async Task CheckAsync(Endpoint endpoint, CancellationToken ct)
     {
         if (_connection is not null)

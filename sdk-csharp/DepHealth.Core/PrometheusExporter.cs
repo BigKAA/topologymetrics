@@ -33,6 +33,14 @@ public sealed class PrometheusExporter
     private readonly object _detailLock = new();
     private readonly Dictionary<string, string> _prevDetails = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PrometheusExporter"/> class
+    /// and creates the Prometheus metric collectors.
+    /// </summary>
+    /// <param name="instanceName">Unique application instance name used as a label value.</param>
+    /// <param name="instanceGroup">Logical group for this service instance.</param>
+    /// <param name="customLabelNames">Optional additional label names to include in metrics.</param>
+    /// <param name="registry">Optional custom Prometheus collector registry. Defaults to <see cref="Metrics.DefaultRegistry"/>.</param>
     public PrometheusExporter(string instanceName, string instanceGroup,
         string[]? customLabelNames = null, CollectorRegistry? registry = null)
     {
