@@ -321,10 +321,10 @@ Java SDK имеет минимальную документацию. Нужно 
 
 ### 4C: Примеры
 
-- [ ] 4C.1 Создать `sdk-csharp/docs/examples/basic-aspnetcore/` — ASP.NET Core
-- [ ] 4C.2 Создать `sdk-csharp/docs/examples/entity-framework/` — EF интеграция
-- [ ] 4C.3 Создать `sdk-csharp/docs/examples/multi-dependency/`
-- [ ] 4C.4 Создать `sdk-csharp/docs/examples/dynamic-endpoints/`
+- [x] 4C.1 Создать `sdk-csharp/docs/examples/basic-aspnetcore/` — ASP.NET Core
+- [x] 4C.2 Создать `sdk-csharp/docs/examples/entity-framework/` — EF интеграция
+- [x] 4C.3 Создать `sdk-csharp/docs/examples/multi-dependency/`
+- [x] 4C.4 Создать `sdk-csharp/docs/examples/dynamic-endpoints/`
 
 ### 4D: Обновление ссылок
 
