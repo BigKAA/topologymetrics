@@ -3,7 +3,7 @@
 # Code Style Guide: General Principles
 
 This document describes the cross-language principles and conventions used in all dephealth SDKs.
-Language-specific guides: [Java](java.md) | [Go](go.md) | [Python](python.md) | [C#](csharp.md) | [Testing](testing.md)
+Language-specific guides: [Go](../../sdk-go/docs/code-style.md) | [Java](../../sdk-java/docs/code-style.md) | [Python](../../sdk-python/docs/code-style.md) | [C#](../../sdk-csharp/docs/code-style.md) | [Testing](testing.md)
 
 ## Philosophy
 

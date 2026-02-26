@@ -173,7 +173,7 @@ sdk-java/                       # Java SDK (Maven multi-module)
 sdk-csharp/                     # C# SDK (.NET 8)
 test-services/                  # Test microservices for each language
 deploy/                         # Monitoring: Grafana, Alertmanager, VictoriaMetrics
-docs/                           # Documentation (quickstart, migration, alerting, specification)
+docs/                           # Documentation (migration, alerting, specification, code-style)
 plans/                          # Development plans
 ```
 
@@ -219,19 +219,12 @@ Infrastructure for verifying SDK compliance with the specification (`conformance
 
 ## Documentation
 
-### Quick Start
+### SDK Documentation
 
-- [Go](docs/quickstart/go.md)
-- [Python](docs/quickstart/python.md)
-- [Java](docs/quickstart/java.md)
-- [C#](docs/quickstart/csharp.md)
-
-### Integration Guide
-
-- [Go](docs/migration/go.md)
-- [Python](docs/migration/python.md)
-- [Java](docs/migration/java.md)
-- [C#](docs/migration/csharp.md)
+- [Go SDK](sdk-go/docs/getting-started.md) — getting started, API reference, examples
+- [Python SDK](sdk-python/docs/getting-started.md) — getting started, API reference, examples
+- [Java SDK](sdk-java/docs/getting-started.md) — getting started, API reference, examples
+- [C# SDK](sdk-csharp/docs/getting-started.md) — getting started, API reference, examples
 
 ### Alerting and Monitoring
 
@@ -244,7 +237,7 @@ Infrastructure for verifying SDK compliance with the specification (`conformance
 ### Code Style
 
 - [General Principles](docs/code-style/overview.md) — cross-SDK conventions, architecture layers
-- [Java](docs/code-style/java.md) | [Go](docs/code-style/go.md) | [Python](docs/code-style/python.md) | [C#](docs/code-style/csharp.md)
+- [Go](sdk-go/docs/code-style.md) | [Java](sdk-java/docs/code-style.md) | [Python](sdk-python/docs/code-style.md) | [C#](sdk-csharp/docs/code-style.md)
 - [Testing](docs/code-style/testing.md) — test naming, AAA pattern, mocking, coverage
 
 ### Additional

@@ -3,7 +3,7 @@
 # Code Style Guide: Testing
 
 This document describes testing conventions across all dephealth SDKs.
-See also: [General Principles](overview.md) | [Java](java.md) | [Go](go.md) | [Python](python.md) | [C#](csharp.md)
+See also: [General Principles](overview.md) | [Go](../../sdk-go/docs/code-style.md) | [Java](../../sdk-java/docs/code-style.md) | [Python](../../sdk-python/docs/code-style.md) | [C#](../../sdk-csharp/docs/code-style.md)
 
 ## Test Naming
 

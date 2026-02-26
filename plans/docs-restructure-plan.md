@@ -338,8 +338,8 @@ Java SDK имеет минимальную документацию. Нужно 
 
 После переноса SDK-специфичной документации.
 
-- [ ] 5.1 Удалить `docs/quickstart/` (полностью) — заменено на `sdk-*/docs/getting-started.md`
-- [ ] 5.2 Удалить SDK-специфичные файлы из `docs/migration/`:
+- [x] 5.1 Удалить `docs/quickstart/` (полностью) — заменено на `sdk-*/docs/getting-started.md`
+- [x] 5.2 Удалить SDK-специфичные файлы из `docs/migration/`:
   - `go.md`, `go.ru.md`
   - `java.md`, `java.ru.md`
   - `python.md`, `python.ru.md`
@@ -347,15 +347,25 @@ Java SDK имеет минимальную документацию. Нужно 
   - `sdk-java-v050-to-v060.md`, `sdk-java-v050-to-v060.ru.md`
   - `sdk-python-v050-to-v060.md`, `sdk-python-v050-to-v060.ru.md`
   - `sdk-csharp-v050-to-v060.md`, `sdk-csharp-v050-to-v060.ru.md`
-  - Оставить: общие cross-SDK миграции `v042-to-v050.md`, `v050-to-v060.md`, `v060-to-v070.md`, `v070-to-v080.md`
-- [ ] 5.3 Удалить SDK-специфичные файлы из `docs/code-style/`:
+  - Оставлены: общие cross-SDK миграции `v042-to-v050.md`, `v050-to-v060.md`, `v060-to-v070.md`, `v070-to-v080.md`, `v060-to-v080.md`
+- [x] 5.3 Удалить SDK-специфичные файлы из `docs/code-style/`:
   - `go.md`, `go.ru.md`
   - `java.md`, `java.ru.md`
   - `python.md`, `python.ru.md`
   - `csharp.md`, `csharp.ru.md`
-  - Оставить: `overview.md`, `overview.ru.md`, `testing.md`, `testing.ru.md`
-- [ ] 5.4 Обновить навигационные ссылки в `docs/` файлах
-- [ ] 5.5 Обновить `README.md` (root) — ссылки на документацию SDK
+  - Оставлены: `overview.md`, `overview.ru.md`, `testing.md`, `testing.ru.md`
+- [x] 5.4 Обновить навигационные ссылки в `docs/` файлах
+  - `docs/specification.md` / `.ru.md` — quickstart → sdk-*/docs/getting-started, migration → sdk-*/docs/migration
+  - `docs/comparison.md` / `.ru.md` — quickstart → getting-started, migration → sdk-*/docs/migration
+  - `docs/code-style/overview.md` / `.ru.md` — SDK-ссылки → sdk-*/docs/code-style
+  - `docs/code-style/testing.md` / `.ru.md` — SDK-ссылки → sdk-*/docs/code-style
+- [x] 5.5 Обновить `README.md` и `README.ru.md` (root) — ссылки на документацию SDK
+  - Секции «Quick Start» и «Integration Guide» заменены на «SDK Documentation» со ссылками на sdk-*/docs/getting-started
+  - Секция «Code Style» — SDK-ссылки → sdk-*/docs/code-style
+  - `CONTRIBUTING.md` / `.ru.md` — SDK-ссылки → sdk-*/docs/code-style
+  - `CHANGELOG.md` — migration/go.ru.md → sdk-go/docs/migration.ru.md
+  - `sdk-architecture.md` — обновлена структура docs/
+  - `sdk-go/docs/troubleshooting.md` / `.ru.md` — quickstart ссылка → examples/
 
 ## Фаза 6: Финализация
 

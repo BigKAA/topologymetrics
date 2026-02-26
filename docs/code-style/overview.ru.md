@@ -3,7 +3,7 @@
 # Code Style Guide: общие принципы
 
 Этот документ описывает общие для всех dephealth SDK принципы и соглашения.
-Руководства по языкам: [Java](java.ru.md) | [Go](go.ru.md) | [Python](python.ru.md) | [C#](csharp.ru.md) | [Тестирование](testing.ru.md)
+Руководства по языкам: [Go](../../sdk-go/docs/code-style.ru.md) | [Java](../../sdk-java/docs/code-style.ru.md) | [Python](../../sdk-python/docs/code-style.ru.md) | [C#](../../sdk-csharp/docs/code-style.ru.md) | [Тестирование](testing.ru.md)
 
 ## Философия
 

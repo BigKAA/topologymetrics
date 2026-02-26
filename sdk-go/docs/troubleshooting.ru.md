@@ -284,4 +284,4 @@ dh, err := dephealth.New("my-service", "my-team",
 - [Метрики](metrics.ru.md) — справочник по метрикам Prometheus и примеры PromQL
 - [Аутентификация](authentication.ru.md) — опции аутентификации для HTTP, gRPC и баз данных
 - [Селективные импорты](selective-imports.ru.md) — оптимизация импортов
-- [Краткое руководство](../../docs/quickstart/go.ru.md) — расширенные примеры
+- [Примеры](examples/) — рабочие примеры кода

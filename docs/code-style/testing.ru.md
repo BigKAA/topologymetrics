@@ -3,7 +3,7 @@
 # Code Style Guide: тестирование
 
 Этот документ описывает соглашения по тестированию для всех dephealth SDK.
-См. также: [Общие принципы](overview.ru.md) | [Java](java.ru.md) | [Go](go.ru.md) | [Python](python.ru.md) | [C#](csharp.ru.md)
+См. также: [Общие принципы](overview.ru.md) | [Go](../../sdk-go/docs/code-style.ru.md) | [Java](../../sdk-java/docs/code-style.ru.md) | [Python](../../sdk-python/docs/code-style.ru.md) | [C#](../../sdk-csharp/docs/code-style.ru.md)
 
 ## Именование тестов
 

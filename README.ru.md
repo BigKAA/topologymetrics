@@ -173,7 +173,7 @@ sdk-java/                       # Java SDK (Maven multi-module)
 sdk-csharp/                     # C# SDK (.NET 8)
 test-services/                  # Тестовые микросервисы для каждого языка
 deploy/                         # Мониторинг: Grafana, Alertmanager, VictoriaMetrics
-docs/                           # Документация (quickstart, migration, alerting, specification)
+docs/                           # Документация (миграции, алертинг, спецификация, code-style)
 plans/                          # Планы разработки
 ```
 
@@ -219,19 +219,12 @@ plans/                          # Планы разработки
 
 ## Документация
 
-### Быстрый старт
+### Документация SDK
 
-- [Go](docs/quickstart/go.ru.md)
-- [Python](docs/quickstart/python.ru.md)
-- [Java](docs/quickstart/java.ru.md)
-- [C#](docs/quickstart/csharp.ru.md)
-
-### Руководство по интеграции
-
-- [Go](docs/migration/go.ru.md)
-- [Python](docs/migration/python.ru.md)
-- [Java](docs/migration/java.ru.md)
-- [C#](docs/migration/csharp.ru.md)
+- [Go SDK](sdk-go/docs/getting-started.ru.md) — начало работы, API, примеры
+- [Python SDK](sdk-python/docs/getting-started.ru.md) — начало работы, API, примеры
+- [Java SDK](sdk-java/docs/getting-started.ru.md) — начало работы, API, примеры
+- [C# SDK](sdk-csharp/docs/getting-started.ru.md) — начало работы, API, примеры
 
 ### Алертинг и мониторинг
 

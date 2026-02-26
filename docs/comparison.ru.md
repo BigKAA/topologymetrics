@@ -117,5 +117,5 @@ HELP-строки:
 
 | | Go | Python | Java | C# |
 | --- | --- | --- | --- | --- |
-| Quickstart | [go.md](quickstart/go.ru.md) | [python.md](quickstart/python.ru.md) | [java.md](quickstart/java.ru.md) | [csharp.md](quickstart/csharp.ru.md) |
-| Migration | [go.md](migration/go.ru.md) | [python.md](migration/python.ru.md) | [java.md](migration/java.ru.md) | [csharp.md](migration/csharp.ru.md) |
+| Начало работы | [Go](../sdk-go/docs/getting-started.ru.md) | [Python](../sdk-python/docs/getting-started.ru.md) | [Java](../sdk-java/docs/getting-started.ru.md) | [C#](../sdk-csharp/docs/getting-started.ru.md) |
+| Миграция | [Go](../sdk-go/docs/migration.ru.md) | [Python](../sdk-python/docs/migration.ru.md) | [Java](../sdk-java/docs/migration.ru.md) | [C#](../sdk-csharp/docs/migration.ru.md) |

@@ -311,11 +311,11 @@ host: "redis.my-namespace.svc.cluster.local."
 
 ## Ссылки
 
-- [Быстрый старт Go SDK](quickstart/go.ru.md)
-- [Быстрый старт Java SDK](quickstart/java.ru.md)
-- [Быстрый старт Python SDK](quickstart/python.ru.md)
-- [Быстрый старт C# SDK](quickstart/csharp.ru.md)
-- [Руководство по интеграции Go SDK](migration/go.ru.md)
-- [Руководство по интеграции Java SDK](migration/java.ru.md)
-- [Руководство по интеграции Python SDK](migration/python.ru.md)
-- [Руководство по интеграции C# SDK](migration/csharp.ru.md)
+- [Документация Go SDK](../sdk-go/docs/getting-started.ru.md)
+- [Документация Java SDK](../sdk-java/docs/getting-started.ru.md)
+- [Документация Python SDK](../sdk-python/docs/getting-started.ru.md)
+- [Документация C# SDK](../sdk-csharp/docs/getting-started.ru.md)
+- [Руководство по миграции Go SDK](../sdk-go/docs/migration.ru.md)
+- [Руководство по миграции Java SDK](../sdk-java/docs/migration.ru.md)
+- [Руководство по миграции Python SDK](../sdk-python/docs/migration.ru.md)
+- [Руководство по миграции C# SDK](../sdk-csharp/docs/migration.ru.md)

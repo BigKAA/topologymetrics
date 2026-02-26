@@ -321,7 +321,7 @@ version 0.4.0.
 
 ### Breaking Changes
 
-- **Go SDK**: module path изменён с `github.com/BigKAA/topologymetrics` на `github.com/BigKAA/topologymetrics/sdk-go` — стандартный подход для Go-модулей в монорепозиториях. Требуется обновление всех import paths. API и поведение SDK не изменились. Подробнее: [руководство по миграции](docs/migration/go.ru.md#миграция-с-v02-на-v03).
+- **Go SDK**: module path изменён с `github.com/BigKAA/topologymetrics` на `github.com/BigKAA/topologymetrics/sdk-go` — стандартный подход для Go-модулей в монорепозиториях. Требуется обновление всех import paths. API и поведение SDK не изменились. Подробнее: [руководство по миграции](sdk-go/docs/migration.ru.md#миграция-с-v02-на-v03).
 
 ## [0.2.1] - 2026-02-09
 

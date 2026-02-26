@@ -117,5 +117,5 @@ Identical for all SDKs:
 
 | | Go | Python | Java | C# |
 | --- | --- | --- | --- | --- |
-| Quickstart | [go.md](quickstart/go.md) | [python.md](quickstart/python.md) | [java.md](quickstart/java.md) | [csharp.md](quickstart/csharp.md) |
-| Migration | [go.md](migration/go.md) | [python.md](migration/python.md) | [java.md](migration/java.md) | [csharp.md](migration/csharp.md) |
+| Getting Started | [Go](../sdk-go/docs/getting-started.md) | [Python](../sdk-python/docs/getting-started.md) | [Java](../sdk-java/docs/getting-started.md) | [C#](../sdk-csharp/docs/getting-started.md) |
+| Migration | [Go](../sdk-go/docs/migration.md) | [Python](../sdk-python/docs/migration.md) | [Java](../sdk-java/docs/migration.md) | [C#](../sdk-csharp/docs/migration.md) |

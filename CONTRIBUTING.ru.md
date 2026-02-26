@@ -91,7 +91,7 @@ deploy/
 ├── grafana/dashboards/     # Grafana-дашборды
 ├── alerting/               # Правила алертинга
 └── monitoring/             # Стек мониторинга (VM, Alertmanager, Grafana)
-docs/                       # Документация (quickstart, migration, comparison)
+docs/                       # Документация (миграции, алертинг, спецификация, code-style)
 plans/                      # Планы разработки
 ```
 
@@ -100,10 +100,10 @@ plans/                      # Планы разработки
 Подробные руководства по стилю кода доступны в [`docs/code-style/`](docs/code-style/overview.ru.md):
 
 - [Общие принципы](docs/code-style/overview.ru.md) — общие для всех SDK соглашения, архитектурные слои, философия обработки ошибок
-- [Java](docs/code-style/java.ru.md) — именование, JavaDoc, builder pattern, Checkstyle + SpotBugs
-- [Go](docs/code-style/go.ru.md) — именование, GoDoc, functional options, golangci-lint v2
-- [Python](docs/code-style/python.ru.md) — именование, docstrings, type hints, async/await, ruff + mypy
-- [C#](docs/code-style/csharp.ru.md) — именование, XML-doc, async/await, ConfigureAwait, dotnet format
+- [Go](sdk-go/docs/code-style.ru.md) — именование, GoDoc, functional options, golangci-lint v2
+- [Java](sdk-java/docs/code-style.ru.md) — именование, JavaDoc, builder pattern, Checkstyle + SpotBugs
+- [Python](sdk-python/docs/code-style.ru.md) — именование, docstrings, type hints, async/await, ruff + mypy
+- [C#](sdk-csharp/docs/code-style.ru.md) — именование, XML-doc, async/await, ConfigureAwait, dotnet format
 - [Тестирование](docs/code-style/testing.ru.md) — именование тестов, AAA-паттерн, мокирование, покрытие
 
 ## Workflow разработки

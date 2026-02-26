@@ -91,7 +91,7 @@ deploy/
 ├── grafana/dashboards/     # Grafana dashboards
 ├── alerting/               # Alerting rules
 └── monitoring/             # Monitoring stack (VM, Alertmanager, Grafana)
-docs/                       # Documentation (quickstart, migration, comparison)
+docs/                       # Documentation (migration, alerting, specification, code-style)
 plans/                      # Development plans
 ```
 
@@ -100,10 +100,10 @@ plans/                      # Development plans
 Detailed code style guides are available in [`docs/code-style/`](docs/code-style/overview.md):
 
 - [General Principles](docs/code-style/overview.md) — cross-SDK conventions, architecture layers, error handling philosophy
-- [Java](docs/code-style/java.md) — naming, JavaDoc, builder pattern, Checkstyle + SpotBugs
-- [Go](docs/code-style/go.md) — naming, GoDoc, functional options, golangci-lint v2
-- [Python](docs/code-style/python.md) — naming, docstrings, type hints, async/await, ruff + mypy
-- [C#](docs/code-style/csharp.md) — naming, XML-doc, async/await, ConfigureAwait, dotnet format
+- [Go](sdk-go/docs/code-style.md) — naming, GoDoc, functional options, golangci-lint v2
+- [Java](sdk-java/docs/code-style.md) — naming, JavaDoc, builder pattern, Checkstyle + SpotBugs
+- [Python](sdk-python/docs/code-style.md) — naming, docstrings, type hints, async/await, ruff + mypy
+- [C#](sdk-csharp/docs/code-style.md) — naming, XML-doc, async/await, ConfigureAwait, dotnet format
 - [Testing](docs/code-style/testing.md) — test naming, AAA pattern, mocking, coverage
 
 ## Development Workflow

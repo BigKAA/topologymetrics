@@ -278,4 +278,4 @@ Log messages include:
 - [Metrics](metrics.md) — Prometheus metrics reference and PromQL examples
 - [Authentication](authentication.md) — auth options for HTTP, gRPC, and databases
 - [Selective Imports](selective-imports.md) — import optimization
-- [Quick Start Guide](../../docs/quickstart/go.md) — extended examples
+- [Examples](examples/) — runnable code examples
