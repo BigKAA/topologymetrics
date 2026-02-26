@@ -51,6 +51,14 @@ builder.AddAmqp(name, url, critical: null, labels: null)
 
 builder.AddKafka(name, url, critical: null, labels: null)
 
+builder.AddLdap(name, host, port,
+    checkMethod: LdapCheckMethod.RootDse,
+    bindDN: "", bindPassword: "",
+    baseDN: "", searchFilter: "(objectClass=*)",
+    searchScope: LdapSearchScope.Base,
+    useTls: false, startTls: false, tlsSkipVerify: false,
+    critical: null, labels: null)
+
 builder.AddCustom(name, type, host, port, checker, critical: null, labels: null)
 ```
 
@@ -166,36 +174,48 @@ public sealed class Endpoint
 {
     public string Host { get; }
     public string Port { get; }
-    public Dictionary<string, string> Labels { get; }
+    public IReadOnlyDictionary<string, string> Labels { get; }
+
+    public int PortAsInt()
 }
 ```
 
 ### `DependencyType`
 
-Enum: `Http`, `Grpc`, `Tcp`, `Postgres`, `MySql`, `Redis`, `Amqp`, `Kafka`.
+Enum: `Http`, `Grpc`, `Tcp`, `Postgres`, `MySql`, `Redis`, `Amqp`, `Kafka`, `Ldap`.
+
+### `LdapCheckMethod`
+
+Enum (пространство имён `DepHealth.Checks`): `AnonymousBind`, `SimpleBind`, `RootDse`, `Search`.
+
+### `LdapSearchScope`
+
+Enum (пространство имён `DepHealth.Checks`): `Base`, `One`, `Sub`.
 
 ### `EndpointStatus`
 
 ```csharp
 public sealed class EndpointStatus
 {
-    public string Dependency { get; }
+    public string Name { get; }
     public string Type { get; }
     public string Host { get; }
     public string Port { get; }
     public bool? Healthy { get; }
     public string Status { get; }
     public string Detail { get; }
-    public double Latency { get; }
-    public DateTime? LastCheckedAt { get; }
+    public TimeSpan Latency { get; }
+    public double LatencyMillis { get; }
+    public DateTimeOffset? LastCheckedAt { get; }
     public bool Critical { get; }
-    public Dictionary<string, string> Labels { get; }
+    public IReadOnlyDictionary<string, string> Labels { get; }
 }
 ```
 
 Свойства:
 
-- `LatencyMillis` — задержка в миллисекундах
+- `Latency` — сырое значение `TimeSpan`; игнорируется при JSON-сериализации
+- `LatencyMillis` — задержка в миллисекундах (`Latency.TotalMilliseconds`); JSON-свойство `latency_ms`
 - JSON-сериализация использует `System.Text.Json` с именованием snake_case
 
 ### `IHealthChecker`
@@ -213,12 +233,13 @@ public interface IHealthChecker
 
 | Исключение | Описание |
 | --- | --- |
-| `DepHealthException` | Базовый класс ошибок проверки |
+| `DepHealthException` | Базовый класс всех ошибок проверки (пространство имён `DepHealth.Exceptions`) |
 | `CheckTimeoutException` | Тайм-аут проверки |
 | `ConnectionRefusedException` | Соединение отклонено |
-| `DnsException` | Ошибка DNS-разрешения |
-| `TlsException` | Ошибка TLS-рукопожатия |
-| `AuthException` | Ошибка аутентификации/авторизации |
+| `CheckDnsException` | Ошибка DNS-разрешения |
+| `CheckTlsException` | Ошибка TLS-рукопожатия |
+| `CheckAuthException` | Ошибка аутентификации/авторизации |
 | `UnhealthyException` | Эндпоинт сообщил о нездоровом статусе |
-| `ValidationException` | Ошибка валидации входных данных |
-| `EndpointNotFoundException` | Целевой эндпоинт не найден при динамическом обновлении/удалении (v0.6.0) |
+| `ValidationException` | Ошибка валидации входных данных (пространство имён `DepHealth`) |
+| `EndpointNotFoundException` | Целевой эндпоинт не найден при динамическом обновлении/удалении (v0.6.0, пространство имён `DepHealth.Exceptions`) |
+| `ConfigurationException` | Ошибка разбора URL или строки подключения (пространство имён `DepHealth`) |

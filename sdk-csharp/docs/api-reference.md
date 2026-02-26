@@ -51,6 +51,14 @@ builder.AddAmqp(name, url, critical: null, labels: null)
 
 builder.AddKafka(name, url, critical: null, labels: null)
 
+builder.AddLdap(name, host, port,
+    checkMethod: LdapCheckMethod.RootDse,
+    bindDN: "", bindPassword: "",
+    baseDN: "", searchFilter: "(objectClass=*)",
+    searchScope: LdapSearchScope.Base,
+    useTls: false, startTls: false, tlsSkipVerify: false,
+    critical: null, labels: null)
+
 builder.AddCustom(name, type, host, port, checker, critical: null, labels: null)
 ```
 
@@ -166,37 +174,47 @@ public sealed class Endpoint
 {
     public string Host { get; }
     public string Port { get; }
-    public Dictionary<string, string> Labels { get; }
+    public IReadOnlyDictionary<string, string> Labels { get; }
+
+    public int PortAsInt()
 }
 ```
 
 ### `DependencyType`
 
-Enum: `Http`, `Grpc`, `Tcp`, `Postgres`, `MySql`, `Redis`, `Amqp`, `Kafka`.
+Enum: `Http`, `Grpc`, `Tcp`, `Postgres`, `MySql`, `Redis`, `Amqp`, `Kafka`, `Ldap`.
+
+### `LdapCheckMethod`
+
+Enum (in `DepHealth.Checks` namespace): `AnonymousBind`, `SimpleBind`, `RootDse`, `Search`.
+
+### `LdapSearchScope`
+
+Enum (in `DepHealth.Checks` namespace): `Base`, `One`, `Sub`.
 
 ### `EndpointStatus`
 
 ```csharp
 public sealed class EndpointStatus
 {
-    public string Dependency { get; }
+    public string Name { get; }
     public string Type { get; }
     public string Host { get; }
     public string Port { get; }
     public bool? Healthy { get; }
     public string Status { get; }
     public string Detail { get; }
-    public double Latency { get; }
-    public DateTime? LastCheckedAt { get; }
+    public TimeSpan Latency { get; }
+    public double LatencyMillis { get; }
+    public DateTimeOffset? LastCheckedAt { get; }
     public bool Critical { get; }
-    public Dictionary<string, string> Labels { get; }
+    public IReadOnlyDictionary<string, string> Labels { get; }
 }
 ```
 
-Properties:
-
-- `LatencyMillis` — latency in milliseconds
-- JSON serialization uses `System.Text.Json` with snake_case naming
+- `Latency` — raw `TimeSpan`; ignored during JSON serialization
+- `LatencyMillis` — latency in milliseconds (`Latency.TotalMilliseconds`); JSON property `latency_ms`
+- JSON serialization uses `System.Text.Json` with snake_case property names
 
 ### `IHealthChecker`
 
@@ -213,12 +231,13 @@ public interface IHealthChecker
 
 | Exception | Description |
 | --- | --- |
-| `DepHealthException` | Base class for check failures |
+| `DepHealthException` | Base class for all check failures (namespace `DepHealth.Exceptions`) |
 | `CheckTimeoutException` | Check timed out |
 | `ConnectionRefusedException` | Connection refused |
-| `DnsException` | DNS resolution failed |
-| `TlsException` | TLS handshake failed |
-| `AuthException` | Authentication/authorization failed |
+| `CheckDnsException` | DNS resolution failed |
+| `CheckTlsException` | TLS handshake failed |
+| `CheckAuthException` | Authentication/authorization failed |
 | `UnhealthyException` | Endpoint reported unhealthy status |
-| `ValidationException` | Input validation failed |
-| `EndpointNotFoundException` | Dynamic update/remove target not found (v0.6.0) |
+| `ValidationException` | Input validation failed (namespace `DepHealth`) |
+| `EndpointNotFoundException` | Dynamic update/remove target not found (v0.6.0, namespace `DepHealth.Exceptions`) |
+| `ConfigurationException` | URL parsing or connection string error (namespace `DepHealth`) |

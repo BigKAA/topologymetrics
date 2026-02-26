@@ -297,19 +297,27 @@ Java SDK имеет минимальную документацию. Нужно 
 
 ### 4B: Markdown документация
 
-- [ ] 4B.1 Создать `sdk-csharp/docs/README.md` — обзор и навигация
-- [ ] 4B.2 Создать `sdk-csharp/docs/getting-started.md` / `.ru.md`
-- [ ] 4B.3 Обновить существующий `sdk-csharp/docs/api-reference.md` — проверить полноту
-- [ ] 4B.4 Создать `sdk-csharp/docs/configuration.md` / `.ru.md`
-- [ ] 4B.5 Создать `sdk-csharp/docs/checkers.md` / `.ru.md`
-- [ ] 4B.6 Создать `sdk-csharp/docs/aspnetcore.md` / `.ru.md`
-- [ ] 4B.7 Создать `sdk-csharp/docs/entity-framework.md` / `.ru.md`
-- [ ] 4B.8 Создать `sdk-csharp/docs/metrics.md` / `.ru.md`
-- [ ] 4B.9 Создать `sdk-csharp/docs/authentication.md` / `.ru.md`
-- [ ] 4B.10 Создать `sdk-csharp/docs/connection-pools.md` / `.ru.md`
-- [ ] 4B.11 Создать `sdk-csharp/docs/troubleshooting.md` / `.ru.md`
-- [ ] 4B.12 Перенести `docs/migration/csharp.md` + `sdk-csharp-v050-to-v060.md` → `sdk-csharp/docs/migration.md` / `.ru.md`
-- [ ] 4B.13 Перенести `docs/code-style/csharp.md` → `sdk-csharp/docs/code-style.md` / `.ru.md`
+- [x] 4B.1 Создать `sdk-csharp/docs/README.md` — обзор и навигация
+- [x] 4B.2 Создать `sdk-csharp/docs/getting-started.md` / `.ru.md`
+- [x] 4B.3 Обновить существующий `sdk-csharp/docs/api-reference.md` — проверить полноту
+  - Добавлен `AddLdap` builder method, `LdapCheckMethod` и `LdapSearchScope` enum-ы
+  - Исправлены типы: `Endpoint.Labels` → `IReadOnlyDictionary`, `EndpointStatus.LastCheckedAt` → `DateTimeOffset?`
+  - Добавлен `PortAsInt()` метод, `ConfigurationException`, исправлены имена исключений
+- [x] 4B.4 Создать `sdk-csharp/docs/configuration.md` / `.ru.md`
+- [x] 4B.5 Создать `sdk-csharp/docs/checkers.md` / `.ru.md`
+- [x] 4B.6 Создать `sdk-csharp/docs/aspnetcore.md` / `.ru.md`
+- [x] 4B.7 Создать `sdk-csharp/docs/entity-framework.md` / `.ru.md`
+- [x] 4B.8 Создать `sdk-csharp/docs/metrics.md` / `.ru.md`
+- [x] 4B.9 Создать `sdk-csharp/docs/authentication.md` / `.ru.md`
+- [x] 4B.10 Создать `sdk-csharp/docs/connection-pools.md` / `.ru.md`
+- [x] 4B.11 Создать `sdk-csharp/docs/troubleshooting.md` / `.ru.md`
+- [x] 4B.12 Перенести `docs/migration/csharp.md` + `sdk-csharp-v050-to-v060.md` → `sdk-csharp/docs/migration.md` / `.ru.md`
+  - Объединены: migration guide + v0.5→v0.6 dynamic endpoints + v0.4→v0.4.1 health_details + v0.4 status metrics + v0.1→v0.2
+  - Удаление оригиналов из `docs/` произойдёт в Фазе 5
+- [x] 4B.13 Перенести `docs/code-style/csharp.md` → `sdk-csharp/docs/code-style.md` / `.ru.md`
+  - Обновлена структура проектов (добавлен EntityFramework, LdapChecker, новые исключения)
+  - Обновлены ссылки на общие docs
+  - Удаление оригиналов из `docs/` произойдёт в Фазе 5
 
 ### 4C: Примеры
 
