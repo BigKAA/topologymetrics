@@ -108,7 +108,7 @@ plans/                      # Планы разработки
 
 ## Workflow разработки
 
-Git workflow описан в [GIT-WORKFLOW.md](GIT-WORKFLOW.ru.md):
+Git workflow описан в [GIT-WORKFLOW.md](GIT-WORKFLOW.md):
 
 - Основная ветка: `master`
 - Ветки фич: `feature/<scope>-<description>`
@@ -143,7 +143,7 @@ cd sdk-csharp && make lint   # dotnet format --verify-no-changes
 
 ### Conformance-тесты
 
-Требуют Kubernetes-кластер. Подробнее: [conformance/README.md](conformance/README.ru.md).
+Требуют Kubernetes-кластер. Подробнее: [conformance/README.md](conformance/README.md).
 
 ```bash
 # Все языки через Helm

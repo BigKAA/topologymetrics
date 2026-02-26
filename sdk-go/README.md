@@ -1,3 +1,5 @@
+*[Русская версия](README.ru.md)*
+
 # dephealth
 
 Go SDK for monitoring microservice dependencies via Prometheus metrics.

@@ -234,6 +234,12 @@ plans/                          # Планы разработки
 - [Конфигурация Alertmanager](docs/alerting/alertmanager.ru.md) — маршрутизация, receivers, шаблоны
 - [Кастомные правила](docs/alerting/custom-rules.ru.md) — написание своих правил поверх dephealth-метрик
 
+### Code Style
+
+- [Общие принципы](docs/code-style/overview.ru.md) — кросс-SDK конвенции, слои архитектуры
+- [Go](sdk-go/docs/code-style.ru.md) | [Java](sdk-java/docs/code-style.ru.md) | [Python](sdk-python/docs/code-style.ru.md) | [C#](sdk-csharp/docs/code-style.ru.md)
+- [Тестирование](docs/code-style/testing.ru.md) — именование тестов, AAA-паттерн, моки, покрытие
+
 ### Дополнительно
 
 - [Сравнение SDK](docs/comparison.ru.md) — все языки side-by-side

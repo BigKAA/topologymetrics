@@ -8,7 +8,7 @@ Language-specific guides: [Go](../../sdk-go/docs/code-style.md) | [Java](../../s
 ## Philosophy
 
 dephealth is a set of **native SDKs** — each language has its own idiomatic implementation
-unified by a common [specification](../../spec/specification.md).
+unified by a common [specification](../specification.md).
 Not a sidecar, not FFI — deep integration with each language's ecosystem.
 
 Key principles:

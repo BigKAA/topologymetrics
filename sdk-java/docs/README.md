@@ -29,7 +29,7 @@ and Spring Boot auto-configuration.
 
 ## Quick Links
 
-- [Javadoc](../dephealth-core/target/site/apidocs/) (generated via `make docs`)
+- [Javadoc](../dephealth-core/target/reports/apidocs/) (generated via `make docs`)
 - [Specification](../../spec/) — cross-SDK metric contracts and behavior
 - [Grafana Dashboards](../../docs/grafana-dashboards.md) — dashboard configuration
 - [Alert Rules](../../docs/alerting/alert-rules.md) — alerting configuration
