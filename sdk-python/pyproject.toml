@@ -72,6 +72,10 @@ line-length = 100
 select = ["E", "F", "W", "I", "N", "UP", "ANN", "B", "A", "SIM", "S"]
 ignore = []
 
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]
+"docs/examples/**" = ["S105", "S106"]
+
 [tool.ruff.lint.isort]
 known-first-party = ["dephealth", "dephealth_fastapi"]
 

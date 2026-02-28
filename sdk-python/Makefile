@@ -101,7 +101,7 @@ security:
 audit:
 	$(call remove_old,audit)
 	$(DOCKER_RUN) --name $(CN)-audit $(PY_IMAGE) \
-		sh -c '$(PIP_INSTALL) && pip-audit'
+		sh -c 'pip install -q --upgrade pip 2>/dev/null && $(PIP_INSTALL) && pip-audit'
 
 ## deadcode: поиск мёртвого кода (vulture)
 deadcode:
