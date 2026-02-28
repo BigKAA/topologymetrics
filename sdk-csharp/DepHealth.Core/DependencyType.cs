@@ -58,17 +58,17 @@ public static class DependencyTypeExtensions
     /// <summary>
     /// Resolves the dependency type from its string representation (case-insensitive).
     /// </summary>
-    public static DependencyType FromLabel(string label) => label.ToLowerInvariant() switch
+    public static DependencyType FromLabel(string label) => label.ToUpperInvariant() switch
     {
-        "http" => DependencyType.Http,
-        "grpc" => DependencyType.Grpc,
-        "tcp" => DependencyType.Tcp,
-        "postgres" => DependencyType.Postgres,
-        "mysql" => DependencyType.MySql,
-        "redis" => DependencyType.Redis,
-        "amqp" => DependencyType.Amqp,
-        "kafka" => DependencyType.Kafka,
-        "ldap" => DependencyType.Ldap,
+        "HTTP" => DependencyType.Http,
+        "GRPC" => DependencyType.Grpc,
+        "TCP" => DependencyType.Tcp,
+        "POSTGRES" => DependencyType.Postgres,
+        "MYSQL" => DependencyType.MySql,
+        "REDIS" => DependencyType.Redis,
+        "AMQP" => DependencyType.Amqp,
+        "KAFKA" => DependencyType.Kafka,
+        "LDAP" => DependencyType.Ldap,
         _ => throw new ArgumentException($"Unknown dependency type: {label}", nameof(label))
     };
 }

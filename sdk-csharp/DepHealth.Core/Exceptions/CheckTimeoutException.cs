@@ -6,6 +6,11 @@ namespace DepHealth.Exceptions;
 public class CheckTimeoutException : DepHealthException
 {
     /// <summary>
+    /// Initializes a new instance of the <see cref="CheckTimeoutException"/> class.
+    /// </summary>
+    public CheckTimeoutException() { }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="CheckTimeoutException"/> class with the specified message.
     /// </summary>
     /// <param name="message">The error message.</param>

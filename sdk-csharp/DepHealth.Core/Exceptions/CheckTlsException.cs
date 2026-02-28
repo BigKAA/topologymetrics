@@ -6,6 +6,11 @@ namespace DepHealth.Exceptions;
 public class CheckTlsException : DepHealthException
 {
     /// <summary>
+    /// Initializes a new instance of the <see cref="CheckTlsException"/> class.
+    /// </summary>
+    public CheckTlsException() { }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="CheckTlsException"/> class with the specified message.
     /// </summary>
     /// <param name="message">The error message.</param>

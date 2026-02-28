@@ -8,6 +8,14 @@ public class UnhealthyException : DepHealthException
     private readonly string _detail;
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="UnhealthyException"/> class.
+    /// </summary>
+    public UnhealthyException()
+    {
+        _detail = "unhealthy";
+    }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="UnhealthyException"/> class with the specified message.
     /// </summary>
     /// <param name="message">The error message.</param>

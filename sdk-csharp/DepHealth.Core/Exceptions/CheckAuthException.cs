@@ -6,6 +6,11 @@ namespace DepHealth.Exceptions;
 public class CheckAuthException : DepHealthException
 {
     /// <summary>
+    /// Initializes a new instance of the <see cref="CheckAuthException"/> class.
+    /// </summary>
+    public CheckAuthException() { }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="CheckAuthException"/> class with the specified message.
     /// </summary>
     /// <param name="message">The error message.</param>

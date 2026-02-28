@@ -50,7 +50,7 @@ public sealed partial class Endpoint : IEquatable<Endpoint>
     }
 
     /// <summary>Returns the port as an integer.</summary>
-    public int PortAsInt() => int.Parse(Port);
+    public int PortAsInt() => int.Parse(Port, System.Globalization.CultureInfo.InvariantCulture);
 
     /// <summary>
     /// Validates that the label name is valid: [a-zA-Z_][a-zA-Z0-9_]* and not reserved.

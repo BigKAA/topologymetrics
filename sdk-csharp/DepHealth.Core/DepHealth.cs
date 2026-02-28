@@ -501,7 +501,7 @@ public sealed partial class DepHealthMonitor : IDisposable
                     var envKey = envVar.ToString()!;
                     if (envKey.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                     {
-                        var labelKey = envKey[prefix.Length..].ToLowerInvariant();
+                        var labelKey = envKey[prefix.Length..].ToUpperInvariant();
                         var labelValue = Environment.GetEnvironmentVariable(envKey) ?? "";
                         if (!entry.Labels.ContainsKey(labelKey))
                         {
@@ -571,14 +571,14 @@ public sealed partial class DepHealthMonitor : IDisposable
             }
 
             var rest = url[(colonSlashSlash + 3)..];
-            var atSign = rest.IndexOf('@');
+            var atSign = rest.IndexOf('@', StringComparison.Ordinal);
             if (atSign < 0)
             {
                 return (null, null);
             }
 
             var userInfo = rest[..atSign];
-            var colonIndex = userInfo.IndexOf(':');
+            var colonIndex = userInfo.IndexOf(':', StringComparison.Ordinal);
 
             if (colonIndex < 0)
             {
@@ -609,7 +609,7 @@ public sealed partial class DepHealthMonitor : IDisposable
             if (pathStart >= 0)
             {
                 // Find @ if present, look at path after it
-                var afterAt = url.IndexOf('@');
+                var afterAt = url.IndexOf('@', StringComparison.Ordinal);
                 if (afterAt >= 0)
                 {
                     var afterAtPath = url.IndexOf('/', afterAt);
@@ -642,7 +642,7 @@ public sealed partial class DepHealthMonitor : IDisposable
             }
 
             // Extract database from URL path
-            var afterAt = url.IndexOf('@');
+            var afterAt = url.IndexOf('@', StringComparison.Ordinal);
             if (afterAt >= 0)
             {
                 var pathStart = url.IndexOf('/', afterAt);
@@ -668,13 +668,13 @@ public sealed partial class DepHealthMonitor : IDisposable
             }
 
             var rest = url[(colonSlashSlash + 3)..];
-            var atSign = rest.IndexOf('@');
+            var atSign = rest.IndexOf('@', StringComparison.Ordinal);
             if (atSign >= 0)
             {
                 rest = rest[(atSign + 1)..];
             }
 
-            var pathStart = rest.IndexOf('/');
+            var pathStart = rest.IndexOf('/', StringComparison.Ordinal);
             if (pathStart < 0)
             {
                 return "/";

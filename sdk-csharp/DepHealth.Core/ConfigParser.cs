@@ -55,7 +55,7 @@ public static class ConfigParser
             throw new ConfigurationException($"URL must have a scheme (e.g. http://): {rawUrl}");
         }
 
-        var scheme = rawUrl[..colonSlashSlash].ToLowerInvariant();
+        var scheme = rawUrl[..colonSlashSlash].ToUpperInvariant();
         if (!SchemeToType.TryGetValue(scheme, out var type))
         {
             throw new ConfigurationException($"Unsupported URL scheme: {scheme}");
@@ -64,23 +64,23 @@ public static class ConfigParser
         var rest = rawUrl[(colonSlashSlash + 3)..];
 
         // Strip userinfo (user:pass@)
-        var atSign = rest.IndexOf('@');
+        var atSign = rest.IndexOf('@', StringComparison.Ordinal);
         if (atSign >= 0)
         {
             rest = rest[(atSign + 1)..];
         }
 
         // Strip path/query/fragment
-        var pathStart = rest.IndexOf('/');
+        var pathStart = rest.IndexOf('/', StringComparison.Ordinal);
         var hostPortPart = pathStart >= 0 ? rest[..pathStart] : rest;
-        var queryStart = hostPortPart.IndexOf('?');
+        var queryStart = hostPortPart.IndexOf('?', StringComparison.Ordinal);
         if (queryStart >= 0)
         {
             hostPortPart = hostPortPart[..queryStart];
         }
 
         // Multi-host (Kafka): host1:port1,host2:port2
-        if (type == DependencyType.Kafka || hostPortPart.Contains(','))
+        if (type == DependencyType.Kafka || hostPortPart.Contains(',', StringComparison.Ordinal))
         {
             return ParseMultiHost(hostPortPart, scheme, type);
         }
@@ -112,7 +112,7 @@ public static class ConfigParser
             throw new ConfigurationException($"JDBC URL must contain ://: {jdbcUrl}");
         }
 
-        var subprotocol = withoutJdbc[..colonSlashSlash].ToLowerInvariant();
+        var subprotocol = withoutJdbc[..colonSlashSlash].ToUpperInvariant();
         if (!JdbcSubprotocolToType.ContainsKey(subprotocol))
         {
             throw new ConfigurationException($"Unsupported JDBC subprotocol: {subprotocol}");
@@ -141,14 +141,14 @@ public static class ConfigParser
         {
             if (HostKeys.Contains(key))
             {
-                if (value.Contains(','))
+                if (value.Contains(',', StringComparison.Ordinal))
                 {
                     // SQL Server: Server=host,port
                     var parts = value.Split(',', 2);
                     host = parts[0].Trim();
                     port ??= parts[1].Trim();
                 }
-                else if (value.Contains(':') && !value.StartsWith('['))
+                else if (value.Contains(':', StringComparison.Ordinal) && !value.StartsWith('['))
                 {
                     // host:port (but not IPv6)
                     var parts = value.Split(':', 2);
@@ -240,7 +240,7 @@ public static class ConfigParser
         // IPv6: [::1]:port
         if (hostPort.StartsWith('['))
         {
-            var closeBracket = hostPort.IndexOf(']');
+            var closeBracket = hostPort.IndexOf(']', StringComparison.Ordinal);
             if (closeBracket < 0)
             {
                 throw new ConfigurationException($"Invalid IPv6 address: {hostPort}");
@@ -306,7 +306,7 @@ public static class ConfigParser
                 continue;
             }
 
-            var eq = trimmed.IndexOf('=');
+            var eq = trimmed.IndexOf('=', StringComparison.Ordinal);
             if (eq < 0)
             {
                 continue;

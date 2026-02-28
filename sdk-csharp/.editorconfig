@@ -133,6 +133,70 @@ dotnet_diagnostic.IDE0051.severity = warning
 dotnet_diagnostic.IDE0052.severity = warning
 dotnet_diagnostic.IDE0058.severity = none
 
+# --- Analyzer rule tuning ---
+
+# CA1062: Validate arguments — C# nullable reference types handle this via Nullable=enable
+dotnet_diagnostic.CA1062.severity = none
+
+# CA1054: URI parameters should not be strings — too intrusive for builder API accepting URLs
+dotnet_diagnostic.CA1054.severity = none
+
+# CA1848: Use LoggerMessage delegates — premature optimization for this project
+dotnet_diagnostic.CA1848.severity = none
+
+# MA0048: File name must match type name — nested/companion types in same file are intentional
+dotnet_diagnostic.MA0048.severity = none
+
+# MA0051: Method too long — handled by code review, not strict line limits
+dotnet_diagnostic.MA0051.severity = none
+
+# S1133: Do not forget to remove deprecated code — tracked via backlog
+dotnet_diagnostic.S1133.severity = suggestion
+
+# MA0016: Prefer collection abstraction — Dictionary/List used intentionally for internal state
+dotnet_diagnostic.MA0016.severity = none
+
+# CA1002: Do not expose List<T> — same as MA0016
+dotnet_diagnostic.CA1002.severity = none
+
+# MA0002: IEqualityComparer on string methods — StringComparison covered by CA1307
+dotnet_diagnostic.MA0002.severity = none
+
+# MA0004/CA2007: ConfigureAwait — suppressed, fixed in critical paths only
+dotnet_diagnostic.MA0004.severity = suggestion
+dotnet_diagnostic.CA2007.severity = suggestion
+
+# MA0009: Regex DoS — patterns are internal, not user-controlled
+dotnet_diagnostic.MA0009.severity = suggestion
+
+# MA0006: Use string.Equals — covered by explicit StringComparison in critical paths
+dotnet_diagnostic.MA0006.severity = suggestion
+
+# MA0011: IFormatProvider — internal formatting, not user-facing
+dotnet_diagnostic.MA0011.severity = none
+
+# MA0039: Do not write dangerous content — false positive on internal logging
+dotnet_diagnostic.MA0039.severity = none
+
+# CA1031: Do not catch general exception — intentional in health checkers
+dotnet_diagnostic.CA1031.severity = none
+
+# CA1308: Use ToUpperInvariant — already fixed where applicable
+dotnet_diagnostic.CA1308.severity = none
+
+# CA5400/S4830: Certificate validation — intentional for custom TLS config
+dotnet_diagnostic.CA5400.severity = none
+dotnet_diagnostic.S4830.severity = none
+
+# S6667: Logging template — not applicable to this project's patterns
+dotnet_diagnostic.S6667.severity = none
+
+# S1450: Private field only used in one method — valid design choice
+dotnet_diagnostic.S1450.severity = none
+
+# CA2000: Dispose — managed by DI and ownership patterns
+dotnet_diagnostic.CA2000.severity = suggestion
+
 # --- Shared styles ---
 
 dotnet_naming_style.pascal_case_style.capitalization = pascal_case

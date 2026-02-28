@@ -1,0 +1,68 @@
+# Analyzer rules relaxed for test projects
+
+[*.cs]
+# Culture / string comparison — not relevant for test assertions
+dotnet_diagnostic.MA0074.severity = none
+dotnet_diagnostic.MA0002.severity = none
+dotnet_diagnostic.MA0006.severity = none
+dotnet_diagnostic.MA0011.severity = none
+dotnet_diagnostic.CA1307.severity = none
+dotnet_diagnostic.CA1310.severity = none
+
+# ConfigureAwait — not needed in test projects
+dotnet_diagnostic.CA2007.severity = none
+dotnet_diagnostic.MA0004.severity = none
+dotnet_diagnostic.CA1849.severity = none
+
+# Dispose — test lifecycle managed by framework
+dotnet_diagnostic.CA2000.severity = none
+
+# Thread.Sleep — acceptable in tests
+dotnet_diagnostic.S2925.severity = none
+
+# File name must match type name — test classes often grouped
+dotnet_diagnostic.MA0048.severity = none
+
+# URI parameters as strings — acceptable in tests
+dotnet_diagnostic.CA1054.severity = none
+
+# CancellationToken overload — not needed in tests
+dotnet_diagnostic.MA0061.severity = none
+
+# Internal class never instantiated — xUnit instantiates via reflection
+dotnet_diagnostic.CA1812.severity = none
+
+# IDisposable pattern — simplified in tests
+dotnet_diagnostic.CA1063.severity = none
+dotnet_diagnostic.S3881.severity = none
+
+# Duplicate method bodies — acceptable in tests for clarity
+dotnet_diagnostic.S4144.severity = none
+
+# Default parameter values — acceptable in tests
+dotnet_diagnostic.S1006.severity = none
+
+# Underscores in test method names — standard xUnit naming convention
+dotnet_diagnostic.CA1707.severity = none
+
+# Collection abstractions — not relevant in tests
+dotnet_diagnostic.MA0016.severity = none
+dotnet_diagnostic.CA1002.severity = none
+
+# Validate arguments — not needed in test helpers
+dotnet_diagnostic.CA1062.severity = none
+
+# General exception catch — acceptable in test infrastructure
+dotnet_diagnostic.CA1031.severity = none
+
+# LoggerMessage delegates — not needed in tests
+dotnet_diagnostic.CA1848.severity = none
+
+# MA0051: Method too long — tests can be verbose
+dotnet_diagnostic.MA0051.severity = none
+
+# CA2201: Exception not specific enough — acceptable in test mocks
+dotnet_diagnostic.CA2201.severity = none
+
+# CA1305: IFormatProvider for ToString — not relevant in tests
+dotnet_diagnostic.CA1305.severity = none

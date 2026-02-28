@@ -287,6 +287,7 @@ public class DepHealthMonitorTests
         using var dh = DepHealthMonitor.CreateBuilder("leaf-app", "test-group").Build();
         dh.Start();
         dh.Stop();
+        Assert.Empty(dh.Health());
     }
 
     private sealed class FakeChecker : IHealthChecker

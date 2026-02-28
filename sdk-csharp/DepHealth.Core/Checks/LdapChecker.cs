@@ -54,6 +54,9 @@ public sealed class LdapChecker : IHealthChecker
     private readonly bool _tlsSkipVerify;
     private readonly ILdapConnection? _connection;
 
+    private static readonly string[] RootDseAttributes = ["namingContexts", "subschemaSubentry"];
+    private static readonly string[] SearchAttributes = ["dn"];
+
     /// <summary>Gets the dependency type for this checker.</summary>
     public DependencyType Type => DependencyType.Ldap;
 
@@ -128,8 +131,10 @@ public sealed class LdapChecker : IHealthChecker
 
         if ((_useTls || _startTls) && _tlsSkipVerify)
         {
+#pragma warning disable CA5359 // Intentional: user explicitly opted into skipping TLS verification
             options.ConfigureRemoteCertificateValidationCallback(
                 (_, _, _, _) => true);
+#pragma warning restore CA5359
         }
 
         var conn = new LdapConnection(options);
@@ -193,10 +198,6 @@ public sealed class LdapChecker : IHealthChecker
                     break;
             }
         }
-        catch (Exceptions.DepHealthException)
-        {
-            throw;
-        }
         catch (LdapException e)
         {
             throw ClassifyLdapError(e);
@@ -208,7 +209,7 @@ public sealed class LdapChecker : IHealthChecker
         var constraints = new LdapSearchConstraints { MaxResults = 1 };
         var results = await conn.SearchAsync(
             "", LdapConnection.ScopeBase, "(objectClass=*)",
-            new[] { "namingContexts", "subschemaSubentry" }, false, constraints, ct)
+            RootDseAttributes, false, constraints, ct)
             .ConfigureAwait(false);
 
         // Consume at least one entry to verify the search succeeded.
@@ -229,7 +230,7 @@ public sealed class LdapChecker : IHealthChecker
 
         var results = await conn.SearchAsync(
             _baseDN, scope, filter,
-            new[] { "dn" }, false, constraints, ct)
+            SearchAttributes, false, constraints, ct)
             .ConfigureAwait(false);
 
         await results.HasMoreAsync(ct).ConfigureAwait(false);
@@ -335,21 +336,16 @@ public sealed class LdapChecker : IHealthChecker
         LdapCheckMethod checkMethod, string bindDN, string bindPassword,
         string baseDN, bool useTls, bool startTls)
     {
-        if (checkMethod == LdapCheckMethod.SimpleBind)
+        if (checkMethod == LdapCheckMethod.SimpleBind
+            && (string.IsNullOrEmpty(bindDN) || string.IsNullOrEmpty(bindPassword)))
         {
-            if (string.IsNullOrEmpty(bindDN) || string.IsNullOrEmpty(bindPassword))
-            {
-                throw new ValidationException(
-                    "LDAP simple_bind requires bindDN and bindPassword");
-            }
+            throw new ValidationException(
+                "LDAP simple_bind requires bindDN and bindPassword");
         }
 
-        if (checkMethod == LdapCheckMethod.Search)
+        if (checkMethod == LdapCheckMethod.Search && string.IsNullOrEmpty(baseDN))
         {
-            if (string.IsNullOrEmpty(baseDN))
-            {
-                throw new ValidationException("LDAP search requires baseDN");
-            }
+            throw new ValidationException("LDAP search requires baseDN");
         }
 
         if (startTls && useTls)

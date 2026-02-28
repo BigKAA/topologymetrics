@@ -6,6 +6,11 @@ namespace DepHealth.Exceptions;
 public class ConnectionRefusedException : DepHealthException
 {
     /// <summary>
+    /// Initializes a new instance of the <see cref="ConnectionRefusedException"/> class.
+    /// </summary>
+    public ConnectionRefusedException() { }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="ConnectionRefusedException"/> class with the specified message.
     /// </summary>
     /// <param name="message">The error message.</param>

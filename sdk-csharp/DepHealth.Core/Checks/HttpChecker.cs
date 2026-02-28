@@ -45,7 +45,7 @@ public sealed class HttpChecker : IHealthChecker
     public async Task CheckAsync(Endpoint endpoint, CancellationToken ct)
     {
         var scheme = _tlsEnabled ? "https" : "http";
-        var host = endpoint.Host.Contains(':') ? $"[{endpoint.Host}]" : endpoint.Host;
+        var host = endpoint.Host.Contains(':', StringComparison.Ordinal) ? $"[{endpoint.Host}]" : endpoint.Host;
         var uri = new Uri($"{scheme}://{host}:{endpoint.Port}{_healthPath}");
 
         var handler = new HttpClientHandler();
@@ -102,16 +102,10 @@ public sealed class HttpChecker : IHealthChecker
             methods++;
         }
 
-        if (headers is not null)
+        if (headers is not null
+            && headers.Keys.Any(key => key.Equals("Authorization", StringComparison.OrdinalIgnoreCase)))
         {
-            foreach (var key in headers.Keys)
-            {
-                if (key.Equals("Authorization", StringComparison.OrdinalIgnoreCase))
-                {
-                    methods++;
-                    break;
-                }
-            }
+            methods++;
         }
 
         if (methods > 1)
@@ -121,7 +115,7 @@ public sealed class HttpChecker : IHealthChecker
         }
     }
 
-    private static IReadOnlyDictionary<string, string> BuildResolvedHeaders(
+    private static Dictionary<string, string> BuildResolvedHeaders(
         IDictionary<string, string>? headers,
         string? bearerToken,
         string? basicAuthUsername,

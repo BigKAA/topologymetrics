@@ -37,7 +37,7 @@ public sealed class GrpcChecker : IHealthChecker
     public async Task CheckAsync(Endpoint endpoint, CancellationToken ct)
     {
         var scheme = _tlsEnabled ? "https" : "http";
-        var host = endpoint.Host.Contains(':') ? $"[{endpoint.Host}]" : endpoint.Host;
+        var host = endpoint.Host.Contains(':', StringComparison.Ordinal) ? $"[{endpoint.Host}]" : endpoint.Host;
         var address = $"{scheme}://{host}:{endpoint.Port}";
 
         using var channel = GrpcChannel.ForAddress(address, new GrpcChannelOptions
@@ -97,16 +97,10 @@ public sealed class GrpcChecker : IHealthChecker
             methods++;
         }
 
-        if (metadata is not null)
+        if (metadata is not null
+            && metadata.Keys.Any(key => key.Equals("authorization", StringComparison.OrdinalIgnoreCase)))
         {
-            foreach (var key in metadata.Keys)
-            {
-                if (key.Equals("authorization", StringComparison.OrdinalIgnoreCase))
-                {
-                    methods++;
-                    break;
-                }
-            }
+            methods++;
         }
 
         if (methods > 1)

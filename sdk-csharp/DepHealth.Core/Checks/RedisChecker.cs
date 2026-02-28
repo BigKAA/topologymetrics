@@ -115,8 +115,7 @@ public sealed class RedisChecker : IHealthChecker
             return new Exceptions.CheckAuthException("Redis auth error: " + msg, e);
         }
 
-        // StackExchange.Redis wraps SocketException in RedisConnectionException;
-        // check InnerException chain for SocketException with ConnectionRefused
+        // Check InnerException chain for SocketException with ConnectionRefused
         if (HasConnectionRefusedSocket(e))
         {
             return new Exceptions.ConnectionRefusedException("Redis connection refused: " + msg, e);

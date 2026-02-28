@@ -6,6 +6,11 @@ namespace DepHealth.Exceptions;
 public class DepHealthException : Exception
 {
     /// <summary>
+    /// Initializes a new instance of the <see cref="DepHealthException"/> class.
+    /// </summary>
+    public DepHealthException() { }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="DepHealthException"/> class with the specified message.
     /// </summary>
     /// <param name="message">The error message.</param>

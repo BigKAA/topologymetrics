@@ -24,7 +24,6 @@ public sealed class PrometheusExporter
     private readonly string _instanceName;
     private readonly string _instanceGroup;
     private readonly string[] _customLabelNames;
-    private readonly CollectorRegistry _registry;
     private readonly Gauge _healthGauge;
     private readonly Histogram _latencyHistogram;
     private readonly Gauge _statusGauge;
@@ -48,32 +47,32 @@ public sealed class PrometheusExporter
         _instanceGroup = instanceGroup;
         _customLabelNames = customLabelNames ?? [];
         Array.Sort(_customLabelNames, StringComparer.Ordinal);
-        _registry = registry ?? Metrics.DefaultRegistry;
+        var resolvedRegistry = registry ?? Metrics.DefaultRegistry;
 
         var allLabelNames = BuildLabelNames();
         var statusLabelNames = BuildLabelNamesWithExtra("status");
         var detailLabelNames = BuildLabelNamesWithExtra("detail");
 
-        _healthGauge = Metrics.WithCustomRegistry(_registry)
+        _healthGauge = Metrics.WithCustomRegistry(resolvedRegistry)
             .CreateGauge(HealthMetric, HealthDescription, new GaugeConfiguration
             {
                 LabelNames = allLabelNames
             });
 
-        _latencyHistogram = Metrics.WithCustomRegistry(_registry)
+        _latencyHistogram = Metrics.WithCustomRegistry(resolvedRegistry)
             .CreateHistogram(LatencyMetric, LatencyDescription, new HistogramConfiguration
             {
                 LabelNames = allLabelNames,
                 Buckets = LatencyBuckets
             });
 
-        _statusGauge = Metrics.WithCustomRegistry(_registry)
+        _statusGauge = Metrics.WithCustomRegistry(resolvedRegistry)
             .CreateGauge(StatusMetric, StatusDescription, new GaugeConfiguration
             {
                 LabelNames = statusLabelNames
             });
 
-        _statusDetailGauge = Metrics.WithCustomRegistry(_registry)
+        _statusDetailGauge = Metrics.WithCustomRegistry(resolvedRegistry)
             .CreateGauge(StatusDetailMetric, StatusDetailDescription, new GaugeConfiguration
             {
                 LabelNames = detailLabelNames

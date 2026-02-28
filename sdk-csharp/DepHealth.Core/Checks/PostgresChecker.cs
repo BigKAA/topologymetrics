@@ -44,10 +44,6 @@ public sealed class PostgresChecker : IHealthChecker
                 await CheckWithNewConnectionAsync(endpoint, ct).ConfigureAwait(false);
             }
         }
-        catch (Exceptions.DepHealthException)
-        {
-            throw;
-        }
         catch (PostgresException pe) when (pe.SqlState is "28000" or "28P01")
         {
             throw new Exceptions.CheckAuthException("PostgreSQL auth error: " + pe.Message, pe);
@@ -56,10 +52,16 @@ public sealed class PostgresChecker : IHealthChecker
 
     private async Task CheckWithDataSourceAsync(CancellationToken ct)
     {
-        await using var conn = await _dataSource!.OpenConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT 1";
-        await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
+        var conn = await _dataSource!.OpenConnectionAsync(ct).ConfigureAwait(false);
+        await using (conn.ConfigureAwait(false))
+        {
+            var cmd = conn.CreateCommand();
+            await using (cmd.ConfigureAwait(false))
+            {
+                cmd.CommandText = "SELECT 1";
+                await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
+            }
+        }
     }
 
     private async Task CheckWithNewConnectionAsync(Endpoint endpoint, CancellationToken ct)
@@ -67,10 +69,16 @@ public sealed class PostgresChecker : IHealthChecker
         var connStr = _connectionString ??
             $"Host={endpoint.Host};Port={endpoint.Port};Timeout=5";
 
-        await using var conn = new NpgsqlConnection(connStr);
-        await conn.OpenAsync(ct).ConfigureAwait(false);
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT 1";
-        await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
+        var conn = new NpgsqlConnection(connStr);
+        await using (conn.ConfigureAwait(false))
+        {
+            await conn.OpenAsync(ct).ConfigureAwait(false);
+            var cmd = conn.CreateCommand();
+            await using (cmd.ConfigureAwait(false))
+            {
+                cmd.CommandText = "SELECT 1";
+                await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
+            }
+        }
     }
 }

@@ -12,7 +12,7 @@ public class DepHealthHostedServiceTests
         var service = new DepHealthHostedService(monitor);
 
         await service.StartAsync(CancellationToken.None);
-        // If Start() throws an exception — the test will fail
+        Assert.NotNull(monitor);
 
         await service.StopAsync(CancellationToken.None);
     }

@@ -299,8 +299,6 @@ public class CheckSchedulerDynamicTests
         scheduler.Start();
 
         var tasks = new List<Task>();
-        var rng = new Random(42);
-
         // Concurrent adds
         for (var i = 0; i < 10; i++)
         {
@@ -356,11 +354,4 @@ public class CheckSchedulerDynamicTests
         public Task CheckAsync(Endpoint endpoint, CancellationToken ct) => Task.CompletedTask;
     }
 
-    private sealed class FailChecker : IHealthChecker
-    {
-        public DependencyType Type => DependencyType.Tcp;
-
-        public Task CheckAsync(Endpoint endpoint, CancellationToken ct) =>
-            Task.FromException(new Exception("connection refused"));
-    }
 }

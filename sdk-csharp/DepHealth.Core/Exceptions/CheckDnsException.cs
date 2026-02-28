@@ -6,6 +6,11 @@ namespace DepHealth.Exceptions;
 public class CheckDnsException : DepHealthException
 {
     /// <summary>
+    /// Initializes a new instance of the <see cref="CheckDnsException"/> class.
+    /// </summary>
+    public CheckDnsException() { }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="CheckDnsException"/> class with the specified message.
     /// </summary>
     /// <param name="message">The error message.</param>

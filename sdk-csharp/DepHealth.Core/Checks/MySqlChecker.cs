@@ -27,15 +27,17 @@ public sealed class MySqlChecker : IHealthChecker
 
         try
         {
-            await using var conn = new MySqlConnection(connStr);
-            await conn.OpenAsync(ct).ConfigureAwait(false);
-            await using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT 1";
-            await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
-        }
-        catch (Exceptions.DepHealthException)
-        {
-            throw;
+            var conn = new MySqlConnection(connStr);
+            await using (conn.ConfigureAwait(false))
+            {
+                await conn.OpenAsync(ct).ConfigureAwait(false);
+                var cmd = conn.CreateCommand();
+                await using (cmd.ConfigureAwait(false))
+                {
+                    cmd.CommandText = "SELECT 1";
+                    await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
+                }
+            }
         }
         catch (MySqlException me) when (me.ErrorCode == MySqlErrorCode.AccessDenied)
         {
