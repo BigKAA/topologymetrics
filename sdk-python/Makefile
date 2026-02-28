@@ -57,7 +57,7 @@ DOCKER_RUN = docker run --rm \
 # Установка пакета с dev-зависимостями
 PIP_INSTALL = pip install -q -e ".[dev]" 2>/dev/null
 
-.PHONY: build test test-coverage lint fmt docs publish image push image-conformance push-conformance pull clean help
+.PHONY: build test test-coverage lint fmt security audit deadcode check-all docs publish image push image-conformance push-conformance pull clean help
 
 ## build: сборка пакета (sdist + wheel)
 build:
@@ -90,6 +90,27 @@ lint:
 	$(call remove_old,lint)
 	$(DOCKER_RUN) --name $(CN)-lint $(PY_IMAGE) \
 		sh -c '$(PIP_INSTALL) && ruff check . && ruff format --check . && mypy dephealth/ dephealth_fastapi/ --strict'
+
+## security: проверка безопасности кода (Bandit rules через Ruff)
+security:
+	$(call remove_old,security)
+	$(DOCKER_RUN) --name $(CN)-security $(PY_IMAGE) \
+		sh -c '$(PIP_INSTALL) && ruff check --select S dephealth/ dephealth_fastapi/'
+
+## audit: проверка зависимостей на уязвимости (pip-audit)
+audit:
+	$(call remove_old,audit)
+	$(DOCKER_RUN) --name $(CN)-audit $(PY_IMAGE) \
+		sh -c '$(PIP_INSTALL) && pip-audit'
+
+## deadcode: поиск мёртвого кода (vulture)
+deadcode:
+	$(call remove_old,deadcode)
+	$(DOCKER_RUN) --name $(CN)-deadcode $(PY_IMAGE) \
+		sh -c '$(PIP_INSTALL) && vulture dephealth/ dephealth_fastapi/ --min-confidence 80'
+
+## check-all: все проверки (lint + security + audit + deadcode)
+check-all: lint audit deadcode
 
 ## fmt: автоформатирование кода
 fmt:

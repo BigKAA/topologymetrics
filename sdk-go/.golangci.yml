@@ -15,6 +15,7 @@ linters:
     - unconvert
     - unparam
     - prealloc
+    - gosec
 
 formatters:
   enable:

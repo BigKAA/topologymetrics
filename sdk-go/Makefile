@@ -6,6 +6,10 @@
 #   make test           — запуск тестов
 #   make test-coverage  — тесты с покрытием
 #   make lint           — golangci-lint
+#   make security       — проверка безопасности (gosec)
+#   make audit          — проверка зависимостей на CVE (govulncheck)
+#   make deadcode       — поиск мёртвого кода
+#   make check-all      — lint + audit + deadcode
 #   make fmt            — goimports + gofmt
 #   make build          — компиляция пакетов
 #   make image          — сборка Docker-образа тестового сервиса
@@ -55,7 +59,7 @@ DOCKER_RUN = docker run --rm \
 	-w /workspace/sdk-go \
 	-e GOFLAGS=-buildvcs=false
 
-.PHONY: build test test-coverage lint fmt image push pull clean help
+.PHONY: build test test-coverage lint fmt security audit deadcode check-all image push pull clean help
 
 ## build: компиляция всех пакетов SDK
 build:
@@ -83,6 +87,32 @@ lint:
 		-e GOFLAGS=-buildvcs=false \
 		$(LINT_IMAGE) \
 		golangci-lint run -v ./...
+
+## security: проверка безопасности кода (gosec, через golangci-lint)
+security:
+	$(call remove_old,security)
+	docker run --rm --name $(CN)-security \
+		-v $(PROJECT_ROOT):/workspace \
+		-v $(CACHE_VOLUME)-lint:/root/.cache \
+		-w /workspace/sdk-go \
+		-e GOFLAGS=-buildvcs=false \
+		$(LINT_IMAGE) \
+		golangci-lint run -v --enable-only gosec ./...
+
+## audit: проверка зависимостей на уязвимости (govulncheck)
+audit:
+	$(call remove_old,audit)
+	$(DOCKER_RUN) --name $(CN)-audit $(GO_IMAGE) \
+		sh -c 'go install golang.org/x/vuln/cmd/govulncheck@latest && govulncheck ./...'
+
+## deadcode: поиск мёртвого кода (deadcode)
+deadcode:
+	$(call remove_old,deadcode)
+	$(DOCKER_RUN) --name $(CN)-deadcode $(GO_IMAGE) \
+		sh -c 'go install golang.org/x/tools/cmd/deadcode@latest && deadcode -test ./...'
+
+## check-all: все проверки (lint + security + audit + deadcode)
+check-all: lint audit deadcode
 
 ## fmt: форматирование кода (goimports + gofmt)
 fmt:

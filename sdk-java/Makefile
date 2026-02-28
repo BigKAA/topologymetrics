@@ -1,4 +1,4 @@
-.PHONY: build test test-coverage lint fmt docs publish image push image-conformance push-conformance pull clean help
+.PHONY: build test test-coverage lint fmt security audit check-all docs publish image push image-conformance push-conformance pull clean help
 
 ## Конфигурация
 -include ../.env
@@ -45,6 +45,17 @@ test-coverage:
 ## lint: Статический анализ (Checkstyle + SpotBugs)
 lint:
 	$(DOCKER_RUN) mvn compile checkstyle:check spotbugs:check
+
+## security: Проверка безопасности кода (SpotBugs + Find Security Bugs)
+security:
+	$(DOCKER_RUN) mvn compile spotbugs:check
+
+## audit: Проверка зависимостей на уязвимости (OWASP Dependency-Check)
+audit:
+	$(DOCKER_RUN) mvn org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=7
+
+## check-all: Все проверки (lint + audit)
+check-all: lint audit
 
 ## fmt: Проверка форматирования (Checkstyle)
 fmt:

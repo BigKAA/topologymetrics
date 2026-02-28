@@ -6,6 +6,8 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <LangVersion>12</LangVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-all</AnalysisLevel>
 
     <!-- Package metadata -->
     <Version>0.8.0</Version>
@@ -18,4 +20,10 @@
     <RepositoryType>git</RepositoryType>
     <PackageTags>monitoring;prometheus;microservices;health-check;dependency</PackageTags>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Roslynator.Analyzers" Version="4.12.9" PrivateAssets="all" />
+    <PackageReference Include="Meziantou.Analyzer" Version="2.0.182" PrivateAssets="all" />
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="10.4.0.108396" PrivateAssets="all" />
+  </ItemGroup>
 </Project>

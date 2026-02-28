@@ -1,0 +1,61 @@
+name: CI Java SDK
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'sdk-java/**'
+      - '.github/workflows/ci-java.yml'
+  pull_request:
+    paths:
+      - 'sdk-java/**'
+      - '.github/workflows/ci-java.yml'
+
+jobs:
+  build-and-lint:
+    name: Build & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Compile
+        working-directory: sdk-java
+        run: mvn compile -q
+      - name: Checkstyle
+        working-directory: sdk-java
+        run: mvn checkstyle:check
+      - name: SpotBugs + Find Security Bugs
+        working-directory: sdk-java
+        run: mvn spotbugs:check
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Run tests
+        working-directory: sdk-java
+        run: mvn test
+
+  audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: OWASP Dependency-Check
+        working-directory: sdk-java
+        run: mvn org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=7

@@ -1,0 +1,67 @@
+name: CI Python SDK
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'sdk-python/**'
+      - '.github/workflows/ci-python.yml'
+  pull_request:
+    paths:
+      - 'sdk-python/**'
+      - '.github/workflows/ci-python.yml'
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        working-directory: sdk-python
+        run: pip install -e ".[dev]"
+      - name: Ruff check
+        working-directory: sdk-python
+        run: ruff check .
+      - name: Ruff format check
+        working-directory: sdk-python
+        run: ruff format --check .
+      - name: MyPy
+        working-directory: sdk-python
+        run: mypy dephealth/ dephealth_fastapi/ --strict
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        working-directory: sdk-python
+        run: pip install -e ".[dev]"
+      - name: Run tests
+        working-directory: sdk-python
+        run: pytest --cov=dephealth --cov-report=term-missing --tb=short
+
+  audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        working-directory: sdk-python
+        run: pip install -e ".[dev]"
+      - name: pip-audit
+        working-directory: sdk-python
+        run: pip-audit

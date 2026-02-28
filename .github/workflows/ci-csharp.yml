@@ -1,0 +1,65 @@
+name: CI C# SDK
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'sdk-csharp/**'
+      - '.github/workflows/ci-csharp.yml'
+  pull_request:
+    paths:
+      - 'sdk-csharp/**'
+      - '.github/workflows/ci-csharp.yml'
+
+jobs:
+  build-and-lint:
+    name: Build & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore
+        working-directory: sdk-csharp
+        run: dotnet restore
+      - name: Format check
+        working-directory: sdk-csharp
+        run: dotnet format --verify-no-changes --verbosity minimal
+      - name: Build with analyzers
+        working-directory: sdk-csharp
+        run: dotnet build --no-restore --verbosity minimal /p:TreatWarningsAsErrors=true
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore
+        working-directory: sdk-csharp
+        run: dotnet restore
+      - name: Run tests
+        working-directory: sdk-csharp
+        run: dotnet test --no-restore --verbosity minimal --collect:"XPlat Code Coverage"
+
+  audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Check vulnerable packages
+        working-directory: sdk-csharp
+        run: |
+          dotnet restore
+          OUTPUT=$(dotnet list package --vulnerable --include-transitive 2>&1)
+          echo "$OUTPUT"
+          if echo "$OUTPUT" | grep -q "has the following vulnerable packages"; then
+            echo "::error::Vulnerable packages found!"
+            exit 1
+          fi

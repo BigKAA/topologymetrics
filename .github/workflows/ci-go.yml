@@ -1,0 +1,55 @@
+name: CI Go SDK
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'sdk-go/**'
+      - '.github/workflows/ci-go.yml'
+  pull_request:
+    paths:
+      - 'sdk-go/**'
+      - '.github/workflows/ci-go.yml'
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: sdk-go/go.mod
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: v2.8.0
+          working-directory: sdk-go
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: sdk-go/go.mod
+      - name: Run tests
+        working-directory: sdk-go
+        run: go test -race -count=1 -coverprofile=coverage.out ./...
+      - name: Coverage summary
+        working-directory: sdk-go
+        run: go tool cover -func=coverage.out
+
+  audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: sdk-go/go.mod
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - name: Run govulncheck
+        working-directory: sdk-go
+        run: govulncheck ./...

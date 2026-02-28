@@ -128,6 +128,11 @@ dotnet_naming_rule.namespace_should_be_pascal_case.style = pascal_case_style
 dotnet_naming_symbols.namespace_symbols.applicable_kinds = namespace
 dotnet_naming_symbols.namespace_symbols.applicable_accessibilities = *
 
+# --- Dead code / unused members ---
+dotnet_diagnostic.IDE0051.severity = warning
+dotnet_diagnostic.IDE0052.severity = warning
+dotnet_diagnostic.IDE0058.severity = none
+
 # --- Shared styles ---
 
 dotnet_naming_style.pascal_case_style.capitalization = pascal_case

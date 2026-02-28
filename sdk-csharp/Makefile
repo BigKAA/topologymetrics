@@ -1,4 +1,4 @@
-.PHONY: build test test-coverage lint fmt docs image push image-conformance push-conformance pull clean help
+.PHONY: build test test-coverage lint fmt security audit check-all docs image push image-conformance push-conformance pull clean help
 
 ## Конфигурация
 -include ../.env
@@ -45,6 +45,17 @@ test-coverage:
 ## lint: Проверка форматирования (dotnet format)
 lint:
 	$(DOCKER_RUN) dotnet format --verify-no-changes --verbosity minimal
+
+## security: Проверка безопасности (Roslyn analyzers при сборке)
+security:
+	$(DOCKER_RUN) dotnet build --verbosity minimal /p:TreatWarningsAsErrors=true
+
+## audit: Проверка зависимостей на уязвимости
+audit:
+	$(DOCKER_RUN) dotnet list package --vulnerable --include-transitive
+
+## check-all: Все проверки (lint + security + audit)
+check-all: lint security audit
 
 ## fmt: Автоформатирование кода
 fmt:
