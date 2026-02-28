@@ -10,7 +10,7 @@ PUSH_REGISTRY  ?=
 IMAGE_NAME ?= dephealth-test-java
 IMAGE_TAG ?= latest
 CONFORMANCE_IMAGE_NAME ?= dephealth-conformance-java
-CACHE_VOLUME ?= dephealth-java-cache
+M2_DIR ?= $(HOME)/.m2
 
 MAVEN_IMAGE   ?= $(IMAGE_REGISTRY)/maven:3.9-eclipse-temurin-$(JAVA_VERSION)
 RUNTIME_IMAGE ?= $(IMAGE_REGISTRY)/eclipse-temurin:$(JAVA_VERSION)-jre-alpine
@@ -26,7 +26,7 @@ endif
 
 DOCKER_RUN = docker run --rm \
 	-v $(PROJECT_ROOT):/workspace \
-	-v $(CACHE_VOLUME):/root/.m2 \
+	-v $(M2_DIR):/root/.m2 \
 	-w /workspace/sdk-java \
 	$(MAVEN_IMAGE)
 
@@ -69,8 +69,7 @@ docs:
 publish:
 	docker run --rm --network=host \
 		-v $(PROJECT_ROOT):/workspace \
-		-v $(CACHE_VOLUME):/root/.m2/repository \
-		-v $(HOME)/.m2/settings.xml:/root/.m2/settings.xml:ro \
+		-v $(M2_DIR):/root/.m2 \
 		-v $(HOME)/.gnupg:/host-gnupg:ro \
 		-w /workspace/sdk-java \
 		$(MAVEN_IMAGE) \
@@ -111,9 +110,9 @@ pull:
 	docker pull $(MAVEN_IMAGE)
 	docker pull $(RUNTIME_IMAGE)
 
-## clean: Очистка кешей (Docker volume)
+## clean: Очистка кеша Maven (локальный ~/.m2/repository)
 clean:
-	docker volume rm -f $(CACHE_VOLUME)
+	rm -rf $(M2_DIR)/repository
 
 ## help: Список доступных целей
 help:

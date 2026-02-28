@@ -3,6 +3,7 @@ package biz.kryukov.dev.dephealth.checks;
 import biz.kryukov.dev.dephealth.DependencyType;
 import biz.kryukov.dev.dephealth.Endpoint;
 import biz.kryukov.dev.dephealth.HealthChecker;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -14,6 +15,8 @@ import java.time.Duration;
 public final class TcpHealthChecker implements HealthChecker {
 
     @Override
+    @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET",
+            justification = "TCP checker tests raw connectivity, not encrypted communication")
     public void check(Endpoint endpoint, Duration timeout) throws Exception {
         int timeoutMs = (int) timeout.toMillis();
         try (Socket socket = new Socket()) {

@@ -5,10 +5,12 @@ import biz.kryukov.dev.dephealth.DependencyType;
 import biz.kryukov.dev.dephealth.Endpoint;
 import biz.kryukov.dev.dephealth.HealthChecker;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.Statement;
+import java.sql.PreparedStatement;
 import java.time.Duration;
 
 /**
@@ -43,25 +45,29 @@ public final class PostgresHealthChecker implements HealthChecker {
         }
     }
 
+    @SuppressFBWarnings(value = "SQL_INJECTION_JDBC",
+            justification = "Query is a configurable health check statement, not user input")
     private void checkWithDataSource(int timeoutSec) throws Exception {
         try (Connection conn = dataSource.getConnection();
-             Statement stmt = conn.createStatement()) {
+             PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setQueryTimeout(timeoutSec);
-            stmt.execute(query);
+            stmt.execute();
         } catch (java.sql.SQLException e) {
             throw classifyPostgresError(e);
         }
     }
 
+    @SuppressFBWarnings(value = "SQL_INJECTION_JDBC",
+            justification = "Query is a configurable health check statement, not user input")
     private void checkStandalone(Endpoint endpoint, int timeoutSec) throws Exception {
         String db = database != null ? database : "";
         String url = "jdbc:postgresql://" + endpoint.host() + ":" + endpoint.port() + "/" + db;
 
         DriverManager.setLoginTimeout(timeoutSec);
         try (Connection conn = DriverManager.getConnection(url, username, password);
-             Statement stmt = conn.createStatement()) {
+             PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setQueryTimeout(timeoutSec);
-            stmt.execute(query);
+            stmt.execute();
         } catch (java.sql.SQLException e) {
             throw classifyPostgresError(e);
         }

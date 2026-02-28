@@ -1,5 +1,7 @@
 package biz.kryukov.dev.dephealth.checks;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
@@ -24,6 +26,8 @@ final class InsecureSslContext {
         }
     }
 
+    @SuppressFBWarnings(value = "WEAK_TRUST_MANAGER",
+            justification = "Intentional for tlsSkipVerify option")
     private static final class TrustAllManager implements X509TrustManager {
         @Override
         public void checkClientTrusted(X509Certificate[] chain, String authType) {
