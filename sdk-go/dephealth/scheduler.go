@@ -9,10 +9,12 @@ import (
 	"time"
 )
 
-// Sentinel errors for the scheduler.
 var (
-	ErrAlreadyStarted   = errors.New("scheduler already started")
-	ErrNotStarted       = errors.New("scheduler not started")
+	// ErrAlreadyStarted is returned when Start is called on a running scheduler.
+	ErrAlreadyStarted = errors.New("scheduler already started")
+	// ErrNotStarted is returned when an operation requires a started scheduler.
+	ErrNotStarted = errors.New("scheduler not started")
+	// ErrEndpointNotFound is returned when the specified endpoint does not exist.
 	ErrEndpointNotFound = errors.New("endpoint not found")
 )
 
@@ -122,6 +124,7 @@ func (s *Scheduler) Start(ctx context.Context) error {
 	ctx, s.cancel = context.WithCancel(ctx)
 	s.ctx = ctx
 
+	// Launch a check goroutine per endpoint, keyed as "name:host:port".
 	s.states = make(map[string]*endpointState)
 	for _, sd := range s.deps {
 		critical := sd.dep.Critical != nil && *sd.dep.Critical
@@ -344,13 +347,14 @@ func (s *Scheduler) executeCheck(
 	}
 
 	if checkErr != nil {
-		// Failed check.
+		// Failed check: reset success counter, increment failure counter.
 		state.consecutiveSuccesses = 0
 		state.consecutiveFailures++
 
 		s.logger.LogAttrs(ctx, slog.LevelWarn, "dephealth: check failed",
 			append(logAttrs, slog.String("error", checkErr.Error()))...)
 
+		// Apply failure threshold before transitioning state.
 		if state.healthy != nil && *state.healthy &&
 			state.consecutiveFailures >= dep.Config.FailureThreshold {
 			// Transition HEALTHY -> UNHEALTHY.
@@ -364,10 +368,11 @@ func (s *Scheduler) executeCheck(
 			s.metrics.SetHealth(dep, ep, 0)
 		}
 	} else {
-		// Successful check.
+		// Successful check: reset failure counter, increment success counter.
 		state.consecutiveFailures = 0
 		state.consecutiveSuccesses++
 
+		// Apply success threshold before transitioning state.
 		if state.healthy != nil && !*state.healthy &&
 			state.consecutiveSuccesses >= dep.Config.SuccessThreshold {
 			// Transition UNHEALTHY -> HEALTHY.

@@ -110,7 +110,7 @@ func NewMetricsExporter(instanceName string, instanceGroup string, opts ...Metri
 		Buckets: defaultLatencyBuckets,
 	}, allLabels)
 
-	// Status metric labels: base labels + "status".
+	// Status metric uses an enum pattern: base labels + "status" dimension.
 	statusLabels := make([]string, len(allLabels), len(allLabels)+1)
 	copy(statusLabels, allLabels)
 	statusLabels = append(statusLabels, "status")
@@ -120,7 +120,7 @@ func NewMetricsExporter(instanceName string, instanceGroup string, opts ...Metri
 		Help: statusHelp,
 	}, statusLabels)
 
-	// Status detail metric labels: base labels + "detail".
+	// Status detail metric uses an info pattern: base labels + "detail" dimension.
 	detailLabels := make([]string, len(allLabels), len(allLabels)+1)
 	copy(detailLabels, allLabels)
 	detailLabels = append(detailLabels, "detail")
@@ -162,6 +162,7 @@ func (m *MetricsExporter) ObserveLatency(dep Dependency, ep Endpoint, duration t
 // SetStatus updates the app_dependency_status enum gauge.
 // Exactly one of the 8 status values is set to 1, the rest to 0.
 func (m *MetricsExporter) SetStatus(dep Dependency, ep Endpoint, category StatusCategory) {
+	// Enum pattern: set matching category to 1, all others to 0.
 	base := m.labels(dep, ep)
 	for _, s := range AllStatusCategories {
 		labels := copyLabels(base)
@@ -273,6 +274,7 @@ type InvalidLabelError struct {
 	Label string
 }
 
+// Error returns the error message describing the invalid label.
 func (e *InvalidLabelError) Error() string {
 	return "invalid label name: " + e.Label
 }

@@ -5,11 +5,13 @@ import (
 	"errors"
 )
 
-// Sentinel errors for health check failures.
 var (
-	ErrTimeout           = errors.New("health check timeout")
+	// ErrTimeout indicates that a health check exceeded its deadline.
+	ErrTimeout = errors.New("health check timeout")
+	// ErrConnectionRefused indicates that the connection to the dependency was refused.
 	ErrConnectionRefused = errors.New("connection refused")
-	ErrUnhealthy         = errors.New("dependency unhealthy")
+	// ErrUnhealthy indicates that the dependency reported an unhealthy status.
+	ErrUnhealthy = errors.New("dependency unhealthy")
 )
 
 // HealthChecker is the interface for dependency health checks.

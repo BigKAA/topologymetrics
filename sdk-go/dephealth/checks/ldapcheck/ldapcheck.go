@@ -31,19 +31,26 @@ func init() {
 type CheckMethod string
 
 const (
+	// MethodAnonymousBind performs an unauthenticated LDAP bind.
 	MethodAnonymousBind CheckMethod = "anonymous_bind"
-	MethodSimpleBind    CheckMethod = "simple_bind"
-	MethodRootDSE       CheckMethod = "root_dse"
-	MethodSearch        CheckMethod = "search"
+	// MethodSimpleBind performs a simple bind with DN and password.
+	MethodSimpleBind CheckMethod = "simple_bind"
+	// MethodRootDSE queries the Root DSE entry (default method).
+	MethodRootDSE CheckMethod = "root_dse"
+	// MethodSearch performs an LDAP search with the configured filter and scope.
+	MethodSearch CheckMethod = "search"
 )
 
 // SearchScope represents the LDAP search scope.
 type SearchScope int
 
 const (
+	// ScopeBase searches only the base object.
 	ScopeBase SearchScope = ldap.ScopeBaseObject
-	ScopeOne  SearchScope = ldap.ScopeSingleLevel
-	ScopeSub  SearchScope = ldap.ScopeWholeSubtree
+	// ScopeOne searches one level below the base DN.
+	ScopeOne SearchScope = ldap.ScopeSingleLevel
+	// ScopeSub searches the entire subtree below the base DN.
+	ScopeSub SearchScope = ldap.ScopeWholeSubtree
 )
 
 // Option configures the Checker.

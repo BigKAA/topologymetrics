@@ -67,7 +67,8 @@ func classifyError(err error) CheckResult {
 	if errors.As(err, &certErr) {
 		return CheckResult{Category: StatusTLSError, Detail: "tls_error"}
 	}
-	// Also detect TLS errors by common error message patterns.
+	// Fallback: detect TLS errors by common error message patterns
+	// when the error type is not a concrete *tls.CertificateVerificationError.
 	if isTLSError(err) {
 		return CheckResult{Category: StatusTLSError, Detail: "tls_error"}
 	}

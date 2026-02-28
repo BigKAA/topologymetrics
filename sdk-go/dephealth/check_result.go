@@ -5,23 +5,30 @@ package dephealth
 // and the app_dependency_status metric.
 type StatusCategory string
 
-// Status category constants used for app_dependency_status metric
-// and the HealthDetails() API.
 const (
-	StatusOK              StatusCategory = "ok"
-	StatusTimeout         StatusCategory = "timeout"
+	// StatusOK means the health check succeeded.
+	StatusOK StatusCategory = "ok"
+	// StatusTimeout means the health check exceeded its deadline.
+	StatusTimeout StatusCategory = "timeout"
+	// StatusConnectionError means the connection to the dependency failed.
 	StatusConnectionError StatusCategory = "connection_error"
-	StatusDNSError        StatusCategory = "dns_error"
-	StatusAuthError       StatusCategory = "auth_error"
-	StatusTLSError        StatusCategory = "tls_error"
-	StatusUnhealthy       StatusCategory = "unhealthy"
-	StatusError           StatusCategory = "error"
-	StatusUnknown         StatusCategory = "unknown"
+	// StatusDNSError means DNS resolution failed for the dependency host.
+	StatusDNSError StatusCategory = "dns_error"
+	// StatusAuthError means authentication with the dependency failed.
+	StatusAuthError StatusCategory = "auth_error"
+	// StatusTLSError means a TLS handshake or certificate error occurred.
+	StatusTLSError StatusCategory = "tls_error"
+	// StatusUnhealthy means the dependency responded but reported unhealthy status.
+	StatusUnhealthy StatusCategory = "unhealthy"
+	// StatusError means an unclassified error occurred during the health check.
+	StatusError StatusCategory = "error"
+	// StatusUnknown is used only for HealthDetails API before the first check completes.
+	StatusUnknown StatusCategory = "unknown"
 )
 
-// AllStatusCategories contains all possible status category values
-// used for metrics (excludes StatusUnknown which is only for HealthDetails API).
-// Used to initialize all 8 series of the enum-pattern gauge.
+// AllStatusCategories contains the 8 status categories used for the
+// app_dependency_status enum-pattern gauge. StatusUnknown is excluded
+// as it is only used for the HealthDetails API.
 var AllStatusCategories = []StatusCategory{
 	StatusOK,
 	StatusTimeout,
@@ -56,6 +63,7 @@ type ClassifiedCheckError struct {
 	Cause    error
 }
 
+// Error returns the error message, delegating to Cause if present.
 func (e *ClassifiedCheckError) Error() string {
 	if e.Cause != nil {
 		return e.Cause.Error()
@@ -63,6 +71,7 @@ func (e *ClassifiedCheckError) Error() string {
 	return e.Detail
 }
 
+// Unwrap returns the underlying cause for use with errors.Is/As.
 func (e *ClassifiedCheckError) Unwrap() error {
 	return e.Cause
 }

@@ -13,15 +13,24 @@ import (
 type DependencyType string
 
 const (
-	TypeHTTP     DependencyType = "http"
-	TypeGRPC     DependencyType = "grpc"
-	TypeTCP      DependencyType = "tcp"
+	// TypeHTTP represents an HTTP dependency.
+	TypeHTTP DependencyType = "http"
+	// TypeGRPC represents a gRPC dependency.
+	TypeGRPC DependencyType = "grpc"
+	// TypeTCP represents a plain TCP dependency.
+	TypeTCP DependencyType = "tcp"
+	// TypePostgres represents a PostgreSQL dependency.
 	TypePostgres DependencyType = "postgres"
-	TypeMySQL    DependencyType = "mysql"
-	TypeRedis    DependencyType = "redis"
-	TypeAMQP     DependencyType = "amqp"
-	TypeKafka    DependencyType = "kafka"
-	TypeLDAP     DependencyType = "ldap"
+	// TypeMySQL represents a MySQL dependency.
+	TypeMySQL DependencyType = "mysql"
+	// TypeRedis represents a Redis dependency.
+	TypeRedis DependencyType = "redis"
+	// TypeAMQP represents an AMQP (RabbitMQ) dependency.
+	TypeAMQP DependencyType = "amqp"
+	// TypeKafka represents a Kafka dependency.
+	TypeKafka DependencyType = "kafka"
+	// TypeLDAP represents an LDAP dependency.
+	TypeLDAP DependencyType = "ldap"
 )
 
 // ValidTypes contains all valid dependency types.
@@ -37,22 +46,35 @@ var ValidTypes = map[DependencyType]bool{
 	TypeLDAP:     true,
 }
 
-// Default values from specification.
+// Default and boundary values for health check scheduling (from specification).
 const (
-	DefaultCheckInterval    = 15 * time.Second
-	DefaultTimeout          = 5 * time.Second
-	DefaultInitialDelay     = 5 * time.Second
+	// DefaultCheckInterval is the default interval between health checks.
+	DefaultCheckInterval = 15 * time.Second
+	// DefaultTimeout is the default timeout for a single health check.
+	DefaultTimeout = 5 * time.Second
+	// DefaultInitialDelay is the default delay before the first check.
+	DefaultInitialDelay = 5 * time.Second
+	// DefaultFailureThreshold is the default number of consecutive failures before marking unhealthy.
 	DefaultFailureThreshold = 1
+	// DefaultSuccessThreshold is the default number of consecutive successes before marking healthy.
 	DefaultSuccessThreshold = 1
 
+	// MinCheckInterval is the minimum allowed check interval.
 	MinCheckInterval = 1 * time.Second
+	// MaxCheckInterval is the maximum allowed check interval.
 	MaxCheckInterval = 10 * time.Minute
-	MinTimeout       = 100 * time.Millisecond
-	MaxTimeout       = 30 * time.Second
-	MinInitialDelay  = 0
-	MaxInitialDelay  = 5 * time.Minute
-	MinThreshold     = 1
-	MaxThreshold     = 10
+	// MinTimeout is the minimum allowed check timeout.
+	MinTimeout = 100 * time.Millisecond
+	// MaxTimeout is the maximum allowed check timeout.
+	MaxTimeout = 30 * time.Second
+	// MinInitialDelay is the minimum allowed initial delay.
+	MinInitialDelay = 0
+	// MaxInitialDelay is the maximum allowed initial delay.
+	MaxInitialDelay = 5 * time.Minute
+	// MinThreshold is the minimum allowed threshold value.
+	MinThreshold = 1
+	// MaxThreshold is the maximum allowed threshold value.
+	MaxThreshold = 10
 )
 
 // namePattern validates dependency names: lowercase letters, digits, hyphens.
