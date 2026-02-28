@@ -104,6 +104,12 @@ RabbitMQ, Kafka, HTTP/gRPC-заглушки, 389ds LDAP) и все 4 тесто�
 | `labels` | Обязательные метки (name, dependency, type, host, port, critical), status enum полнота, detail валидность |
 | `timeout` | Поведение при таймауте: status=timeout, detail=timeout |
 | `initial-state` | Начальное состояние, health/status consistency |
+| `group-label` | Корректность метки group |
+| `health-details` | HealthDetails() возвращает корректные данные endpoint-ов |
+| `auth-http-bearer` | HTTP-аутентификация по bearer-токену |
+| `auth-http-basic` | HTTP basic-аутентификация |
+| `auth-http-header` | HTTP-аутентификация через пользовательский заголовок |
+| `auth-grpc` | gRPC-аутентификация |
 | `ldap-basic` | LDAP: rootdse, bind, search — healthy; invalid-auth — auth\_error |
 | `ldap-failure` | LDAP сервер недоступен — connection\_error |
 | `ldap-recovery` | LDAP восстановление после сбоя |

@@ -80,7 +80,7 @@ helm install dephealth-infra deploy/helm/dephealth-infra/ \
 
 ```text
 spec/                       # Metric, behavior, and config specification
-conformance/                # Conformance tests (8 scenarios × 4 languages)
+conformance/                # Conformance tests (17 scenarios × 4 languages)
 sdk-go/                     # Go SDK (dephealth/)
 sdk-python/                 # Python SDK (dephealth/, dephealth_fastapi/)
 sdk-java/                   # Java SDK (Maven multi-module)

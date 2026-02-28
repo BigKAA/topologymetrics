@@ -3,7 +3,7 @@
 # Сравнение SDK по языкам
 
 Все четыре SDK реализуют единую [спецификацию](specification.ru.md)
-и проходят идентичные conformance-тесты (8 сценариев).
+и проходят идентичные conformance-тесты (17 сценариев).
 
 ## Возможности
 
@@ -14,7 +14,7 @@
 | Метрики | prometheus/client_golang | prometheus-client | Micrometer | prometheus-net |
 | Конфигурация | Go options | kwargs | Builder pattern | Builder pattern |
 | Connection pool | contrib (sqldb, redispool) | pool/client params | DataSource, JedisPool | EF Core DbContext |
-| Conformance | 8/8 | 8/8 | 8/8 | 8/8 |
+| Conformance | 17/17 | 17/17 | 17/17 | 17/17 |
 
 ## Поддерживаемые чекеры
 
@@ -28,6 +28,7 @@
 | Redis | `dephealth.Redis()` | `redis_check()` | `DependencyType.REDIS` | `DependencyType.Redis` |
 | AMQP | `dephealth.AMQP()` | `amqp_check()` | `DependencyType.AMQP` | `DependencyType.Amqp` |
 | Kafka | `dephealth.Kafka()` | `kafka_check()` | `DependencyType.KAFKA` | `DependencyType.Kafka` |
+| LDAP | `dephealth.LDAP()` | `ldap_check()` | `DependencyType.LDAP` | `DependencyType.Ldap` |
 
 ## Фреймворк-интеграции
 
@@ -66,7 +67,7 @@
 | `app_dependency_status` | Gauge (enum) | Категория статуса: 8 серий на endpoint, ровно одна = 1 |
 | `app_dependency_status_detail` | Gauge (info) | Детальная причина сбоя: напр. `http_503`, `auth_error` |
 
-Метки: `name`, `dependency`, `type`, `host`, `port`, `critical` + произвольные через `WithLabel`.
+Метки: `name`, `group`, `dependency`, `type`, `host`, `port`, `critical` + произвольные через `WithLabel`.
 Дополнительные: `status` (на `app_dependency_status`), `detail` (на `app_dependency_status_detail`).
 
 Бакеты histogram: `0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0`
@@ -75,8 +76,8 @@ HELP-строки:
 
 - `Health status of a dependency (1 = healthy, 0 = unhealthy)`
 - `Latency of dependency health check in seconds`
-- `Status category of a dependency health check`
-- `Detailed status information for a dependency health check`
+- `Category of the last check result`
+- `Detailed reason of the last check result`
 
 ## Параметры по умолчанию
 

@@ -3,7 +3,7 @@
 # SDK Comparison by Language
 
 All four SDKs implement a unified [specification](specification.md)
-and pass identical conformance tests (8 scenarios).
+and pass identical conformance tests (17 scenarios).
 
 ## Features
 
@@ -14,7 +14,7 @@ and pass identical conformance tests (8 scenarios).
 | Metrics | prometheus/client_golang | prometheus-client | Micrometer | prometheus-net |
 | Configuration | Go options | kwargs | Builder pattern | Builder pattern |
 | Connection pool | contrib (sqldb, redispool) | pool/client params | DataSource, JedisPool | EF Core DbContext |
-| Conformance | 8/8 | 8/8 | 8/8 | 8/8 |
+| Conformance | 17/17 | 17/17 | 17/17 | 17/17 |
 
 ## Supported Checkers
 
@@ -28,6 +28,7 @@ and pass identical conformance tests (8 scenarios).
 | Redis | `dephealth.Redis()` | `redis_check()` | `DependencyType.REDIS` | `DependencyType.Redis` |
 | AMQP | `dephealth.AMQP()` | `amqp_check()` | `DependencyType.AMQP` | `DependencyType.Amqp` |
 | Kafka | `dephealth.Kafka()` | `kafka_check()` | `DependencyType.KAFKA` | `DependencyType.Kafka` |
+| LDAP | `dephealth.LDAP()` | `ldap_check()` | `DependencyType.LDAP` | `DependencyType.Ldap` |
 
 ## Framework Integrations
 
@@ -66,7 +67,7 @@ Identical for all SDKs:
 | `app_dependency_status` | Gauge (enum) | Status category: 8 series per endpoint, exactly one = 1 |
 | `app_dependency_status_detail` | Gauge (info) | Detailed failure reason: e.g. `http_503`, `auth_error` |
 
-Labels: `name`, `dependency`, `type`, `host`, `port`, `critical` + custom via `WithLabel`.
+Labels: `name`, `group`, `dependency`, `type`, `host`, `port`, `critical` + custom via `WithLabel`.
 Additional: `status` (on `app_dependency_status`), `detail` (on `app_dependency_status_detail`).
 
 Histogram buckets: `0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0`
@@ -75,8 +76,8 @@ HELP strings:
 
 - `Health status of a dependency (1 = healthy, 0 = unhealthy)`
 - `Latency of dependency health check in seconds`
-- `Status category of a dependency health check`
-- `Detailed status information for a dependency health check`
+- `Category of the last check result`
+- `Detailed reason of the last check result`
 
 ## Default Parameters
 

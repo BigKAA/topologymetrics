@@ -79,7 +79,7 @@ app_dependency_status_detail{name="my-service",group="billing-team",dependency="
 - `group` — логическая группа (формат `[a-z][a-z0-9-]*`, 1-63 символа, напр. `billing-team`)
 - `dependency` — логическое имя (например, `postgres-main`, `redis-cache`)
 - `type` — тип зависимости: `http`, `grpc`, `tcp`, `postgres`, `mysql`,
-  `redis`, `amqp`, `kafka`
+  `redis`, `amqp`, `kafka`, `ldap`
 - `host` — DNS-имя или IP-адрес endpoint
 - `port` — порт endpoint
 - `critical` — критичность зависимости: `yes` или `no`
@@ -139,6 +139,7 @@ app_dependency_status_detail{name="my-service",group="billing-team",dependency="
 | `redis` | `PING` | Ответ `PONG` |
 | `amqp` | Открытие/закрытие соединения | Соединение установлено |
 | `kafka` | Metadata request | Ответ получен |
+| `ldap` | LDAP bind или поиск | Операция выполнена |
 
 ### Два режима работы
 
@@ -184,6 +185,7 @@ app_dependency_status_detail{name="my-service",group="billing-team",dependency="
 | `http://`, `https://` | `http` |
 | `grpc://` | `grpc` |
 | `kafka://` | `kafka` |
+| `ldap://`, `ldaps://` | `ldap` |
 
 ### Порты по умолчанию
 
@@ -197,6 +199,7 @@ app_dependency_status_detail{name="my-service",group="billing-team",dependency="
 | `grpc` | 443 |
 | `kafka` | 9092 |
 | `tcp` | (обязательный) |
+| `ldap` | 389 / 636 (LDAPS) |
 
 ### Допустимые диапазоны параметров
 
@@ -306,6 +309,14 @@ host: "redis.my-namespace.svc.cluster.local."
 | `timeout` | Задержка > timeout -> unhealthy |
 | `initial-state` | Начальное состояние корректно |
 | `health-details` | HealthDetails() возвращает корректные данные endpoint-ов |
+| `group-label` | Корректность метки group |
+| `auth-http-bearer` | HTTP-аутентификация по bearer-токену |
+| `auth-http-basic` | HTTP basic-аутентификация |
+| `auth-http-header` | HTTP-аутентификация через заголовок |
+| `auth-grpc` | gRPC-аутентификация |
+| `ldap-basic` | LDAP root DSE, bind, search — healthy; invalid auth — auth_error |
+| `ldap-failure` | LDAP-сервер недоступен — connection_error |
+| `ldap-recovery` | Восстановление LDAP после сбоя |
 
 Подробнее: [`conformance/`](../conformance/)
 

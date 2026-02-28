@@ -2,7 +2,7 @@
 
 # Health Checkers
 
-The Go SDK includes 8 built-in health checkers for common dependency types.
+The Go SDK includes 9 built-in health checkers for common dependency types.
 Each checker implements the `HealthChecker` interface and can be used via
 the high-level API (`dephealth.HTTP()`, etc.) or directly via its sub-package.
 
@@ -633,6 +633,109 @@ dh, err := dephealth.New("my-service", "my-team",
 - Verifies that at least one broker is present in the metadata response
 - Uses `kafka-go` library (`github.com/segmentio/kafka-go`)
 - No authentication support (plain TCP only)
+
+---
+
+## LDAP
+
+Checks LDAP servers using configurable check methods: anonymous bind, simple
+bind, Root DSE search, or custom search. Supports LDAP, LDAPS (TLS), and
+StartTLS connections.
+
+### Registration
+
+```go
+dephealth.LDAP("ldap-server",
+    dephealth.FromParams("ldap.svc", "389"),
+    dephealth.Critical(false),
+)
+```
+
+### Options
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `WithLDAPCheckMethod(method)` | `root_dse` | Check method: `anonymous_bind`, `simple_bind`, `root_dse`, `search` |
+| `WithLDAPBindDN(dn)` | `""` | DN for Simple Bind |
+| `WithLDAPBindPassword(password)` | `""` | Password for Simple Bind |
+| `WithLDAPBaseDN(baseDN)` | `""` | Base DN for search method |
+| `WithLDAPSearchFilter(filter)` | `(objectClass=*)` | LDAP search filter |
+| `WithLDAPSearchScope(scope)` | `base` | Search scope: `base`, `one`, `sub` |
+| `WithLDAPStartTLS(enabled)` | `false` | Enable StartTLS (only with `ldap://`) |
+| `WithLDAPTLSSkipVerify(skip)` | `false` | Skip TLS certificate verification |
+
+### Full Example
+
+```go
+import (
+    _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/ldapcheck"
+)
+
+dh, err := dephealth.New("my-service", "my-team",
+    // Root DSE check (default method)
+    dephealth.LDAP("ldap-server",
+        dephealth.FromParams("ldap.svc", "389"),
+        dephealth.Critical(false),
+    ),
+
+    // Simple Bind with credentials
+    dephealth.LDAP("active-directory",
+        dephealth.FromURL("ldaps://ad.corp.local:636"),
+        dephealth.WithLDAPCheckMethod("simple_bind"),
+        dephealth.WithLDAPBindDN("cn=healthcheck,ou=service-accounts,dc=corp,dc=local"),
+        dephealth.WithLDAPBindPassword("secret"),
+        dephealth.Critical(true),
+    ),
+
+    // Custom search
+    dephealth.LDAP("openldap",
+        dephealth.FromParams("openldap.svc", "389"),
+        dephealth.WithLDAPCheckMethod("search"),
+        dephealth.WithLDAPBaseDN("dc=example,dc=org"),
+        dephealth.WithLDAPSearchFilter("(objectClass=organization)"),
+        dephealth.WithLDAPSearchScope("base"),
+        dephealth.WithLDAPStartTLS(true),
+        dephealth.Critical(false),
+    ),
+)
+```
+
+### Error Classification
+
+| Condition | Status | Detail |
+| --- | --- | --- |
+| Check succeeds | `ok` | `ok` |
+| LDAP result 49 (Invalid Credentials) | `auth_error` | `auth_error` |
+| LDAP result 50 (Insufficient Access Rights) | `auth_error` | `auth_error` |
+| LDAP result Busy/Unavailable/Unwilling | `unhealthy` | `unhealthy` |
+| Connection refused | `connection_error` | `connection_refused` |
+| DNS error | `dns_error` | `dns_error` |
+| TLS/x509 error | `tls_error` | `tls_error` |
+| Other errors | classified by core | depends on error type |
+
+### Direct Checker Usage
+
+```go
+import "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/ldapcheck"
+
+checker := ldapcheck.New(
+    ldapcheck.WithCheckMethod(ldapcheck.MethodSimpleBind),
+    ldapcheck.WithBindDN("cn=admin,dc=example,dc=org"),
+    ldapcheck.WithBindPassword("secret"),
+)
+
+err := checker.Check(ctx, dephealth.Endpoint{Host: "ldap.svc", Port: "389"})
+```
+
+### Behavior Notes
+
+- Default check method is `root_dse` — searches for Root DSE attributes
+  (works without authentication on most LDAP servers)
+- Supports pool mode via `ldapcheck.WithConn(conn)` with existing `*ldap.Conn`
+- Dial timeout is 3s or remaining context timeout (whichever is shorter)
+- `ldaps://` scheme automatically enables TLS
+- StartTLS is only valid with `ldap://` scheme
+- Uses `go-ldap/ldap/v3` library
 
 ---
 

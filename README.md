@@ -135,7 +135,7 @@ Not a sidecar, not FFI — deep integration with each language's ecosystem.
 │         Check Scheduler                     │  Periodic health checks
 ├─────────────────────────────────────────────┤
 │         Health Checkers                     │  HTTP, gRPC, TCP, Postgres, MySQL,
-│                                             │  Redis, AMQP, Kafka
+│                                             │  Redis, AMQP, Kafka, LDAP
 ├─────────────────────────────────────────────┤
 │         Connection Config Parser            │  URL / params / connection string
 ├─────────────────────────────────────────────┤
@@ -161,12 +161,13 @@ Not a sidecar, not FFI — deep integration with each language's ecosystem.
 | `redis` | `PING` command |
 | `amqp` | Broker connection check |
 | `kafka` | Metadata request to broker |
+| `ldap` | LDAP bind or search operation |
 
 ## Repository Structure
 
 ```text
 spec/                           # Unified specification (metric, behavior, config contracts)
-conformance/                    # Conformance tests (Kubernetes, 8 scenarios × 4 languages)
+conformance/                    # Conformance tests (Kubernetes, 17 scenarios × 4 languages)
 sdk-go/                         # Go SDK
 sdk-python/                     # Python SDK
 sdk-java/                       # Java SDK (Maven multi-module)
@@ -212,10 +213,11 @@ Infrastructure for verifying SDK compliance with the specification (`conformance
 
 - Kubernetes manifests for dependencies (PostgreSQL, Redis, RabbitMQ, Kafka)
 - Managed HTTP and gRPC stubs
-- 14 test scenarios: basic-health, partial-failure, full-failure, recovery,
+- 17 test scenarios: basic-health, partial-failure, full-failure, recovery,
   latency, labels, timeout, initial-state, health-details, group-label,
-  status-enum, status-detail, critical-flag, concurrent-checks
-- All 4 SDKs pass 14/14 scenarios (56 tests total)
+  auth-http-bearer, auth-http-basic, auth-http-header, auth-grpc,
+  ldap-basic, ldap-failure, ldap-recovery
+- All 4 SDKs pass 17/17 scenarios (68 tests total)
 
 ## Documentation
 

@@ -2,7 +2,7 @@
 
 # Чекеры
 
-Go SDK включает 8 встроенных чекеров для распространённых типов зависимостей.
+Go SDK включает 9 встроенных чекеров для распространённых типов зависимостей.
 Каждый чекер реализует интерфейс `HealthChecker` и может использоваться
 через высокоуровневый API (`dephealth.HTTP()` и т.д.) или напрямую через
 свой подпакет.
@@ -639,6 +639,109 @@ dh, err := dephealth.New("my-service", "my-team",
 - Проверяет наличие хотя бы одного брокера в ответе
 - Использует библиотеку `kafka-go` (`github.com/segmentio/kafka-go`)
 - Нет поддержки аутентификации (только plain TCP)
+
+---
+
+## LDAP
+
+Проверяет LDAP-серверы с настраиваемыми методами: anonymous bind, simple bind,
+поиск Root DSE или пользовательский поиск. Поддерживает LDAP, LDAPS (TLS)
+и StartTLS-соединения.
+
+### Регистрация
+
+```go
+dephealth.LDAP("ldap-server",
+    dephealth.FromParams("ldap.svc", "389"),
+    dephealth.Critical(false),
+)
+```
+
+### Опции
+
+| Опция | По умолчанию | Описание |
+| --- | --- | --- |
+| `WithLDAPCheckMethod(method)` | `root_dse` | Метод проверки: `anonymous_bind`, `simple_bind`, `root_dse`, `search` |
+| `WithLDAPBindDN(dn)` | `""` | DN для Simple Bind |
+| `WithLDAPBindPassword(password)` | `""` | Пароль для Simple Bind |
+| `WithLDAPBaseDN(baseDN)` | `""` | Base DN для метода поиска |
+| `WithLDAPSearchFilter(filter)` | `(objectClass=*)` | LDAP-фильтр поиска |
+| `WithLDAPSearchScope(scope)` | `base` | Область поиска: `base`, `one`, `sub` |
+| `WithLDAPStartTLS(enabled)` | `false` | Включить StartTLS (только с `ldap://`) |
+| `WithLDAPTLSSkipVerify(skip)` | `false` | Пропустить проверку TLS-сертификата |
+
+### Полный пример
+
+```go
+import (
+    _ "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/ldapcheck"
+)
+
+dh, err := dephealth.New("my-service", "my-team",
+    // Проверка Root DSE (метод по умолчанию)
+    dephealth.LDAP("ldap-server",
+        dephealth.FromParams("ldap.svc", "389"),
+        dephealth.Critical(false),
+    ),
+
+    // Simple Bind с учётными данными
+    dephealth.LDAP("active-directory",
+        dephealth.FromURL("ldaps://ad.corp.local:636"),
+        dephealth.WithLDAPCheckMethod("simple_bind"),
+        dephealth.WithLDAPBindDN("cn=healthcheck,ou=service-accounts,dc=corp,dc=local"),
+        dephealth.WithLDAPBindPassword("secret"),
+        dephealth.Critical(true),
+    ),
+
+    // Пользовательский поиск
+    dephealth.LDAP("openldap",
+        dephealth.FromParams("openldap.svc", "389"),
+        dephealth.WithLDAPCheckMethod("search"),
+        dephealth.WithLDAPBaseDN("dc=example,dc=org"),
+        dephealth.WithLDAPSearchFilter("(objectClass=organization)"),
+        dephealth.WithLDAPSearchScope("base"),
+        dephealth.WithLDAPStartTLS(true),
+        dephealth.Critical(false),
+    ),
+)
+```
+
+### Классификация ошибок
+
+| Условие | Статус | Детализация |
+| --- | --- | --- |
+| Проверка успешна | `ok` | `ok` |
+| LDAP результат 49 (Invalid Credentials) | `auth_error` | `auth_error` |
+| LDAP результат 50 (Insufficient Access Rights) | `auth_error` | `auth_error` |
+| LDAP результат Busy/Unavailable/Unwilling | `unhealthy` | `unhealthy` |
+| Отказ соединения | `connection_error` | `connection_refused` |
+| DNS-ошибка | `dns_error` | `dns_error` |
+| TLS/x509-ошибка | `tls_error` | `tls_error` |
+| Другие ошибки | классифицируются ядром | зависит от типа ошибки |
+
+### Прямое использование чекера
+
+```go
+import "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/ldapcheck"
+
+checker := ldapcheck.New(
+    ldapcheck.WithCheckMethod(ldapcheck.MethodSimpleBind),
+    ldapcheck.WithBindDN("cn=admin,dc=example,dc=org"),
+    ldapcheck.WithBindPassword("secret"),
+)
+
+err := checker.Check(ctx, dephealth.Endpoint{Host: "ldap.svc", Port: "389"})
+```
+
+### Особенности поведения
+
+- Метод проверки по умолчанию — `root_dse` — поиск атрибутов Root DSE
+  (работает без аутентификации на большинстве LDAP-серверов)
+- Поддерживает режим пула через `ldapcheck.WithConn(conn)` с существующим `*ldap.Conn`
+- Таймаут подключения — 3с или оставшееся время контекста (что меньше)
+- Схема `ldaps://` автоматически включает TLS
+- StartTLS работает только со схемой `ldap://`
+- Использует библиотеку `go-ldap/ldap/v3`
 
 ---
 

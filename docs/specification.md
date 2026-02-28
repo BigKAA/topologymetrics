@@ -79,7 +79,7 @@ and a new one is created (acceptable series churn).
 - `group` — logical group (format `[a-z][a-z0-9-]*`, 1-63 characters, e.g. `billing-team`)
 - `dependency` — logical name (e.g. `postgres-main`, `redis-cache`)
 - `type` — dependency type: `http`, `grpc`, `tcp`, `postgres`, `mysql`,
-  `redis`, `amqp`, `kafka`
+  `redis`, `amqp`, `kafka`, `ldap`
 - `host` — DNS name or IP address of the endpoint
 - `port` — endpoint port
 - `critical` — dependency criticality: `yes` or `no`
@@ -139,6 +139,7 @@ Initialization → initialDelay → First check → Periodic checks (every check
 | `redis` | `PING` | `PONG` response |
 | `amqp` | Open/close connection | Connection established |
 | `kafka` | Metadata request | Response received |
+| `ldap` | LDAP bind or search | Operation succeeded |
 
 ### Two Operating Modes
 
@@ -184,6 +185,7 @@ Dependency type is determined from the URL scheme:
 | `http://`, `https://` | `http` |
 | `grpc://` | `grpc` |
 | `kafka://` | `kafka` |
+| `ldap://`, `ldaps://` | `ldap` |
 
 ### Default Ports
 
@@ -197,6 +199,7 @@ Dependency type is determined from the URL scheme:
 | `grpc` | 443 |
 | `kafka` | 9092 |
 | `tcp` | (required) |
+| `ldap` | 389 / 636 (LDAPS) |
 
 ### Allowed Parameter Ranges
 
@@ -304,6 +307,14 @@ All SDKs pass a unified set of conformance scenarios in Kubernetes:
 | `timeout` | Delay > timeout -> unhealthy |
 | `initial-state` | Initial state is correct |
 | `health-details` | HealthDetails() returns correct endpoint data |
+| `group-label` | Group label correctness |
+| `auth-http-bearer` | HTTP bearer token authentication |
+| `auth-http-basic` | HTTP basic authentication |
+| `auth-http-header` | HTTP custom header authentication |
+| `auth-grpc` | gRPC authentication |
+| `ldap-basic` | LDAP root DSE, bind, search healthy; invalid auth -> auth_error |
+| `ldap-failure` | LDAP server unavailable -> connection_error |
+| `ldap-recovery` | LDAP recovery after failure |
 
 More details: [`conformance/`](../conformance/)
 

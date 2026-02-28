@@ -135,7 +135,7 @@ app.UseDepHealth(); // /metrics + /health/dependencies
 │         Check Scheduler                     │  Периодический запуск проверок
 ├─────────────────────────────────────────────┤
 │         Health Checkers                     │  HTTP, gRPC, TCP, Postgres, MySQL,
-│                                             │  Redis, AMQP, Kafka
+│                                             │  Redis, AMQP, Kafka, LDAP
 ├─────────────────────────────────────────────┤
 │         Connection Config Parser            │  URL / params / connection string
 ├─────────────────────────────────────────────┤
@@ -161,12 +161,13 @@ app.UseDepHealth(); // /metrics + /health/dependencies
 | `redis` | Команда `PING` |
 | `amqp` | Проверка соединения с брокером |
 | `kafka` | Metadata request к брокеру |
+| `ldap` | LDAP bind или поисковая операция |
 
 ## Структура репозитория
 
 ```text
 spec/                           # Единая спецификация (контракты метрик, поведения, конфигурации)
-conformance/                    # Conformance-тесты (Kubernetes, 8 сценариев × 4 языка)
+conformance/                    # Conformance-тесты (Kubernetes, 17 сценариев × 4 языка)
 sdk-go/                         # Go SDK
 sdk-python/                     # Python SDK
 sdk-java/                       # Java SDK (Maven multi-module)
@@ -212,10 +213,11 @@ plans/                          # Планы разработки
 
 - Kubernetes-манифесты для зависимостей (PostgreSQL, Redis, RabbitMQ, Kafka)
 - Управляемые HTTP и gRPC заглушки
-- 14 тестовых сценариев: basic-health, partial-failure, full-failure, recovery,
+- 17 тестовых сценариев: basic-health, partial-failure, full-failure, recovery,
   latency, labels, timeout, initial-state, health-details, group-label,
-  status-enum, status-detail, critical-flag, concurrent-checks
-- Все 4 SDK проходят 14/14 сценариев (56 тестов суммарно)
+  auth-http-bearer, auth-http-basic, auth-http-header, auth-grpc,
+  ldap-basic, ldap-failure, ldap-recovery
+- Все 4 SDK проходят 17/17 сценариев (68 тестов суммарно)
 
 ## Документация
 

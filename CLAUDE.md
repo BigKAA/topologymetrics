@@ -35,14 +35,16 @@ GIT-WORKFLOW.md      # Git workflow (GitHub Flow + Conventional Commits + Semver
 
 **Ключевые метрики**:
 
-- `app_dependency_health` (Gauge, 0/1) — с метками `dependency`, `type`, `host`, `port`
+- `app_dependency_health` (Gauge, 0/1) — с метками `name`, `group`, `dependency`, `type`, `host`, `port`, `critical`
 - `app_dependency_latency_seconds` (Histogram) — те же метки
+- `app_dependency_status` (Gauge, enum pattern) — категория статуса (8 значений на endpoint)
+- `app_dependency_status_detail` (Gauge, info pattern) — детальная причина
 
 **Слои SDK** (одинаковы для всех языков):
 
 1. Core Abstractions — `Dependency`, `Endpoint`, `HealthChecker` interface
 2. Connection Config Parser — парсинг URL, host/port, connection string
-3. Health Checkers — HTTP, gRPC, TCP, Postgres, MySQL, Redis, AMQP, Kafka
+3. Health Checkers — HTTP, gRPC, TCP, Postgres, MySQL, Redis, AMQP, Kafka, LDAP
 4. Check Scheduler — периодический запуск проверок (default 15s)
 5. Metrics Exporter — Prometheus gauges и histograms
 6. Framework Integration — Spring Boot / ASP.NET / FastAPI / Django

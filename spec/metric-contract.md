@@ -43,7 +43,7 @@ Gauge metric reflecting the current availability status of a dependency.
 | `name` | Unique name of the application exporting metrics | Lowercase letters, digits, `-`. Length: 1-63 characters. Format: `[a-z][a-z0-9-]*` | `order-api` |
 | `group` | Logical group of the service (team, subsystem, project) | Lowercase letters, digits, `-`. Length: 1-63 characters. Format: `[a-z][a-z0-9-]*` | `billing-team` |
 | `dependency` | Logical name of the dependency, set by the developer. For services with dephealth SDK, the value must match the `name` of the target service | Lowercase letters, digits, `-`. Length: 1-63 characters. Format: `[a-z][a-z0-9-]*` | `payment-api` |
-| `type` | Connection type / protocol | One of: `http`, `grpc`, `tcp`, `postgres`, `mysql`, `redis`, `amqp`, `kafka` | `postgres` |
+| `type` | Connection type / protocol | One of: `http`, `grpc`, `tcp`, `postgres`, `mysql`, `redis`, `amqp`, `kafka`, `ldap` | `postgres` |
 | `host` | Endpoint address (hostname or IP) | As-is from configuration. IPv6 without square brackets | `pg-master.db.svc.cluster.local` |
 | `port` | Endpoint port | String with number 1-65535. If port is not specified, the default port for the type is used | `5432` |
 | `critical` | Criticality of the dependency for application operation | One of: `yes` (application cannot function without the dependency), `no` (degradation is acceptable). Required, no default value | `yes` |
@@ -387,6 +387,7 @@ When the reason changes, the old series is deleted and a new one is created
 | Redis | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `unhealthy`, `error` |
 | AMQP | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `unhealthy`, `error` |
 | Kafka | `ok`, `timeout`, `connection_refused`, `dns_error`, `no_brokers`, `error` |
+| LDAP | `ok`, `timeout`, `connection_refused`, `dns_error`, `auth_error`, `tls_error`, `unhealthy`, `error` |
 
 ### 9.4. Mapping detail to status (Category)
 

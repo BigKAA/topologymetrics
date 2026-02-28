@@ -83,12 +83,15 @@ dephealth/
 
 | Метка | Описание | Пример |
 | ----- | -------- | ------ |
+| `name` | Уникальное имя приложения | `order-service` |
+| `group` | Логическая группа | `billing-team` |
 | `dependency` | Логическое имя зависимости | `payment-service`, `postgres-main` |
-| `type` | Тип соединения | `http`, `grpc`, `postgres`, `redis`, `amqp`, `kafka` |
+| `type` | Тип соединения | `http`, `grpc`, `tcp`, `postgres`, `mysql`, `redis`, `amqp`, `kafka`, `ldap` |
 | `host` | Адрес endpoint-а | `pg-master.db.svc.cluster.local` |
 | `port` | Порт endpoint-а | `5432` |
+| `critical` | Критичность зависимости | `yes`, `no` |
 
-Опциональные метки: `role` (master/replica), `shard`, `vhost`.
+Опциональные метки: произвольные через `WithLabel(key, value)`.
 
 **Метрика латентности**:
 
@@ -96,6 +99,23 @@ dephealth/
 - Тип: Histogram
 - Buckets: `[0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0]`
 - Метки: те же, что у `app_dependency_health`
+
+**Метрика статуса**:
+
+- Имя: `app_dependency_status`
+- Тип: Gauge (enum-паттерн)
+- Значения: `1` (активный статус), `0` (неактивный статус)
+- Значения `status`: `ok`, `timeout`, `connection_error`, `dns_error`, `auth_error`, `tls_error`, `unhealthy`, `error`
+- Метки: те же, что у `app_dependency_health` + `status`
+- Все 8 серий status всегда экспортируются для каждого endpoint
+
+**Метрика детализации статуса**:
+
+- Имя: `app_dependency_status_detail`
+- Тип: Gauge (info-паттерн)
+- Значение: всегда `1`
+- Метки: те же, что у `app_dependency_health` + `detail`
+- Одна серия на endpoint; при смене detail старая серия удаляется
 
 ### 3.2. Контракт поведения проверок
 
@@ -119,6 +139,7 @@ dephealth/
 | `redis` | Команда `PING` |
 | `amqp` | Проверка соединения с брокером |
 | `kafka` | Metadata request к брокеру |
+| `ldap` | LDAP bind или поисковая операция |
 
 ### 3.3. Контракт конфигурации
 
@@ -172,7 +193,7 @@ SDK автоматически извлекает `host` и `port` из любо
 │         Check Scheduler                     │  Периодический запуск проверок
 │         (goroutines / threads / asyncio)     │
 ├─────────────────────────────────────────────┤
-│         Health Checkers                     │  HTTP, gRPC, TCP, Postgres, Redis, AMQP, Kafka
+│         Health Checkers                     │  HTTP, gRPC, TCP, Postgres, MySQL, Redis, AMQP, Kafka, LDAP
 │         (реализации проверок по типам)       │
 ├─────────────────────────────────────────────┤
 │         Connection Config Parser            │  URL → (host, port, type)
@@ -200,7 +221,7 @@ SDK автоматически извлекает `host` и `port` из любо
 **HealthChecker** — интерфейс проверки:
 
 - `check(ctx, endpoint) → bool` — выполнить проверку
-- Реализации: `HTTPChecker`, `GRPCChecker`, `TCPChecker`, `PostgresChecker`, `RedisChecker`, `AMQPChecker`, `KafkaChecker`
+- Реализации: `HTTPChecker`, `GRPCChecker`, `TCPChecker`, `PostgresChecker`, `MySQLChecker`, `RedisChecker`, `AMQPChecker`, `KafkaChecker`, `LDAPChecker`
 
 **ConnectionParser** — парсер конфигурации:
 
@@ -278,7 +299,9 @@ dephealth/
 │   ├── postgres.go       # PostgresChecker (SELECT 1)
 │   ├── redis.go          # RedisChecker (PING)
 │   ├── amqp.go           # AMQPChecker
-│   └── kafka.go          # KafkaChecker
+│   ├── kafka.go          # KafkaChecker
+│   ├── mysql.go          # MySQLChecker
+│   └── ldap.go           # LDAPChecker
 └── contrib/
     ├── sqldb/            # Интеграция с database/sql
     └── redispool/        # Интеграция с go-redis
@@ -374,7 +397,9 @@ sdk-java/
 │           ├── JdbcChecker.java         # Использует DataSource.getConnection()
 │           ├── RedisChecker.java        # Использует RedisConnectionFactory
 │           ├── AmqpChecker.java
-│           └── KafkaChecker.java
+│           ├── KafkaChecker.java
+│           ├── MySqlChecker.java
+│           └── LdapChecker.java
 │
 ├── dephealth-spring-boot/
 │   └── src/main/java/biz/kryukov/dev/dephealth/spring/
@@ -455,7 +480,9 @@ sdk-csharp/
 │       ├── NpgsqlChecker.cs           # Использует NpgsqlConnection
 │       ├── RedisChecker.cs            # Использует StackExchange.Redis
 │       ├── AmqpChecker.cs
-│       └── KafkaChecker.cs
+│       ├── KafkaChecker.cs
+│       ├── MySqlChecker.cs
+│       └── LdapChecker.cs
 │
 ├── DepHealth.AspNetCore/
 │   ├── ServiceCollectionExtensions.cs  # AddDependencyHealth()
@@ -474,7 +501,7 @@ sdk-csharp/
 
 - `dephealth` — ядро, проверки, prometheus_client метрики
 - `dephealth-fastapi` — FastAPI интеграция (lifespan, middleware)
-- `dephealth-django` — Django app
+- `dephealth-django` — Django app (планируется)
 
 **API инициализации (FastAPI)**:
 
@@ -569,7 +596,9 @@ sdk-python/
 │       ├── postgres.py           # psycopg / asyncpg / SQLAlchemy
 │       ├── redis.py              # redis-py
 │       ├── amqp.py               # aio-pika / pika
-│       └── kafka.py              # confluent-kafka / aiokafka
+│       ├── kafka.py              # confluent-kafka / aiokafka
+│       ├── mysql.py              # aiomysql
+│       └── ldap.py               # python-ldap / bonsai
 │
 ├── dephealth-fastapi/
 │   ├── middleware.py              # DependencyHealthMiddleware
