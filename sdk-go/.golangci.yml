@@ -16,6 +16,9 @@ linters:
     - unparam
     - prealloc
     - gosec
+  exclusions:
+    paths:
+      - docs/examples
 
 formatters:
   enable:

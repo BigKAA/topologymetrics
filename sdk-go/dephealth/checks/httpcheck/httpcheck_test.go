@@ -158,7 +158,8 @@ func TestChecker_Check_TLSWithCert(t *testing.T) {
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				RootCAs: certPool,
+				MinVersion: tls.VersionTLS12,
+				RootCAs:    certPool,
 			},
 		},
 		CheckRedirect: func(*http.Request, []*http.Request) error {
