@@ -2,6 +2,7 @@ package biz.kryukov.dev.dephealth.checks;
 
 import biz.kryukov.dev.dephealth.CheckAuthException;
 import biz.kryukov.dev.dephealth.CheckConnectionException;
+import biz.kryukov.dev.dephealth.ErrorClassifier;
 import biz.kryukov.dev.dephealth.DependencyType;
 import biz.kryukov.dev.dephealth.Endpoint;
 import biz.kryukov.dev.dephealth.HealthChecker;
@@ -18,7 +19,6 @@ import com.unboundid.ldap.sdk.SearchResult;
 import com.unboundid.ldap.sdk.SearchScope;
 import com.unboundid.ldap.sdk.extensions.StartTLSExtendedRequest;
 
-import java.net.ConnectException;
 import java.time.Duration;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -217,7 +217,7 @@ public final class LdapHealthChecker implements HealthChecker {
 
     private static Exception classifyGenericError(Exception e) {
         // Connection refused.
-        if (hasConnectionRefused(e)) {
+        if (ErrorClassifier.hasConnectionRefused(e)) {
             return new CheckConnectionException("LDAP connection refused: " + e.getMessage(), e);
         }
 
@@ -240,16 +240,6 @@ public final class LdapHealthChecker implements HealthChecker {
         }
 
         return e;
-    }
-
-    private static boolean hasConnectionRefused(Throwable e) {
-        while (e != null) {
-            if (e instanceof ConnectException) {
-                return true;
-            }
-            e = e.getCause();
-        }
-        return false;
     }
 
     @Override

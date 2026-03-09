@@ -80,4 +80,20 @@ public final class ErrorClassifier {
         }
         return null;
     }
+
+    /**
+     * Walks the exception cause chain looking for a {@link ConnectException}.
+     *
+     * @param e the exception to inspect
+     * @return true if a ConnectException is found in the cause chain
+     */
+    public static boolean hasConnectionRefused(Throwable e) {
+        while (e != null) {
+            if (e instanceof ConnectException) {
+                return true;
+            }
+            e = e.getCause();
+        }
+        return false;
+    }
 }

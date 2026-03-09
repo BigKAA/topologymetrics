@@ -7,7 +7,7 @@ import biz.kryukov.dev.dephealth.Endpoint;
 import biz.kryukov.dev.dephealth.HealthChecker;
 import biz.kryukov.dev.dephealth.UnhealthyException;
 
-import java.net.ConnectException;
+import biz.kryukov.dev.dephealth.ErrorClassifier;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -80,7 +80,7 @@ public final class RedisHealthChecker implements HealthChecker {
         }
 
         // Connection refused — Jedis wraps ConnectException in JedisConnectionException.
-        if (hasConnectionRefused(e)) {
+        if (ErrorClassifier.hasConnectionRefused(e)) {
             return new CheckConnectionException("Redis connection refused: " + msg, e);
         }
 
@@ -92,16 +92,6 @@ public final class RedisHealthChecker implements HealthChecker {
         }
 
         return e;
-    }
-
-    private static boolean hasConnectionRefused(Throwable e) {
-        while (e != null) {
-            if (e instanceof ConnectException) {
-                return true;
-            }
-            e = e.getCause();
-        }
-        return false;
     }
 
     @Override

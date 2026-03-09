@@ -10,8 +10,8 @@ import java.util.regex.Pattern;
  */
 public final class Dependency {
 
-    private static final Pattern NAME_PATTERN = Pattern.compile("^[a-z][a-z0-9-]*$");
-    private static final int MAX_NAME_LENGTH = 63;
+    static final Pattern NAME_PATTERN = Pattern.compile("^[a-z][a-z0-9-]*$");
+    static final int MAX_NAME_LENGTH = 63;
 
     private final String name;
     private final DependencyType type;

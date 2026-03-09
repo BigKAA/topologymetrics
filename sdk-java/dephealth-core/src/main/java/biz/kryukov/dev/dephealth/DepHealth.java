@@ -49,8 +49,8 @@ import java.util.regex.Pattern;
  */
 public final class DepHealth {
 
-    private static final Pattern NAME_PATTERN = Pattern.compile("^[a-z][a-z0-9-]*$");
-    private static final int MAX_NAME_LENGTH = 63;
+    private static final Pattern NAME_PATTERN = Dependency.NAME_PATTERN;
+    private static final int MAX_NAME_LENGTH = Dependency.MAX_NAME_LENGTH;
     private static final String ENV_NAME = "DEPHEALTH_NAME";
     private static final String ENV_GROUP = "DEPHEALTH_GROUP";
 
