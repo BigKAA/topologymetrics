@@ -21,6 +21,12 @@ import (
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 )
 
+// defaultDialTimeout is used for standalone Redis connections to ensure
+// errors are classifiable before the check scheduler's context timeout fires.
+const defaultDialTimeout = 3 * time.Second
+
+var _ dephealth.HealthChecker = (*Checker)(nil)
+
 func init() {
 	dephealth.RegisterCheckerFactory(dephealth.TypeRedis, NewFromConfig)
 }
@@ -117,10 +123,10 @@ func (c *Checker) checkStandalone(ctx context.Context, endpoint dephealth.Endpoi
 		Addr:         addr,
 		Password:     c.password,
 		DB:           c.db,
-		MaxRetries:   0,               // Single attempt; retries are handled by the check scheduler.
-		DialTimeout:  3 * time.Second, // Shorter than the check timeout to get a classifiable net error.
-		ReadTimeout:  3 * time.Second,
-		WriteTimeout: 3 * time.Second,
+		MaxRetries:   0,                  // Single attempt; retries are handled by the check scheduler.
+		DialTimeout:  defaultDialTimeout, // Shorter than the check timeout to get a classifiable net error.
+		ReadTimeout:  defaultDialTimeout,
+		WriteTimeout: defaultDialTimeout,
 	})
 	defer func() { _ = client.Close() }()
 

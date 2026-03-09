@@ -17,6 +17,8 @@ import (
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 )
 
+var _ dephealth.HealthChecker = (*Checker)(nil)
+
 func init() {
 	dephealth.RegisterCheckerFactory(dephealth.TypePostgres, NewFromConfig)
 }

@@ -21,6 +21,8 @@ import (
 
 var tlsSkipVerifyWarnOnce sync.Once
 
+var _ dephealth.HealthChecker = (*Checker)(nil)
+
 func init() {
 	dephealth.RegisterCheckerFactory(dephealth.TypeHTTP, NewFromConfig)
 }

@@ -25,7 +25,13 @@ import (
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 )
 
+// defaultDialTimeout is used for standalone LDAP connections to ensure
+// errors are classifiable before the check scheduler's context timeout fires.
+const defaultDialTimeout = 3 * time.Second
+
 var tlsSkipVerifyWarnOnce sync.Once
+
+var _ dephealth.HealthChecker = (*Checker)(nil)
 
 func init() {
 	dephealth.RegisterCheckerFactory(dephealth.TypeLDAP, NewFromConfig)
@@ -232,7 +238,7 @@ func (c *Checker) checkStandalone(ctx context.Context, endpoint dephealth.Endpoi
 
 func (c *Checker) dial(ctx context.Context, addr string) (*ldap.Conn, error) {
 	// Use a dial timeout shorter than the context timeout for classifiable errors.
-	dialTimeout := 3 * time.Second
+	dialTimeout := defaultDialTimeout
 	if deadline, ok := ctx.Deadline(); ok {
 		remaining := time.Until(deadline)
 		if remaining < dialTimeout {

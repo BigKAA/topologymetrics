@@ -17,6 +17,12 @@ import (
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 )
 
+// defaultDialTimeout is used for AMQP connections to ensure the dial goroutine
+// finishes within a bounded time when the remote server is unreachable.
+const defaultDialTimeout = 5 * time.Second
+
+var _ dephealth.HealthChecker = (*Checker)(nil)
+
 func init() {
 	dephealth.RegisterCheckerFactory(dephealth.TypeAMQP, NewFromConfig)
 }
@@ -70,7 +76,7 @@ func (c *Checker) Check(ctx context.Context, endpoint dephealth.Endpoint) error 
 	}
 
 	// Derive dial timeout from context deadline to prevent goroutine leaks.
-	dialTimeout := 5 * time.Second
+	dialTimeout := defaultDialTimeout
 	if deadline, ok := ctx.Deadline(); ok {
 		if remaining := time.Until(deadline); remaining < dialTimeout {
 			dialTimeout = remaining
