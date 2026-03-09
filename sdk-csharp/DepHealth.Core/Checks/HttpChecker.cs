@@ -1,18 +1,23 @@
 using System.Net.Http.Headers;
+using System.Net.Security;
+using System.Reflection;
 
 namespace DepHealth.Checks;
 
 /// <summary>
 /// HTTP health checker — performs a GET request to healthPath and expects a 2xx response.
 /// </summary>
-public sealed class HttpChecker : IHealthChecker
+public sealed class HttpChecker : IHealthChecker, IDisposable
 {
     private const string DefaultHealthPath = "/health";
 
+    private static readonly string SdkVersion =
+        typeof(HttpChecker).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion ?? typeof(HttpChecker).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+
     private readonly string _healthPath;
     private readonly bool _tlsEnabled;
-    private readonly bool _tlsSkipVerify;
-    private readonly IReadOnlyDictionary<string, string> _headers;
+    private readonly HttpClient _client;
 
     /// <summary>Gets the dependency type for this checker.</summary>
     public DependencyType Type => DependencyType.Http;
@@ -34,12 +39,42 @@ public sealed class HttpChecker : IHealthChecker
         string? basicAuthUsername = null,
         string? basicAuthPassword = null)
     {
-        ValidateAuthConflicts(headers, bearerToken, basicAuthUsername, basicAuthPassword);
+        AuthValidation.ValidateNoConflicts(headers, "Authorization",
+            bearerToken, basicAuthUsername, basicAuthPassword);
         _healthPath = healthPath;
         _tlsEnabled = tlsEnabled;
-        _tlsSkipVerify = tlsSkipVerify;
-        _headers = BuildResolvedHeaders(headers, bearerToken, basicAuthUsername, basicAuthPassword);
+
+        var handler = new SocketsHttpHandler
+        {
+            PooledConnectionLifetime = TimeSpan.FromMinutes(2)
+        };
+
+        if (tlsEnabled && tlsSkipVerify)
+        {
+#pragma warning disable CA5359 // Intentional: user explicitly opted into skipping TLS verification
+            handler.SslOptions = new SslClientAuthenticationOptions
+            {
+                RemoteCertificateValidationCallback = (_, _, _, _) => true
+            };
+#pragma warning restore CA5359
+        }
+
+        _client = new HttpClient(handler)
+        {
+            Timeout = Timeout.InfiniteTimeSpan
+        };
+        _client.DefaultRequestHeaders.UserAgent.Add(
+            new ProductInfoHeaderValue("dephealth", SdkVersion));
+
+        var resolvedHeaders = BuildResolvedHeaders(headers, bearerToken, basicAuthUsername, basicAuthPassword);
+        foreach (var (key, value) in resolvedHeaders)
+        {
+            _client.DefaultRequestHeaders.TryAddWithoutValidation(key, value);
+        }
     }
+
+    /// <inheritdoc />
+    public void Dispose() => _client.Dispose();
 
     /// <inheritdoc />
     public async Task CheckAsync(Endpoint endpoint, CancellationToken ct)
@@ -48,24 +83,7 @@ public sealed class HttpChecker : IHealthChecker
         var host = endpoint.Host.Contains(':', StringComparison.Ordinal) ? $"[{endpoint.Host}]" : endpoint.Host;
         var uri = new Uri($"{scheme}://{host}:{endpoint.Port}{_healthPath}");
 
-        var handler = new HttpClientHandler();
-        if (_tlsEnabled && _tlsSkipVerify)
-        {
-            handler.ServerCertificateCustomValidationCallback =
-                (_, _, _, _) => true;
-        }
-
-        using var client = new HttpClient(handler);
-        client.Timeout = Timeout.InfiniteTimeSpan;
-        client.DefaultRequestHeaders.UserAgent.Add(
-            new ProductInfoHeaderValue("dephealth", "0.5.0"));
-
-        foreach (var (key, value) in _headers)
-        {
-            client.DefaultRequestHeaders.TryAddWithoutValidation(key, value);
-        }
-
-        using var response = await client.GetAsync(uri, ct).ConfigureAwait(false);
+        using var response = await _client.GetAsync(uri, ct).ConfigureAwait(false);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -81,37 +99,6 @@ public sealed class HttpChecker : IHealthChecker
             throw new Exceptions.UnhealthyException(
                 $"HTTP health check failed: status {statusCode}",
                 $"http_{statusCode}");
-        }
-    }
-
-    internal static void ValidateAuthConflicts(
-        IDictionary<string, string>? headers,
-        string? bearerToken,
-        string? basicAuthUsername,
-        string? basicAuthPassword)
-    {
-        var methods = 0;
-
-        if (!string.IsNullOrEmpty(bearerToken))
-        {
-            methods++;
-        }
-
-        if (!string.IsNullOrEmpty(basicAuthUsername) || !string.IsNullOrEmpty(basicAuthPassword))
-        {
-            methods++;
-        }
-
-        if (headers is not null
-            && headers.Keys.Any(key => key.Equals("Authorization", StringComparison.OrdinalIgnoreCase)))
-        {
-            methods++;
-        }
-
-        if (methods > 1)
-        {
-            throw new ValidationException(
-                "conflicting auth methods: specify only one of bearerToken, basicAuth, or Authorization header");
         }
     }
 

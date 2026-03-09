@@ -139,20 +139,12 @@ public sealed partial class DepHealthMonitor : IDisposable
 
         internal Builder(string name, string group)
         {
-            var resolvedName = name;
-            var envName = Environment.GetEnvironmentVariable("DEPHEALTH_NAME");
-            if (!string.IsNullOrEmpty(envName) && string.IsNullOrEmpty(resolvedName))
-            {
-                resolvedName = envName;
-            }
+            var resolvedName = !string.IsNullOrEmpty(name)
+                ? name
+                : Environment.GetEnvironmentVariable("DEPHEALTH_NAME");
 
-            if (string.IsNullOrEmpty(resolvedName))
-            {
-                resolvedName = name;
-            }
-
-            ValidateInstanceName(resolvedName);
-            _name = resolvedName;
+            ValidateInstanceName(resolvedName ?? "");
+            _name = resolvedName!;
 
             // group: API > env var > error
             var resolvedGroup = group;
@@ -505,19 +497,21 @@ public sealed partial class DepHealthMonitor : IDisposable
                         var labelValue = Environment.GetEnvironmentVariable(envKey) ?? "";
                         if (!entry.Labels.ContainsKey(labelKey))
                         {
-                            entry.Labels[labelKey] = labelValue;
-                            // Update labels in endpoints
+                            var newLabels = new Dictionary<string, string>(entry.Labels)
+                            {
+                                [labelKey] = labelValue
+                            };
                             var updatedEndpoints = entry.Endpoints
                                 .Select(ep =>
                                 {
-                                    var newLabels = new Dictionary<string, string>(ep.Labels)
+                                    var epLabels = new Dictionary<string, string>(ep.Labels)
                                     {
                                         [labelKey] = labelValue
                                     };
-                                    return new Endpoint(ep.Host, ep.Port, newLabels);
+                                    return new Endpoint(ep.Host, ep.Port, epLabels);
                                 })
                                 .ToList();
-                            _entries[i] = entry with { Endpoints = updatedEndpoints };
+                            _entries[i] = entry with { Labels = newLabels, Endpoints = updatedEndpoints };
                             entry = _entries[i];
                         }
                     }

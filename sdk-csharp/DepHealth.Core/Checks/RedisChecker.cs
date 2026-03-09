@@ -1,4 +1,3 @@
-using System.Net.Sockets;
 using StackExchange.Redis;
 
 namespace DepHealth.Checks;
@@ -116,7 +115,7 @@ public sealed class RedisChecker : IHealthChecker
         }
 
         // Check InnerException chain for SocketException with ConnectionRefused
-        if (HasConnectionRefusedSocket(e))
+        if (ErrorClassifier.HasConnectionRefusedSocket(e))
         {
             return new Exceptions.ConnectionRefusedException("Redis connection refused: " + msg, e);
         }
@@ -130,18 +129,5 @@ public sealed class RedisChecker : IHealthChecker
         }
 
         return e;
-    }
-
-    private static bool HasConnectionRefusedSocket(Exception? e)
-    {
-        while (e is not null)
-        {
-            if (e is SocketException { SocketErrorCode: SocketError.ConnectionRefused })
-            {
-                return true;
-            }
-            e = e.InnerException;
-        }
-        return false;
     }
 }

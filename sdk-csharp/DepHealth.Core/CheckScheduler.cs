@@ -320,7 +320,7 @@ public sealed class CheckScheduler : IDisposable
 
         while (!ct.IsCancellationRequested)
         {
-            RunCheck(dep, checker, ep, config);
+            await RunCheckAsync(dep, checker, ep, config).ConfigureAwait(false);
 
             try
             {
@@ -333,7 +333,7 @@ public sealed class CheckScheduler : IDisposable
         }
     }
 
-    private void RunCheck(Dependency dep, IHealthChecker checker, Endpoint ep, CheckConfig config)
+    private async Task RunCheckAsync(Dependency dep, IHealthChecker checker, Endpoint ep, CheckConfig config)
     {
         var key = StateKey(dep.Name, ep);
         if (!_states.TryGetValue(key, out var state))
@@ -345,7 +345,7 @@ public sealed class CheckScheduler : IDisposable
         try
         {
             using var cts = new CancellationTokenSource(config.Timeout);
-            checker.CheckAsync(ep, cts.Token).GetAwaiter().GetResult();
+            await checker.CheckAsync(ep, cts.Token).ConfigureAwait(false);
 
             sw.Stop();
             var duration = sw.Elapsed;

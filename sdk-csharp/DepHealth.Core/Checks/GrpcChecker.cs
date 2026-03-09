@@ -1,3 +1,4 @@
+using System.Net.Http;
 using Grpc.Core;
 using Grpc.Health.V1;
 using Grpc.Net.Client;
@@ -7,10 +8,11 @@ namespace DepHealth.Checks;
 /// <summary>
 /// gRPC health checker — uses the gRPC Health Check Protocol.
 /// </summary>
-public sealed class GrpcChecker : IHealthChecker
+public sealed class GrpcChecker : IHealthChecker, IDisposable
 {
     private readonly bool _tlsEnabled;
     private readonly Metadata? _metadata;
+    private readonly SocketsHttpHandler _handler;
 
     /// <summary>Gets the dependency type for this checker.</summary>
     public DependencyType Type => DependencyType.Grpc;
@@ -28,10 +30,19 @@ public sealed class GrpcChecker : IHealthChecker
         string? basicAuthUsername = null,
         string? basicAuthPassword = null)
     {
-        ValidateAuthConflicts(metadata, bearerToken, basicAuthUsername, basicAuthPassword);
+        AuthValidation.ValidateNoConflicts(metadata, "authorization",
+            bearerToken, basicAuthUsername, basicAuthPassword, "metadata");
         _tlsEnabled = tlsEnabled;
         _metadata = BuildResolvedMetadata(metadata, bearerToken, basicAuthUsername, basicAuthPassword);
+        _handler = new SocketsHttpHandler
+        {
+            EnableMultipleHttp2Connections = true,
+            PooledConnectionLifetime = TimeSpan.FromMinutes(2)
+        };
     }
+
+    /// <inheritdoc />
+    public void Dispose() => _handler.Dispose();
 
     /// <inheritdoc />
     public async Task CheckAsync(Endpoint endpoint, CancellationToken ct)
@@ -42,11 +53,8 @@ public sealed class GrpcChecker : IHealthChecker
 
         using var channel = GrpcChannel.ForAddress(address, new GrpcChannelOptions
         {
-            HttpHandler = new SocketsHttpHandler
-            {
-                EnableMultipleHttp2Connections = true,
-                ConnectTimeout = Timeout.InfiniteTimeSpan
-            }
+            HttpHandler = _handler,
+            DisposeHttpClient = false
         });
 
         var client = new Health.HealthClient(channel);
@@ -76,37 +84,6 @@ public sealed class GrpcChecker : IHealthChecker
                 : "grpc_unknown";
             throw new Exceptions.UnhealthyException(
                 $"gRPC health check returned: {response.Status}", detail);
-        }
-    }
-
-    internal static void ValidateAuthConflicts(
-        IDictionary<string, string>? metadata,
-        string? bearerToken,
-        string? basicAuthUsername,
-        string? basicAuthPassword)
-    {
-        var methods = 0;
-
-        if (!string.IsNullOrEmpty(bearerToken))
-        {
-            methods++;
-        }
-
-        if (!string.IsNullOrEmpty(basicAuthUsername) || !string.IsNullOrEmpty(basicAuthPassword))
-        {
-            methods++;
-        }
-
-        if (metadata is not null
-            && metadata.Keys.Any(key => key.Equals("authorization", StringComparison.OrdinalIgnoreCase)))
-        {
-            methods++;
-        }
-
-        if (methods > 1)
-        {
-            throw new ValidationException(
-                "conflicting auth methods: specify only one of bearerToken, basicAuth, or authorization metadata");
         }
     }
 

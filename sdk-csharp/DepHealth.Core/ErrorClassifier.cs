@@ -78,6 +78,25 @@ public static class ErrorClassifier
         };
     }
 
+    /// <summary>
+    /// Walks the InnerException chain looking for a <see cref="SocketException"/>
+    /// with <see cref="SocketError.ConnectionRefused"/>.
+    /// </summary>
+    internal static bool HasConnectionRefusedSocket(Exception? e)
+    {
+        while (e is not null)
+        {
+            if (e is SocketException { SocketErrorCode: SocketError.ConnectionRefused })
+            {
+                return true;
+            }
+
+            e = e.InnerException;
+        }
+
+        return false;
+    }
+
     private static bool IsDnsError(Exception err)
     {
         var msg = err.Message;

@@ -55,7 +55,7 @@ public static class ConfigParser
             throw new ConfigurationException($"URL must have a scheme (e.g. http://): {rawUrl}");
         }
 
-        var scheme = rawUrl[..colonSlashSlash].ToUpperInvariant();
+        var scheme = rawUrl[..colonSlashSlash];
         if (!SchemeToType.TryGetValue(scheme, out var type))
         {
             throw new ConfigurationException($"Unsupported URL scheme: {scheme}");
@@ -112,7 +112,7 @@ public static class ConfigParser
             throw new ConfigurationException($"JDBC URL must contain ://: {jdbcUrl}");
         }
 
-        var subprotocol = withoutJdbc[..colonSlashSlash].ToUpperInvariant();
+        var subprotocol = withoutJdbc[..colonSlashSlash];
         if (!JdbcSubprotocolToType.ContainsKey(subprotocol))
         {
             throw new ConfigurationException($"Unsupported JDBC subprotocol: {subprotocol}");

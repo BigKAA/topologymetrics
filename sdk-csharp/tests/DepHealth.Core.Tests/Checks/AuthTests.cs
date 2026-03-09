@@ -5,48 +5,48 @@ using DepHealth.Exceptions;
 namespace DepHealth.Core.Tests.Checks;
 
 // ---------------------------------------------------------------------------
-// HTTP auth validation
+// Shared auth validation (AuthValidation)
 // ---------------------------------------------------------------------------
 
-public class HttpAuthValidationTests
+public class AuthValidationTests
 {
     [Fact]
     public void NoAuth_NoError()
     {
-        HttpChecker.ValidateAuthConflicts(null, null, null, null);
+        AuthValidation.ValidateNoConflicts(null, "Authorization", null, null, null);
     }
 
     [Fact]
     public void SingleBearer_Ok()
     {
-        HttpChecker.ValidateAuthConflicts(null, "token", null, null);
+        AuthValidation.ValidateNoConflicts(null, "Authorization", "token", null, null);
     }
 
     [Fact]
     public void SingleBasicAuth_Ok()
     {
-        HttpChecker.ValidateAuthConflicts(null, null, "user", "pass");
+        AuthValidation.ValidateNoConflicts(null, "Authorization", null, "user", "pass");
     }
 
     [Fact]
     public void SingleAuthorizationHeader_Ok()
     {
         var headers = new Dictionary<string, string> { ["Authorization"] = "Custom" };
-        HttpChecker.ValidateAuthConflicts(headers, null, null, null);
+        AuthValidation.ValidateNoConflicts(headers, "Authorization", null, null, null);
     }
 
     [Fact]
     public void BearerWithNonAuthHeader_Ok()
     {
         var headers = new Dictionary<string, string> { ["X-Custom"] = "value" };
-        HttpChecker.ValidateAuthConflicts(headers, "token", null, null);
+        AuthValidation.ValidateNoConflicts(headers, "Authorization", "token", null, null);
     }
 
     [Fact]
     public void ConflictBearerAndBasicAuth()
     {
         var ex = Assert.Throws<ValidationException>(() =>
-            HttpChecker.ValidateAuthConflicts(null, "token", "user", "pass"));
+            AuthValidation.ValidateNoConflicts(null, "Authorization", "token", "user", "pass"));
         Assert.Contains("conflicting auth methods", ex.Message);
     }
 
@@ -55,7 +55,7 @@ public class HttpAuthValidationTests
     {
         var headers = new Dictionary<string, string> { ["Authorization"] = "Custom" };
         var ex = Assert.Throws<ValidationException>(() =>
-            HttpChecker.ValidateAuthConflicts(headers, "token", null, null));
+            AuthValidation.ValidateNoConflicts(headers, "Authorization", "token", null, null));
         Assert.Contains("conflicting auth methods", ex.Message);
     }
 
@@ -64,7 +64,7 @@ public class HttpAuthValidationTests
     {
         var headers = new Dictionary<string, string> { ["Authorization"] = "Custom" };
         var ex = Assert.Throws<ValidationException>(() =>
-            HttpChecker.ValidateAuthConflicts(headers, null, "user", "pass"));
+            AuthValidation.ValidateNoConflicts(headers, "Authorization", null, "user", "pass"));
         Assert.Contains("conflicting auth methods", ex.Message);
     }
 
@@ -73,8 +73,18 @@ public class HttpAuthValidationTests
     {
         var headers = new Dictionary<string, string> { ["authorization"] = "Custom" };
         var ex = Assert.Throws<ValidationException>(() =>
-            HttpChecker.ValidateAuthConflicts(headers, "token", null, null));
+            AuthValidation.ValidateNoConflicts(headers, "Authorization", "token", null, null));
         Assert.Contains("conflicting auth methods", ex.Message);
+    }
+
+    [Fact]
+    public void GrpcMetadataKey_Works()
+    {
+        var metadata = new Dictionary<string, string> { ["authorization"] = "Custom" };
+        var ex = Assert.Throws<ValidationException>(() =>
+            AuthValidation.ValidateNoConflicts(metadata, "authorization", "token", null, null, "metadata"));
+        Assert.Contains("conflicting auth methods", ex.Message);
+        Assert.Contains("metadata", ex.Message);
     }
 }
 
@@ -117,78 +127,8 @@ public class HttpCheckerConstructorTests
 }
 
 // ---------------------------------------------------------------------------
-// gRPC auth validation
+// gRPC auth validation (via constructor)
 // ---------------------------------------------------------------------------
-
-public class GrpcAuthValidationTests
-{
-    [Fact]
-    public void NoAuth_NoError()
-    {
-        GrpcChecker.ValidateAuthConflicts(null, null, null, null);
-    }
-
-    [Fact]
-    public void SingleBearer_Ok()
-    {
-        GrpcChecker.ValidateAuthConflicts(null, "token", null, null);
-    }
-
-    [Fact]
-    public void SingleBasicAuth_Ok()
-    {
-        GrpcChecker.ValidateAuthConflicts(null, null, "user", "pass");
-    }
-
-    [Fact]
-    public void SingleAuthorizationMetadata_Ok()
-    {
-        var metadata = new Dictionary<string, string> { ["authorization"] = "Custom" };
-        GrpcChecker.ValidateAuthConflicts(metadata, null, null, null);
-    }
-
-    [Fact]
-    public void BearerWithNonAuthMetadata_Ok()
-    {
-        var metadata = new Dictionary<string, string> { ["x-custom"] = "value" };
-        GrpcChecker.ValidateAuthConflicts(metadata, "token", null, null);
-    }
-
-    [Fact]
-    public void ConflictBearerAndBasicAuth()
-    {
-        var ex = Assert.Throws<ValidationException>(() =>
-            GrpcChecker.ValidateAuthConflicts(null, "token", "user", "pass"));
-        Assert.Contains("conflicting auth methods", ex.Message);
-    }
-
-    [Fact]
-    public void ConflictBearerAndAuthorizationMetadata()
-    {
-        var metadata = new Dictionary<string, string> { ["authorization"] = "Custom" };
-        var ex = Assert.Throws<ValidationException>(() =>
-            GrpcChecker.ValidateAuthConflicts(metadata, "token", null, null));
-        Assert.Contains("conflicting auth methods", ex.Message);
-    }
-
-    [Fact]
-    public void ConflictBasicAuthAndAuthorizationMetadata()
-    {
-        var metadata = new Dictionary<string, string> { ["authorization"] = "Custom" };
-        var ex = Assert.Throws<ValidationException>(() =>
-            GrpcChecker.ValidateAuthConflicts(metadata, null, "user", "pass"));
-        Assert.Contains("conflicting auth methods", ex.Message);
-    }
-
-    [Fact]
-    public void AuthorizationCaseInsensitive()
-    {
-        var metadata = new Dictionary<string, string> { ["Authorization"] = "Custom" };
-        var ex = Assert.Throws<ValidationException>(() =>
-            GrpcChecker.ValidateAuthConflicts(metadata, "token", null, null));
-        Assert.Contains("conflicting auth methods", ex.Message);
-    }
-}
 
 public class GrpcCheckerConstructorTests
 {

@@ -1,4 +1,3 @@
-using System.Net.Sockets;
 using Novell.Directory.Ldap;
 
 namespace DepHealth.Checks;
@@ -289,7 +288,7 @@ public sealed class LdapChecker : IHealthChecker
 
     internal static Exception ClassifyGenericError(Exception e)
     {
-        if (HasConnectionRefusedSocket(e))
+        if (ErrorClassifier.HasConnectionRefusedSocket(e))
         {
             return new Exceptions.ConnectionRefusedException(
                 "LDAP connection refused: " + e.Message, e);
@@ -315,21 +314,6 @@ public sealed class LdapChecker : IHealthChecker
         }
 
         return e;
-    }
-
-    private static bool HasConnectionRefusedSocket(Exception? e)
-    {
-        while (e is not null)
-        {
-            if (e is SocketException { SocketErrorCode: SocketError.ConnectionRefused })
-            {
-                return true;
-            }
-
-            e = e.InnerException;
-        }
-
-        return false;
     }
 
     internal static void Validate(
