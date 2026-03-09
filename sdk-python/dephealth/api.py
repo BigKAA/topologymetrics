@@ -375,11 +375,7 @@ def grpc_check(
     labels: dict[str, str] | None = None,
 ) -> _DependencySpec:
     """Create a gRPC health check."""
-    if url:
-        parsed = parse_url(url)
-        endpoints = [Endpoint(host=p.host, port=p.port) for p in parsed]
-    else:
-        endpoints = [parse_params(host, port)]
+    endpoints = _endpoints_from_url(url) if url else [parse_params(host, port)]
     checker = GRPCChecker(
         service_name=service_name,
         tls=tls,

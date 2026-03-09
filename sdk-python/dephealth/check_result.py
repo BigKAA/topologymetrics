@@ -57,8 +57,6 @@ def classify_error(err: BaseException | None) -> CheckResult:
     # 2. Platform error detection.
     if isinstance(err, TimeoutError):
         return CheckResult(category=STATUS_TIMEOUT, detail="timeout")
-    if isinstance(err, asyncio_timeout_error()):
-        return CheckResult(category=STATUS_TIMEOUT, detail="timeout")
     if isinstance(err, socket.gaierror):
         return CheckResult(category=STATUS_DNS_ERROR, detail="dns_error")
     if isinstance(err, ConnectionRefusedError):
@@ -79,13 +77,6 @@ def classify_error(err: BaseException | None) -> CheckResult:
 
     # 3. Fallback.
     return CheckResult(category=STATUS_ERROR, detail="error")
-
-
-def asyncio_timeout_error() -> type:
-    """Return asyncio.TimeoutError (same as TimeoutError in 3.11+)."""
-    import asyncio
-
-    return asyncio.TimeoutError
 
 
 __all__ = [
