@@ -219,6 +219,115 @@ func TestMetricsExporter_LabelEmptyFallback(t *testing.T) {
 	}
 }
 
+func TestMetricsExporter_SetStatus(t *testing.T) {
+	m, _ := newTestExporter(t, "test-app")
+
+	dep := Dependency{Name: "postgres-main", Type: TypePostgres, Critical: boolPtr(true)}
+	ep := Endpoint{Host: "pg.svc", Port: "5432"}
+
+	m.SetStatus(dep, ep, StatusOK)
+
+	// Exactly one status category should be 1 (ok), all others 0.
+	expected := `
+		# HELP app_dependency_status Category of the last check result
+		# TYPE app_dependency_status gauge
+		app_dependency_status{critical="yes",dependency="postgres-main",group="test-group",host="pg.svc",name="test-app",port="5432",status="auth_error",type="postgres"} 0
+		app_dependency_status{critical="yes",dependency="postgres-main",group="test-group",host="pg.svc",name="test-app",port="5432",status="connection_error",type="postgres"} 0
+		app_dependency_status{critical="yes",dependency="postgres-main",group="test-group",host="pg.svc",name="test-app",port="5432",status="dns_error",type="postgres"} 0
+		app_dependency_status{critical="yes",dependency="postgres-main",group="test-group",host="pg.svc",name="test-app",port="5432",status="error",type="postgres"} 0
+		app_dependency_status{critical="yes",dependency="postgres-main",group="test-group",host="pg.svc",name="test-app",port="5432",status="ok",type="postgres"} 1
+		app_dependency_status{critical="yes",dependency="postgres-main",group="test-group",host="pg.svc",name="test-app",port="5432",status="timeout",type="postgres"} 0
+		app_dependency_status{critical="yes",dependency="postgres-main",group="test-group",host="pg.svc",name="test-app",port="5432",status="tls_error",type="postgres"} 0
+		app_dependency_status{critical="yes",dependency="postgres-main",group="test-group",host="pg.svc",name="test-app",port="5432",status="unhealthy",type="postgres"} 0
+	`
+	if err := testutil.CollectAndCompare(m.status, strings.NewReader(expected)); err != nil {
+		t.Errorf("status metric mismatch: %v", err)
+	}
+}
+
+func TestMetricsExporter_SetStatus_DeltaUpdate(t *testing.T) {
+	m, _ := newTestExporter(t, "test-app")
+
+	dep := Dependency{Name: "redis-cache", Type: TypeRedis, Critical: boolPtr(false)}
+	ep := Endpoint{Host: "redis.svc", Port: "6379"}
+
+	// First call — initializes all 8 gauges.
+	m.SetStatus(dep, ep, StatusOK)
+
+	// Second call with same status — should be a no-op (delta optimization).
+	m.SetStatus(dep, ep, StatusOK)
+
+	// Third call with different status — delta update.
+	m.SetStatus(dep, ep, StatusTimeout)
+
+	// Verify: timeout=1, ok=0, rest=0.
+	expected := `
+		# HELP app_dependency_status Category of the last check result
+		# TYPE app_dependency_status gauge
+		app_dependency_status{critical="no",dependency="redis-cache",group="test-group",host="redis.svc",name="test-app",port="6379",status="auth_error",type="redis"} 0
+		app_dependency_status{critical="no",dependency="redis-cache",group="test-group",host="redis.svc",name="test-app",port="6379",status="connection_error",type="redis"} 0
+		app_dependency_status{critical="no",dependency="redis-cache",group="test-group",host="redis.svc",name="test-app",port="6379",status="dns_error",type="redis"} 0
+		app_dependency_status{critical="no",dependency="redis-cache",group="test-group",host="redis.svc",name="test-app",port="6379",status="error",type="redis"} 0
+		app_dependency_status{critical="no",dependency="redis-cache",group="test-group",host="redis.svc",name="test-app",port="6379",status="ok",type="redis"} 0
+		app_dependency_status{critical="no",dependency="redis-cache",group="test-group",host="redis.svc",name="test-app",port="6379",status="timeout",type="redis"} 1
+		app_dependency_status{critical="no",dependency="redis-cache",group="test-group",host="redis.svc",name="test-app",port="6379",status="tls_error",type="redis"} 0
+		app_dependency_status{critical="no",dependency="redis-cache",group="test-group",host="redis.svc",name="test-app",port="6379",status="unhealthy",type="redis"} 0
+	`
+	if err := testutil.CollectAndCompare(m.status, strings.NewReader(expected)); err != nil {
+		t.Errorf("status metric mismatch after delta update: %v", err)
+	}
+}
+
+func TestMetricsExporter_SetStatusDetail(t *testing.T) {
+	m, _ := newTestExporter(t, "test-app")
+
+	dep := Dependency{Name: "postgres-main", Type: TypePostgres, Critical: boolPtr(true)}
+	ep := Endpoint{Host: "pg.svc", Port: "5432"}
+
+	m.SetStatusDetail(dep, ep, "ok")
+
+	expected := `
+		# HELP app_dependency_status_detail Detailed reason of the last check result
+		# TYPE app_dependency_status_detail gauge
+		app_dependency_status_detail{critical="yes",dependency="postgres-main",detail="ok",group="test-group",host="pg.svc",name="test-app",port="5432",type="postgres"} 1
+	`
+	if err := testutil.CollectAndCompare(m.statusDetail, strings.NewReader(expected)); err != nil {
+		t.Errorf("status detail metric mismatch: %v", err)
+	}
+
+	// Change detail — old series should be deleted, new one created.
+	m.SetStatusDetail(dep, ep, "connection_refused")
+
+	expected = `
+		# HELP app_dependency_status_detail Detailed reason of the last check result
+		# TYPE app_dependency_status_detail gauge
+		app_dependency_status_detail{critical="yes",dependency="postgres-main",detail="connection_refused",group="test-group",host="pg.svc",name="test-app",port="5432",type="postgres"} 1
+	`
+	if err := testutil.CollectAndCompare(m.statusDetail, strings.NewReader(expected)); err != nil {
+		t.Errorf("status detail metric mismatch after change: %v", err)
+	}
+}
+
+func TestMetricsExporter_SetStatusDetail_Unchanged(t *testing.T) {
+	m, _ := newTestExporter(t, "test-app")
+
+	dep := Dependency{Name: "redis-cache", Type: TypeRedis, Critical: boolPtr(false)}
+	ep := Endpoint{Host: "redis.svc", Port: "6379"}
+
+	m.SetStatusDetail(dep, ep, "ok")
+	// Repeated call with same detail — should be a no-op (early return).
+	m.SetStatusDetail(dep, ep, "ok")
+
+	expected := `
+		# HELP app_dependency_status_detail Detailed reason of the last check result
+		# TYPE app_dependency_status_detail gauge
+		app_dependency_status_detail{critical="no",dependency="redis-cache",detail="ok",group="test-group",host="redis.svc",name="test-app",port="6379",type="redis"} 1
+	`
+	if err := testutil.CollectAndCompare(m.statusDetail, strings.NewReader(expected)); err != nil {
+		t.Errorf("status detail metric mismatch: %v", err)
+	}
+}
+
 func TestMetricsExporter_InstanceName(t *testing.T) {
 	m, _ := newTestExporter(t, "order-api")
 

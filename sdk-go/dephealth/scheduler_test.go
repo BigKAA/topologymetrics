@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -817,16 +818,16 @@ func TestScheduler_ConcurrentAddRemoveHealth(t *testing.T) {
 	const goroutines = 10
 	const iterations = 20
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
 	errs := make(chan error, goroutines*iterations*3)
+	var wg sync.WaitGroup
 
 	// Spawn goroutines that concurrently Add, Remove, and read Health.
 	for g := 0; g < goroutines; g++ {
 		g := g
 		// Adder goroutine.
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			for i := 0; i < iterations; i++ {
 				ep := Endpoint{
 					Host: fmt.Sprintf("10.0.%d.%d", g, i),
@@ -841,7 +842,9 @@ func TestScheduler_ConcurrentAddRemoveHealth(t *testing.T) {
 		}()
 
 		// Remover goroutine.
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			for i := 0; i < iterations; i++ {
 				ep := Endpoint{
 					Host: fmt.Sprintf("10.0.%d.%d", g, i),
@@ -857,23 +860,97 @@ func TestScheduler_ConcurrentAddRemoveHealth(t *testing.T) {
 		}()
 
 		// Health reader goroutine.
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			for i := 0; i < iterations; i++ {
 				_ = sched.Health()
 			}
 		}()
 	}
 
-	// Wait for all goroutines (simple barrier).
+	// Wait for all goroutines with a timeout.
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
 	select {
-	case <-ctx.Done():
-		t.Fatal("test timed out")
-	case <-time.After(3 * time.Second):
-		// All goroutines should have finished by now.
+	case <-done:
+		// All goroutines finished.
+	case <-time.After(5 * time.Second):
+		t.Fatal("test timed out waiting for goroutines")
 	}
 
 	close(errs)
 	for err := range errs {
 		t.Error(err)
+	}
+}
+
+func TestScheduler_SuccessThreshold(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	metrics, _ := NewMetricsExporter("test-app", "test-group", WithMetricsRegisterer(reg))
+	sched := NewScheduler(metrics)
+
+	callCount := atomic.Int64{}
+	checker := &mockChecker{
+		checkFunc: func(_ context.Context, _ Endpoint) error {
+			n := callCount.Add(1)
+			if n <= 2 {
+				return errors.New("fail") // First 2 checks — fail.
+			}
+			return nil // Subsequent checks — success.
+		},
+	}
+
+	dep := testDepWithThresholds("test-dep", 1, 3) // successThreshold=3
+	addTestDep(sched, dep, checker)
+	_ = sched.Start(context.Background())
+
+	// Timeline (interval=100ms):
+	//   t≈0:    check 1 (n=1) → fail → unhealthy (failureThreshold=1)
+	//   t≈100:  check 2 (n=2) → fail
+	//   t≈200:  check 3 (n=3) → success → consecutiveSuccesses=1
+	//   t≈300:  check 4 (n=4) → success → consecutiveSuccesses=2
+	//   t≈400:  check 5 (n=5) → success → consecutiveSuccesses=3 → HEALTHY
+	//
+	// At 350ms we have 2 successes — threshold of 3 not reached.
+	time.Sleep(350 * time.Millisecond)
+
+	// Metric should be 0 — success threshold not yet reached.
+	expected := `
+		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
+		# TYPE app_dependency_health gauge
+		app_dependency_health{critical="no",dependency="test-dep",group="test-group",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 0
+	`
+	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
+		t.Errorf("metric should be 0 before reaching success threshold: %v", err)
+	}
+
+	// Wait for check 5 at t≈400ms — success threshold should be reached.
+	time.Sleep(150 * time.Millisecond)
+	sched.Stop()
+
+	expected = `
+		# HELP app_dependency_health Health status of a dependency (1 = healthy, 0 = unhealthy)
+		# TYPE app_dependency_health gauge
+		app_dependency_health{critical="no",dependency="test-dep",group="test-group",host="127.0.0.1",name="test-app",port="1234",type="tcp"} 1
+	`
+	if err := testutil.CollectAndCompare(sched.metrics.health, strings.NewReader(expected)); err != nil {
+		t.Errorf("metric should be 1 after reaching success threshold: %v", err)
+	}
+}
+
+func TestScheduler_RemoveEndpoint_AfterStop(t *testing.T) {
+	sched, _ := newTestSchedulerFast(t)
+
+	_ = sched.Start(context.Background())
+	sched.Stop()
+
+	err := sched.RemoveEndpoint("some-dep", "10.0.0.1", "5432")
+	if !errors.Is(err, ErrNotStarted) {
+		t.Errorf("expected ErrNotStarted after Stop, got: %v", err)
 	}
 }
