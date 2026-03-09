@@ -165,9 +165,9 @@ public sealed class LdapChecker : IHealthChecker
         finally
         {
             try { conn.Disconnect(); }
-            catch
+            catch (LdapException)
             {
-                // Ignore disconnect errors.
+                // Disconnect may fail if the connection is already closed.
             }
 
             conn.Dispose();

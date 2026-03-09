@@ -25,10 +25,6 @@ public sealed partial class Endpoint : IEquatable<Endpoint>
     /// <summary>Custom Prometheus labels for this endpoint.</summary>
     public IReadOnlyDictionary<string, string> Labels { get; }
 
-    /// <summary>Additional metadata key-value pairs.</summary>
-    [Obsolete("Use Labels instead")]
-    public IReadOnlyDictionary<string, string> Metadata => Labels;
-
     /// <summary>Creates an endpoint with host and port.</summary>
     /// <param name="host">Hostname or IP address.</param>
     /// <param name="port">Port number as string.</param>
