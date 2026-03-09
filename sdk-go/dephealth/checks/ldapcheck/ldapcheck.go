@@ -306,6 +306,11 @@ func (c *Checker) searchWithConfig(conn *ldap.Conn) error {
 		filter = "(objectClass=*)"
 	}
 
+	// Validate LDAP filter syntax to prevent filter injection.
+	if _, err := ldap.CompileFilter(filter); err != nil {
+		return fmt.Errorf("ldap: invalid search filter %q: %w", filter, err)
+	}
+
 	req := ldap.NewSearchRequest(
 		c.baseDN,
 		int(c.searchScope),

@@ -62,10 +62,11 @@ func NewFromConfig(dc *dephealth.DependencyConfig) dephealth.HealthChecker {
 // Check establishes an AMQP connection and immediately closes it.
 // Uses amqp.DialConfig with a bounded dial timeout to prevent goroutine leaks
 // when the remote server is unreachable.
+// A URL must be provided via WithURL option or DependencyConfig; otherwise an error is returned.
 func (c *Checker) Check(ctx context.Context, endpoint dephealth.Endpoint) error {
 	url := c.url
 	if url == "" {
-		url = fmt.Sprintf("amqp://guest:guest@%s/", net.JoinHostPort(endpoint.Host, endpoint.Port))
+		return fmt.Errorf("amqp %s: URL is required (use WithURL option or set URL/AMQPURL in config)", endpoint.Host)
 	}
 
 	// Derive dial timeout from context deadline to prevent goroutine leaks.

@@ -40,7 +40,7 @@ type MetricsExporter struct {
 	allLabelNames []string
 
 	// cacheMu protects labelCache, prevStatus, and prevDetails.
-	cacheMu sync.Mutex
+	cacheMu sync.RWMutex
 
 	// labelCache caches base labels per endpoint to avoid repeated map allocation.
 	// The cached maps must not be modified by callers.
@@ -278,12 +278,13 @@ func (m *MetricsExporter) DeleteMetrics(dep Dependency, ep Endpoint) {
 func (m *MetricsExporter) labels(dep Dependency, ep Endpoint) prometheus.Labels {
 	key := endpointKey(dep, ep)
 
-	m.cacheMu.Lock()
+	// Fast path: read lock for cache hit.
+	m.cacheMu.RLock()
 	if cached, ok := m.labelCache[key]; ok {
-		m.cacheMu.Unlock()
+		m.cacheMu.RUnlock()
 		return cached
 	}
-	m.cacheMu.Unlock()
+	m.cacheMu.RUnlock()
 
 	critical := "no"
 	if dep.Critical != nil && *dep.Critical {

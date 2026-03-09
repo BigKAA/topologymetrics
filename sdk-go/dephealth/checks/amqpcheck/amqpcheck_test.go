@@ -2,6 +2,7 @@ package amqpcheck
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -9,7 +10,7 @@ import (
 )
 
 func TestChecker_Check_ConnectionRefused(t *testing.T) {
-	checker := New()
+	checker := New(WithURL("amqp://guest:guest@127.0.0.1:1/"))
 	ep := dephealth.Endpoint{Host: "127.0.0.1", Port: "1"}
 
 	err := checker.Check(context.Background(), ep)
@@ -18,11 +19,24 @@ func TestChecker_Check_ConnectionRefused(t *testing.T) {
 	}
 }
 
+func TestChecker_Check_NoURL(t *testing.T) {
+	checker := New()
+	ep := dephealth.Endpoint{Host: "127.0.0.1", Port: "5672"}
+
+	err := checker.Check(context.Background(), ep)
+	if err == nil {
+		t.Fatal("expected error when URL is not set, got nil")
+	}
+	if !strings.Contains(err.Error(), "URL is required") {
+		t.Errorf("expected URL required error, got: %v", err)
+	}
+}
+
 func TestChecker_Check_ContextCanceled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	checker := New()
+	checker := New(WithURL("amqp://guest:guest@127.0.0.1:5672/"))
 	ep := dephealth.Endpoint{Host: "127.0.0.1", Port: "5672"}
 
 	err := checker.Check(ctx, ep)
@@ -36,7 +50,7 @@ func TestChecker_Check_Timeout(t *testing.T) {
 	defer cancel()
 
 	// Connect to a non-existent host to trigger a timeout.
-	checker := New()
+	checker := New(WithURL("amqp://guest:guest@192.0.2.1:5672/"))
 	ep := dephealth.Endpoint{Host: "192.0.2.1", Port: "5672"} // TEST-NET-1, non-routable
 
 	err := checker.Check(ctx, ep)

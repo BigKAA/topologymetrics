@@ -109,11 +109,11 @@ func New(name string, group string, opts ...Option) (*DepHealth, error) {
 
 // collectCustomLabelKeys collects unique custom label keys from all endpoints.
 func collectCustomLabelKeys(entries []dependencyEntry) []string {
-	keys := make(map[string]bool)
+	keys := make(map[string]struct{})
 	for _, entry := range entries {
 		for _, ep := range entry.dep.Endpoints {
 			for k := range ep.Labels {
-				keys[k] = true
+				keys[k] = struct{}{}
 			}
 		}
 	}

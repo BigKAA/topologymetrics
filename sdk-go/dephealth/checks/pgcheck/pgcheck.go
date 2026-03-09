@@ -50,6 +50,7 @@ func WithDSN(dsn string) Option {
 }
 
 // WithQuery sets the health check SQL query (default "SELECT 1").
+// The query must be a read-only SELECT statement to prevent unintended side effects.
 func WithQuery(query string) Option {
 	return func(c *Checker) {
 		c.query = query
@@ -89,6 +90,9 @@ func (c *Checker) Check(ctx context.Context, endpoint dephealth.Endpoint) error 
 }
 
 func (c *Checker) checkPool(ctx context.Context) error {
+	if err := validateQuery(c.query); err != nil {
+		return err
+	}
 	rows, err := c.db.QueryContext(ctx, c.query)
 	if err != nil {
 		return classifyError(err, "pool")
@@ -97,6 +101,10 @@ func (c *Checker) checkPool(ctx context.Context) error {
 }
 
 func (c *Checker) checkStandalone(ctx context.Context, endpoint dephealth.Endpoint) error {
+	if err := validateQuery(c.query); err != nil {
+		return err
+	}
+
 	dsn := c.dsn
 	if dsn == "" {
 		dsn = fmt.Sprintf("postgres://%s/postgres", net.JoinHostPort(endpoint.Host, endpoint.Port))
@@ -113,6 +121,15 @@ func (c *Checker) checkStandalone(ctx context.Context, endpoint dephealth.Endpoi
 		return classifyError(err, endpoint.Host)
 	}
 	return rows.Close()
+}
+
+// validateQuery checks that the health check query is a SELECT statement.
+func validateQuery(query string) error {
+	trimmed := strings.TrimSpace(query)
+	if len(trimmed) < 6 || !strings.EqualFold(trimmed[:6], "SELECT") {
+		return fmt.Errorf("postgres: health check query must be a SELECT statement, got: %q", query)
+	}
+	return nil
 }
 
 // classifyError wraps PostgreSQL errors with appropriate classification.
