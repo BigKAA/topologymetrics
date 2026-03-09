@@ -39,10 +39,20 @@ type MetricsExporter struct {
 	// determined at exporter creation time.
 	allLabelNames []string
 
+	// cacheMu protects labelCache, prevStatus, and prevDetails.
+	cacheMu sync.Mutex
+
+	// labelCache caches base labels per endpoint to avoid repeated map allocation.
+	// The cached maps must not be modified by callers.
+	labelCache map[string]prometheus.Labels
+
+	// prevStatus tracks the previous status category per endpoint key.
+	// Used to avoid updating all 8 status gauges when status hasn't changed.
+	prevStatus map[string]StatusCategory
+
 	// prevDetails tracks the previous detail value per endpoint key.
 	// Used to delete the old detail series when the detail changes.
 	prevDetails map[string]string
-	detailMu    sync.Mutex
 }
 
 // MetricsOption is a functional option for MetricsExporter.
@@ -144,6 +154,8 @@ func NewMetricsExporter(instanceName string, instanceGroup string, opts ...Metri
 		instanceName:  instanceName,
 		instanceGroup: instanceGroup,
 		allLabelNames: allLabels,
+		labelCache:    make(map[string]prometheus.Labels),
+		prevStatus:    make(map[string]StatusCategory),
 		prevDetails:   make(map[string]string),
 	}, nil
 }
@@ -160,34 +172,65 @@ func (m *MetricsExporter) ObserveLatency(dep Dependency, ep Endpoint, duration t
 }
 
 // SetStatus updates the app_dependency_status enum gauge.
-// Exactly one of the 8 status values is set to 1, the rest to 0.
+// On the first call for an endpoint, all 8 categories are initialized.
+// On subsequent calls, only changed categories are updated (delta update).
+// If the status hasn't changed since the last call, no gauges are touched.
 func (m *MetricsExporter) SetStatus(dep Dependency, ep Endpoint, category StatusCategory) {
-	// Enum pattern: set matching category to 1, all others to 0.
+	key := endpointKey(dep, ep)
+
+	m.cacheMu.Lock()
+	prev, hasPrev := m.prevStatus[key]
+	if hasPrev && prev == category {
+		m.cacheMu.Unlock()
+		return // status unchanged — skip all gauge updates
+	}
+	m.prevStatus[key] = category
+	m.cacheMu.Unlock()
+
 	base := m.labels(dep, ep)
-	for _, s := range AllStatusCategories {
-		labels := copyLabels(base)
-		labels["status"] = string(s)
-		if s == category {
-			m.status.With(labels).Set(1)
-		} else {
-			m.status.With(labels).Set(0)
+
+	if hasPrev {
+		// Delta update: only touch the two changed categories.
+		oldLabels := copyLabels(base)
+		oldLabels["status"] = string(prev)
+		m.status.With(oldLabels).Set(0)
+
+		newLabels := copyLabels(base)
+		newLabels["status"] = string(category)
+		m.status.With(newLabels).Set(1)
+	} else {
+		// First call: initialize all 8 status gauges.
+		for _, s := range AllStatusCategories {
+			labels := copyLabels(base)
+			labels["status"] = string(s)
+			if s == category {
+				m.status.With(labels).Set(1)
+			} else {
+				m.status.With(labels).Set(0)
+			}
 		}
 	}
 }
 
 // SetStatusDetail updates the app_dependency_status_detail info gauge.
 // When the detail changes, the old series is deleted and a new one is created.
+// If the detail hasn't changed since the last call, no action is taken.
 func (m *MetricsExporter) SetStatusDetail(dep Dependency, ep Endpoint, detail string) {
-	base := m.labels(dep, ep)
 	key := endpointKey(dep, ep)
 
-	m.detailMu.Lock()
+	m.cacheMu.Lock()
 	prev, hasPrev := m.prevDetails[key]
+	if hasPrev && prev == detail {
+		m.cacheMu.Unlock()
+		return // detail unchanged — skip
+	}
 	m.prevDetails[key] = detail
-	m.detailMu.Unlock()
+	m.cacheMu.Unlock()
+
+	base := m.labels(dep, ep)
 
 	// Delete old series if detail changed.
-	if hasPrev && prev != detail {
+	if hasPrev {
 		oldLabels := copyLabels(base)
 		oldLabels["detail"] = prev
 		m.statusDetail.Delete(oldLabels)
@@ -205,6 +248,8 @@ func (m *MetricsExporter) DeleteMetrics(dep Dependency, ep Endpoint) {
 	m.health.Delete(base)
 	m.latency.Delete(base)
 
+	key := endpointKey(dep, ep)
+
 	// Delete all 8 status series.
 	for _, s := range AllStatusCategories {
 		labels := copyLabels(base)
@@ -212,12 +257,13 @@ func (m *MetricsExporter) DeleteMetrics(dep Dependency, ep Endpoint) {
 		m.status.Delete(labels)
 	}
 
-	// Delete detail series.
-	key := endpointKey(dep, ep)
-	m.detailMu.Lock()
+	// Delete detail series and clean caches.
+	m.cacheMu.Lock()
 	prev, hasPrev := m.prevDetails[key]
 	delete(m.prevDetails, key)
-	m.detailMu.Unlock()
+	delete(m.prevStatus, key)
+	delete(m.labelCache, key)
+	m.cacheMu.Unlock()
 
 	if hasPrev {
 		labels := copyLabels(base)
@@ -226,8 +272,19 @@ func (m *MetricsExporter) DeleteMetrics(dep Dependency, ep Endpoint) {
 	}
 }
 
-// labels builds a label set from Dependency and Endpoint.
+// labels returns the base label set for the given dependency endpoint.
+// Results are cached per endpoint key to avoid repeated map allocation.
+// The returned map must not be modified — use copyLabels for mutations.
 func (m *MetricsExporter) labels(dep Dependency, ep Endpoint) prometheus.Labels {
+	key := endpointKey(dep, ep)
+
+	m.cacheMu.Lock()
+	if cached, ok := m.labelCache[key]; ok {
+		m.cacheMu.Unlock()
+		return cached
+	}
+	m.cacheMu.Unlock()
+
 	critical := "no"
 	if dep.Critical != nil && *dep.Critical {
 		critical = "yes"
@@ -251,6 +308,10 @@ func (m *MetricsExporter) labels(dep Dependency, ep Endpoint) prometheus.Labels 
 		}
 		labels[name] = val
 	}
+
+	m.cacheMu.Lock()
+	m.labelCache[key] = labels
+	m.cacheMu.Unlock()
 
 	return labels
 }
