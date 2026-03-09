@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 
@@ -59,12 +60,20 @@ func NewFromConfig(dc *dephealth.DependencyConfig) dephealth.HealthChecker {
 }
 
 // Check establishes an AMQP connection and immediately closes it.
-// Uses context for cancellation/timeout via a goroutine wrapper
-// since amqp091-go does not natively support context.
+// Uses amqp.DialConfig with a bounded dial timeout to prevent goroutine leaks
+// when the remote server is unreachable.
 func (c *Checker) Check(ctx context.Context, endpoint dephealth.Endpoint) error {
 	url := c.url
 	if url == "" {
 		url = fmt.Sprintf("amqp://guest:guest@%s/", net.JoinHostPort(endpoint.Host, endpoint.Port))
+	}
+
+	// Derive dial timeout from context deadline to prevent goroutine leaks.
+	dialTimeout := 5 * time.Second
+	if deadline, ok := ctx.Deadline(); ok {
+		if remaining := time.Until(deadline); remaining < dialTimeout {
+			dialTimeout = remaining
+		}
 	}
 
 	type dialResult struct {
@@ -74,12 +83,17 @@ func (c *Checker) Check(ctx context.Context, endpoint dephealth.Endpoint) error 
 
 	ch := make(chan dialResult, 1)
 	go func() {
-		conn, err := amqp.Dial(url)
+		conn, err := amqp.DialConfig(url, amqp.Config{
+			Dial: func(network, addr string) (net.Conn, error) {
+				return net.DialTimeout(network, addr, dialTimeout)
+			},
+		})
 		ch <- dialResult{conn: conn, err: err}
 	}()
 
 	select {
 	case <-ctx.Done():
+		// The goroutine will finish within dialTimeout due to the bounded dialer.
 		return fmt.Errorf("amqp dial %s: %w", endpoint.Host, ctx.Err())
 	case res := <-ch:
 		if res.err != nil {

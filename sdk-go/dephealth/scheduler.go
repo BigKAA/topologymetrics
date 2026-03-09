@@ -341,7 +341,7 @@ func (s *Scheduler) executeCheck(
 		} else {
 			s.metrics.SetHealth(dep, ep, 0)
 			s.logger.LogAttrs(ctx, slog.LevelWarn, "dephealth: check failed",
-				append(logAttrs, slog.String("error", checkErr.Error()))...)
+				appendAttr(logAttrs, slog.String("error", checkErr.Error()))...)
 		}
 		return
 	}
@@ -352,7 +352,7 @@ func (s *Scheduler) executeCheck(
 		state.consecutiveFailures++
 
 		s.logger.LogAttrs(ctx, slog.LevelWarn, "dephealth: check failed",
-			append(logAttrs, slog.String("error", checkErr.Error()))...)
+			appendAttr(logAttrs, slog.String("error", checkErr.Error()))...)
 
 		// Apply failure threshold before transitioning state.
 		if state.healthy != nil && *state.healthy &&
@@ -362,7 +362,7 @@ func (s *Scheduler) executeCheck(
 			state.healthy = &healthy
 			s.metrics.SetHealth(dep, ep, 0)
 			s.logger.LogAttrs(ctx, slog.LevelError, "dephealth: dependency unhealthy",
-				append(logAttrs, slog.Int("consecutive_failures", state.consecutiveFailures))...)
+				appendAttr(logAttrs, slog.Int("consecutive_failures", state.consecutiveFailures))...)
 		} else if state.healthy != nil && !*state.healthy {
 			// Already unhealthy — update metric (it is already 0).
 			s.metrics.SetHealth(dep, ep, 0)
@@ -445,7 +445,7 @@ func (s *Scheduler) RemoveEndpoint(depName, host, port string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if !s.started {
+	if !s.started || s.stopped {
 		return ErrNotStarted
 	}
 
@@ -545,6 +545,15 @@ func (s *Scheduler) UpdateEndpoint(depName, oldHost, oldPort string, newEp Endpo
 	go s.runEndpointLoop(epCtx, dep, newEp, checker, newSt)
 
 	return nil
+}
+
+// appendAttr returns a new slice with extra appended, without mutating the original.
+// This prevents data races when logAttrs is shared across calls.
+func appendAttr(base []slog.Attr, extra ...slog.Attr) []slog.Attr {
+	result := make([]slog.Attr, len(base)+len(extra))
+	copy(result, base)
+	copy(result[len(base):], extra)
+	return result
 }
 
 // safeCheck calls checker.Check with panic recovery.

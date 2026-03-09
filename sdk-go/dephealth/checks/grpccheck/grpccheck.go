@@ -10,8 +10,10 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
+	"log/slog"
 	"maps"
 	"net"
+	"sync"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -23,6 +25,8 @@ import (
 
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 )
+
+var tlsSkipVerifyWarnOnce sync.Once
 
 func init() {
 	dephealth.RegisterCheckerFactory(dephealth.TypeGRPC, NewFromConfig)
@@ -130,6 +134,11 @@ func (c *Checker) Check(ctx context.Context, endpoint dephealth.Endpoint) error 
 
 	var transportCreds grpc.DialOption
 	if c.tlsEnabled {
+		if c.tlsSkipVerify {
+			tlsSkipVerifyWarnOnce.Do(func() {
+				slog.Warn("dephealth: gRPC checker has TLS certificate verification disabled (InsecureSkipVerify=true)")
+			})
+		}
 		tlsCfg := &tls.Config{
 			InsecureSkipVerify: c.tlsSkipVerify, //nolint:gosec // configurable by user
 		}

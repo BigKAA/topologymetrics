@@ -13,8 +13,10 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -22,6 +24,8 @@ import (
 
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 )
+
+var tlsSkipVerifyWarnOnce sync.Once
 
 func init() {
 	dephealth.RegisterCheckerFactory(dephealth.TypeLDAP, NewFromConfig)
@@ -239,6 +243,11 @@ func (c *Checker) dial(ctx context.Context, addr string) (*ldap.Conn, error) {
 	dialer := &net.Dialer{Timeout: dialTimeout}
 
 	if c.useTLS {
+		if c.tlsSkipVerify {
+			tlsSkipVerifyWarnOnce.Do(func() {
+				slog.Warn("dephealth: LDAP checker has TLS certificate verification disabled (InsecureSkipVerify=true)")
+			})
+		}
 		tlsCfg := &tls.Config{
 			InsecureSkipVerify: c.tlsSkipVerify, //nolint:gosec // user-configurable
 		}

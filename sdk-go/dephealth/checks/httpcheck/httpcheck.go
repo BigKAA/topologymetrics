@@ -10,12 +10,16 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
+	"log/slog"
 	"maps"
 	"net"
 	"net/http"
+	"sync"
 
 	"github.com/BigKAA/topologymetrics/sdk-go/dephealth"
 )
+
+var tlsSkipVerifyWarnOnce sync.Once
 
 func init() {
 	dephealth.RegisterCheckerFactory(dephealth.TypeHTTP, NewFromConfig)
@@ -135,6 +139,12 @@ func (c *Checker) Check(ctx context.Context, endpoint dephealth.Endpoint) error 
 	// Apply custom headers after User-Agent so they can override it.
 	for k, v := range c.headers {
 		req.Header.Set(k, v)
+	}
+
+	if c.tlsSkipVerify {
+		tlsSkipVerifyWarnOnce.Do(func() {
+			slog.Warn("dephealth: HTTP checker has TLS certificate verification disabled (InsecureSkipVerify=true)")
+		})
 	}
 
 	transport := &http.Transport{

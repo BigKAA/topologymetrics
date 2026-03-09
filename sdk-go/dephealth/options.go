@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -81,11 +82,16 @@ type dependencyEntry struct {
 type CheckerFactory func(dc *DependencyConfig) HealthChecker
 
 // checkerFactories is the registry of checker factories by dependency type.
-var checkerFactories = map[DependencyType]CheckerFactory{}
+var (
+	checkerFactories   = map[DependencyType]CheckerFactory{}
+	checkerFactoriesMu sync.RWMutex
+)
 
 // RegisterCheckerFactory registers a checker factory for the specified type.
-// Called from the checks package init().
+// Safe for concurrent use; typically called from init() functions.
 func RegisterCheckerFactory(depType DependencyType, factory CheckerFactory) {
+	checkerFactoriesMu.Lock()
+	defer checkerFactoriesMu.Unlock()
 	checkerFactories[depType] = factory
 }
 
@@ -396,7 +402,9 @@ func makeDepOption(name string, depType DependencyType, opts []DependencyOption)
 			return err
 		}
 
+		checkerFactoriesMu.RLock()
 		factory, ok := checkerFactories[depType]
+		checkerFactoriesMu.RUnlock()
 		if !ok {
 			return fmt.Errorf("dependency %q: no checker factory registered for type %q; import .../dephealth/checks (all) or a specific sub-package like .../dephealth/checks/httpcheck", name, depType)
 		}
