@@ -128,29 +128,6 @@ func main() {
 This binary will **not** include gRPC, Kafka, AMQP, HTTP checker, MySQL,
 or TCP checker libraries.
 
-## Backward Compatibility
-
-The `checks` package provides deprecated type aliases and constructor
-wrappers for all checkers. Existing code using `checks.HTTPChecker`,
-`checks.NewHTTPChecker()`, etc. continues to compile without changes:
-
-```go
-// Old style (still works, but deprecated)
-import "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks"
-
-checker := checks.NewHTTPChecker(checks.WithHealthPath("/ready"))
-```
-
-```go
-// New style (recommended)
-import "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/httpcheck"
-
-checker := httpcheck.New(httpcheck.WithHealthPath("/ready"))
-```
-
-All deprecated aliases are listed in `checks/compat.go` with godoc
-references to the new packages.
-
 ## Contrib Packages
 
 The `contrib/` packages (`sqldb`, `redispool`) work with both import

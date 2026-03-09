@@ -130,30 +130,6 @@ func main() {
 Этот бинарник **не будет** включать библиотеки gRPC, Kafka, AMQP,
 HTTP-чекера, MySQL и TCP-чекера.
 
-## Обратная совместимость
-
-Пакет `checks` предоставляет устаревшие (deprecated) псевдонимы типов
-и обёртки конструкторов для всех чекеров. Существующий код, использующий
-`checks.HTTPChecker`, `checks.NewHTTPChecker()` и т.д., продолжает
-компилироваться без изменений:
-
-```go
-// Старый стиль (работает, но устарел)
-import "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks"
-
-checker := checks.NewHTTPChecker(checks.WithHealthPath("/ready"))
-```
-
-```go
-// Новый стиль (рекомендуется)
-import "github.com/BigKAA/topologymetrics/sdk-go/dephealth/checks/httpcheck"
-
-checker := httpcheck.New(httpcheck.WithHealthPath("/ready"))
-```
-
-Все устаревшие псевдонимы перечислены в `checks/compat.go` со ссылками
-в godoc на новые пакеты.
-
 ## Contrib-пакеты
 
 Пакеты `contrib/` (`sqldb`, `redispool`) работают с обоими стилями
