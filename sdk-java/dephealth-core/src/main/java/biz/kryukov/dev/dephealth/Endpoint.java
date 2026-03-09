@@ -22,7 +22,7 @@ public final class Endpoint {
 
     private final String host;
     private final String port;
-    private final Map<String, String> metadata;
+    private final Map<String, String> labels;
 
     /** Creates an endpoint with no custom labels. */
     public Endpoint(String host, String port) {
@@ -30,10 +30,10 @@ public final class Endpoint {
     }
 
     /** Creates an endpoint with custom labels. */
-    public Endpoint(String host, String port, Map<String, String> metadata) {
+    public Endpoint(String host, String port, Map<String, String> labels) {
         this.host = Objects.requireNonNull(host, "host");
         this.port = Objects.requireNonNull(port, "port");
-        this.metadata = metadata == null ? Map.of() : Collections.unmodifiableMap(metadata);
+        this.labels = labels == null ? Map.of() : Collections.unmodifiableMap(labels);
     }
 
     /** Returns the endpoint host. */
@@ -57,7 +57,7 @@ public final class Endpoint {
      * @return unmodifiable map of labels
      */
     public Map<String, String> labels() {
-        return metadata;
+        return labels;
     }
 
     /**
@@ -65,7 +65,7 @@ public final class Endpoint {
      */
     @Deprecated
     public Map<String, String> metadata() {
-        return metadata;
+        return labels;
     }
 
     /**

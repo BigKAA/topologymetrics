@@ -21,6 +21,13 @@ import io.grpc.StatusRuntimeException;
 import io.grpc.health.v1.HealthCheckRequest;
 import io.grpc.health.v1.HealthCheckResponse;
 import io.grpc.health.v1.HealthGrpc;
+import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts;
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
+import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
+import io.grpc.netty.shaded.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -28,17 +35,25 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
  * gRPC health checker — uses the gRPC Health Checking Protocol.
+ *
+ * <p>Channels are cached per target (host:port) and reused across checks.
+ * Call {@link #close()} to release all cached channels.</p>
  */
 public final class GrpcHealthChecker implements HealthChecker {
+
+    private static final Logger LOG = LoggerFactory.getLogger(GrpcHealthChecker.class);
+    private static final int CHANNEL_SHUTDOWN_TIMEOUT_SECONDS = 3;
 
     private final String serviceName;
     private final boolean tlsEnabled;
     private final boolean tlsSkipVerify;
     private final Map<String, String> metadata;
+    private final ConcurrentHashMap<String, ManagedChannel> channels = new ConcurrentHashMap<>();
 
     private GrpcHealthChecker(Builder builder) {
         this.serviceName = builder.serviceName;
@@ -51,12 +66,57 @@ public final class GrpcHealthChecker implements HealthChecker {
     public void check(Endpoint endpoint, Duration timeout) throws Exception {
         String target = endpoint.host() + ":" + endpoint.port();
 
-        ManagedChannelBuilder<?> channelBuilder = ManagedChannelBuilder.forTarget(target);
+        ManagedChannel channel = channels.computeIfAbsent(target, this::buildChannel);
 
-        if (tlsEnabled) {
-            channelBuilder.useTransportSecurity();
+        HealthGrpc.HealthBlockingStub stub = HealthGrpc.newBlockingStub(channel)
+                .withDeadlineAfter(timeout.toMillis(), TimeUnit.MILLISECONDS);
+
+        HealthCheckRequest request = HealthCheckRequest.newBuilder()
+                .setService(serviceName)
+                .build();
+
+        HealthCheckResponse response;
+        try {
+            response = stub.check(request);
+        } catch (StatusRuntimeException e) {
+            // Classify UNAUTHENTICATED and PERMISSION_DENIED as auth_error.
+            Status.Code code = e.getStatus().getCode();
+            if (code == Status.Code.UNAUTHENTICATED
+                    || code == Status.Code.PERMISSION_DENIED) {
+                throw new CheckAuthException(
+                        "gRPC health check: " + e.getStatus(), e);
+            }
+            throw e;
+        }
+
+        if (response.getStatus() != HealthCheckResponse.ServingStatus.SERVING) {
+            String detail = response.getStatus() == HealthCheckResponse.ServingStatus.UNKNOWN
+                    ? "grpc_unknown" : "grpc_not_serving";
+            throw new UnhealthyException(
+                    "gRPC health check: status " + response.getStatus(), detail);
+        }
+    }
+
+    @SuppressWarnings("checkstyle:IllegalCatch")
+    private ManagedChannel buildChannel(String target) {
+        ManagedChannelBuilder<?> channelBuilder;
+
+        if (tlsEnabled && tlsSkipVerify) {
+            try {
+                SslContext sslContext = GrpcSslContexts.forClient()
+                        .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                        .build();
+                channelBuilder = NettyChannelBuilder.forTarget(target)
+                        .sslContext(sslContext);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to create insecure gRPC SSL context", e);
+            }
+        } else if (tlsEnabled) {
+            channelBuilder = ManagedChannelBuilder.forTarget(target)
+                    .useTransportSecurity();
         } else {
-            channelBuilder.usePlaintext();
+            channelBuilder = ManagedChannelBuilder.forTarget(target)
+                    .usePlaintext();
         }
 
         // Attach metadata interceptor if configured.
@@ -64,39 +124,24 @@ public final class GrpcHealthChecker implements HealthChecker {
             channelBuilder.intercept(new MetadataInterceptor(metadata));
         }
 
-        ManagedChannel channel = channelBuilder.build();
-        try {
-            HealthGrpc.HealthBlockingStub stub = HealthGrpc.newBlockingStub(channel)
-                    .withDeadlineAfter(timeout.toMillis(), TimeUnit.MILLISECONDS);
+        return channelBuilder.build();
+    }
 
-            HealthCheckRequest request = HealthCheckRequest.newBuilder()
-                    .setService(serviceName)
-                    .build();
-
-            HealthCheckResponse response;
+    @Override
+    public void close() {
+        for (Map.Entry<String, ManagedChannel> entry : channels.entrySet()) {
+            ManagedChannel ch = entry.getValue();
+            ch.shutdown();
             try {
-                response = stub.check(request);
-            } catch (StatusRuntimeException e) {
-                // Classify UNAUTHENTICATED and PERMISSION_DENIED as auth_error.
-                Status.Code code = e.getStatus().getCode();
-                if (code == Status.Code.UNAUTHENTICATED
-                        || code == Status.Code.PERMISSION_DENIED) {
-                    throw new CheckAuthException(
-                            "gRPC health check: " + e.getStatus(), e);
+                if (!ch.awaitTermination(CHANNEL_SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                    ch.shutdownNow();
                 }
-                throw e;
+            } catch (InterruptedException e) {
+                ch.shutdownNow();
+                Thread.currentThread().interrupt();
             }
-
-            if (response.getStatus() != HealthCheckResponse.ServingStatus.SERVING) {
-                String detail = response.getStatus() == HealthCheckResponse.ServingStatus.UNKNOWN
-                        ? "grpc_unknown" : "grpc_not_serving";
-                throw new UnhealthyException(
-                        "gRPC health check: status " + response.getStatus(), detail);
-            }
-        } finally {
-            channel.shutdownNow();
-            channel.awaitTermination(1, TimeUnit.SECONDS);
         }
+        channels.clear();
     }
 
     @Override

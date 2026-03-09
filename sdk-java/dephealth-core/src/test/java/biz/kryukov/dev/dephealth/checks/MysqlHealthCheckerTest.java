@@ -9,8 +9,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -24,7 +24,7 @@ class MysqlHealthCheckerTest {
     @Mock
     private Connection connection;
     @Mock
-    private Statement statement;
+    private PreparedStatement preparedStatement;
 
     @Test
     void type() {
@@ -34,8 +34,8 @@ class MysqlHealthCheckerTest {
     @Test
     void successfulCheckWithDataSource() throws Exception {
         when(dataSource.getConnection()).thenReturn(connection);
-        when(connection.createStatement()).thenReturn(statement);
-        when(statement.execute("SELECT 1")).thenReturn(true);
+        when(connection.prepareStatement("SELECT 1")).thenReturn(preparedStatement);
+        when(preparedStatement.execute()).thenReturn(true);
 
         MysqlHealthChecker checker = MysqlHealthChecker.builder()
                 .dataSource(dataSource)
@@ -44,8 +44,8 @@ class MysqlHealthCheckerTest {
         Endpoint ep = new Endpoint("localhost", "3306");
         assertDoesNotThrow(() -> checker.check(ep, Duration.ofSeconds(5)));
 
-        verify(statement).setQueryTimeout(5);
-        verify(statement).execute("SELECT 1");
+        verify(preparedStatement).setQueryTimeout(5);
+        verify(preparedStatement).execute();
     }
 
     @Test

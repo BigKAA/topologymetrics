@@ -61,9 +61,10 @@ public final class MysqlHealthChecker implements HealthChecker {
             justification = "Query is a configurable health check statement, not user input")
     private void checkStandalone(Endpoint endpoint, int timeoutSec) throws Exception {
         String db = database != null ? database : "";
-        String url = "jdbc:mysql://" + endpoint.host() + ":" + endpoint.port() + "/" + db;
+        int timeoutMs = timeoutSec * 1000;
+        String url = "jdbc:mysql://" + endpoint.host() + ":" + endpoint.port() + "/" + db
+                + "?connectTimeout=" + timeoutMs + "&socketTimeout=" + timeoutMs;
 
-        DriverManager.setLoginTimeout(timeoutSec);
         try (Connection conn = DriverManager.getConnection(url, username, password);
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setQueryTimeout(timeoutSec);

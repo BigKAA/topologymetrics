@@ -24,18 +24,24 @@ import java.util.Map;
 public final class HttpHealthChecker implements HealthChecker {
 
     private static final String DEFAULT_HEALTH_PATH = "/health";
-    private static final String USER_AGENT = "dephealth/0.5.0";
+    private static final String USER_AGENT = "dephealth/0.8.0";
 
     private final String healthPath;
     private final boolean tlsEnabled;
-    private final boolean tlsSkipVerify;
     private final Map<String, String> headers;
+    private final HttpClient client;
 
     private HttpHealthChecker(Builder builder) {
         this.healthPath = builder.healthPath;
         this.tlsEnabled = builder.tlsEnabled;
-        this.tlsSkipVerify = builder.tlsSkipVerify;
         this.headers = Collections.unmodifiableMap(new LinkedHashMap<>(builder.resolvedHeaders));
+
+        HttpClient.Builder clientBuilder = HttpClient.newBuilder()
+                .followRedirects(HttpClient.Redirect.NORMAL);
+        if (builder.tlsEnabled && builder.tlsSkipVerify) {
+            clientBuilder.sslContext(InsecureSslContext.create());
+        }
+        this.client = clientBuilder.build();
     }
 
     @Override
@@ -47,16 +53,6 @@ public final class HttpHealthChecker implements HealthChecker {
             host = "[" + host + "]";
         }
         URI uri = URI.create(scheme + "://" + host + ":" + endpoint.port() + healthPath);
-
-        HttpClient.Builder clientBuilder = HttpClient.newBuilder()
-                .connectTimeout(timeout)
-                .followRedirects(HttpClient.Redirect.NORMAL);
-
-        if (tlsEnabled && tlsSkipVerify) {
-            clientBuilder.sslContext(InsecureSslContext.create());
-        }
-
-        HttpClient client = clientBuilder.build();
 
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .uri(uri)
@@ -83,6 +79,11 @@ public final class HttpHealthChecker implements HealthChecker {
             throw new UnhealthyException(
                     "HTTP health check failed: status " + status, "http_" + status);
         }
+    }
+
+    @Override
+    public void close() {
+        client.close();
     }
 
     @Override

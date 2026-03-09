@@ -16,9 +16,11 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -33,13 +35,16 @@ import java.util.concurrent.TimeUnit;
 public final class CheckScheduler {
 
     private static final Logger LOG = LoggerFactory.getLogger(CheckScheduler.class);
-    private static final int MIN_CORE_POOL_SIZE = 1;
+    private static final int MIN_CORE_POOL_SIZE = 2;
+    private static final int POOL_SIZE_MULTIPLIER = 2;
+    private static final long THREAD_KEEP_ALIVE_SECONDS = 60;
 
     private final MetricsExporter metrics;
     private final CheckConfig globalConfig;
     private final Logger logger;
     private final List<ScheduledDep> deps = new ArrayList<>();
     private final Map<String, EndpointState> states = new ConcurrentHashMap<>();
+    private final Set<HealthChecker> checkers = new HashSet<>();
 
     private ScheduledThreadPoolExecutor executor;
     private volatile boolean started;
@@ -83,6 +88,7 @@ public final class CheckScheduler {
             throw new IllegalStateException("Cannot add dependency after scheduler started");
         }
         deps.add(new ScheduledDep(dependency, checker));
+        checkers.add(checker);
         for (Endpoint ep : dependency.endpoints()) {
             String key = stateKey(dependency.name(), ep);
             EndpointState state = new EndpointState();
@@ -104,15 +110,19 @@ public final class CheckScheduler {
         }
         started = true;
 
-        int threadCount = Math.max(MIN_CORE_POOL_SIZE, deps.stream()
+        int totalEndpoints = deps.stream()
                 .mapToInt(d -> d.dependency.endpoints().size())
-                .sum());
+                .sum();
+        int maxThreads = Runtime.getRuntime().availableProcessors() * POOL_SIZE_MULTIPLIER;
+        int threadCount = Math.max(MIN_CORE_POOL_SIZE, Math.min(totalEndpoints, maxThreads));
 
         executor = new ScheduledThreadPoolExecutor(threadCount, r -> {
             Thread t = new Thread(r, "dephealth-scheduler");
             t.setDaemon(true);
             return t;
         });
+        executor.setKeepAliveTime(THREAD_KEEP_ALIVE_SECONDS, TimeUnit.SECONDS);
+        executor.allowCoreThreadTimeOut(true);
 
         if (deps.isEmpty()) {
             logger.info("dephealth: scheduler started, 0 dependencies, 0 endpoints");
@@ -140,7 +150,7 @@ public final class CheckScheduler {
     }
 
     /**
-     * Stops all health checks.
+     * Stops all health checks and closes all registered checkers.
      */
     public synchronized void stop() {
         if (!started || stopped) {
@@ -163,6 +173,16 @@ public final class CheckScheduler {
             } catch (InterruptedException e) {
                 executor.shutdownNow();
                 Thread.currentThread().interrupt();
+            }
+        }
+
+        // Close all registered checkers to release resources (channels, clients).
+        for (HealthChecker checker : checkers) {
+            try {
+                checker.close();
+            } catch (Exception e) {
+                logger.warn("dephealth: error closing checker {}: {}",
+                        checker.type(), e.getMessage());
             }
         }
 
@@ -222,6 +242,7 @@ public final class CheckScheduler {
         EndpointState state = new EndpointState();
         state.setStaticFields(depName, depType, ep.host(), ep.port(), critical, ep.labels());
         states.put(key, state);
+        checkers.add(checker);
 
         ScheduledFuture<?> future = executor.scheduleAtFixedRate(
                 () -> runCheck(dep, checker, ep, globalConfig),
@@ -320,6 +341,7 @@ public final class CheckScheduler {
         newState.setStaticFields(depName, depType, newEp.host(), newEp.port(),
                 critical, newEp.labels());
         states.put(newKey, newState);
+        checkers.add(checker);
 
         ScheduledFuture<?> newFuture = executor.scheduleAtFixedRate(
                 () -> runCheck(newDep, checker, newEp, globalConfig),
