@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 from dephealth.check_result import STATUS_UNKNOWN, classify_error
-from dephealth.checker import CheckError, HealthChecker
+from dephealth.checker import HealthChecker
 from dephealth.dependency import CheckConfig, Dependency, DependencyType, Endpoint
 from dephealth.endpoint_status import EndpointStatus
 from dephealth.metrics import MetricsExporter
@@ -485,7 +485,7 @@ class CheckScheduler:
                 timeout=entry.dep.config.timeout,
             )
             success = True
-        except (CheckError, TimeoutError, Exception) as e:
+        except Exception as e:
             success = False
             check_err = e
             self._log.debug("Check failed for %s (%s): %s", entry.dep.name, key, e)

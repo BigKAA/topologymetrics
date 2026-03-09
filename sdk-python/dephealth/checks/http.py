@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+from importlib.metadata import version
 from typing import Any
 
 import aiohttp
@@ -14,6 +15,8 @@ from dephealth.checker import (
     UnhealthyError,
 )
 from dephealth.dependency import Endpoint
+
+_USER_AGENT = f"dephealth/{version('dephealth')}"
 
 
 def _validate_auth(
@@ -94,7 +97,7 @@ class HTTPChecker:
             ctx.verify_mode = ssl.CERT_NONE
             connector_kwargs["ssl"] = ctx
 
-        request_headers = {"User-Agent": "dephealth/0.5.0"}
+        request_headers = {"User-Agent": _USER_AGENT}
         request_headers.update(self._headers)
 
         timeout = aiohttp.ClientTimeout(total=self._timeout)

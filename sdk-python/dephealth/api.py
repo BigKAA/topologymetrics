@@ -40,7 +40,7 @@ _INSTANCE_NAME_PATTERN = re.compile(r"^[a-z][a-z0-9-]{0,62}$")
 def _validate_instance_name(name: str) -> None:
     """Validate the instance name."""
     if not _INSTANCE_NAME_PATTERN.match(name):
-        msg = f"invalid instance name {name!r}: must match [a-z][a-z0-9-]{{{{0,62}}}}"
+        msg = f"invalid instance name {name!r}: must match [a-z][a-z0-9-]{{0,62}}"
         raise ValueError(msg)
 
 

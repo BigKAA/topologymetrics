@@ -221,13 +221,10 @@ class LdapChecker:
 
         target = f"{endpoint.host}:{endpoint.port}"
         loop = asyncio.get_running_loop()
-        try:
-            await loop.run_in_executor(
-                None,
-                functools.partial(self._execute_check, client, ldap3, target),
-            )
-        except Exception:
-            raise
+        await loop.run_in_executor(
+            None,
+            functools.partial(self._execute_check, client, ldap3, target),
+        )
 
     def checker_type(self) -> str:
         """Return the checker type."""

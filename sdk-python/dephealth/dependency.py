@@ -135,5 +135,5 @@ class Dependency:
 def validate_name(name: str) -> None:
     """Validate a dependency name."""
     if not _NAME_PATTERN.match(name):
-        msg = f"invalid dependency name {name!r}: must match [a-zA-Z][a-zA-Z0-9_-]{{{{0,62}}}}"
+        msg = f"invalid dependency name {name!r}: must match [a-zA-Z][a-zA-Z0-9_-]{{0,62}}"
         raise ValueError(msg)

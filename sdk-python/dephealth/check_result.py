@@ -49,32 +49,10 @@ def classify_error(err: BaseException | None) -> CheckResult:
         return CheckResult(category=STATUS_OK, detail=STATUS_OK)
 
     # 1. Classified check errors (imports deferred to avoid circular import).
-    from dephealth.checker import (
-        CheckAuthError,
-        CheckConnectionRefusedError,
-        CheckDnsError,
-        CheckError,
-        CheckTimeoutError,
-        CheckTlsError,
-        UnhealthyError,
-    )
+    from dephealth.checker import CheckError
 
-    if isinstance(err, CheckError) and err.status_category != STATUS_ERROR:
+    if isinstance(err, CheckError):
         return CheckResult(category=err.status_category, detail=err.status_detail)
-
-    # Check typed error subclasses.
-    if isinstance(err, CheckTimeoutError):
-        return CheckResult(category=STATUS_TIMEOUT, detail="timeout")
-    if isinstance(err, CheckConnectionRefusedError):
-        return CheckResult(category=STATUS_CONNECTION_ERROR, detail="connection_refused")
-    if isinstance(err, CheckDnsError):
-        return CheckResult(category=STATUS_DNS_ERROR, detail="dns_error")
-    if isinstance(err, CheckAuthError):
-        return CheckResult(category=STATUS_AUTH_ERROR, detail="auth_error")
-    if isinstance(err, CheckTlsError):
-        return CheckResult(category=STATUS_TLS_ERROR, detail="tls_error")
-    if isinstance(err, UnhealthyError):
-        return CheckResult(category=STATUS_UNHEALTHY, detail=err.status_detail)
 
     # 2. Platform error detection.
     if isinstance(err, TimeoutError):
@@ -87,9 +65,9 @@ def classify_error(err: BaseException | None) -> CheckResult:
         return CheckResult(category=STATUS_CONNECTION_ERROR, detail="connection_refused")
     if isinstance(err, ConnectionError):
         return CheckResult(category=STATUS_CONNECTION_ERROR, detail="connection_refused")
-    if isinstance(err, ssl.SSLError):
-        return CheckResult(category=STATUS_TLS_ERROR, detail="tls_error")
     if isinstance(err, ssl.SSLCertVerificationError):
+        return CheckResult(category=STATUS_TLS_ERROR, detail="tls_error")
+    if isinstance(err, ssl.SSLError):
         return CheckResult(category=STATUS_TLS_ERROR, detail="tls_error")
 
     # Check wrapped exceptions.

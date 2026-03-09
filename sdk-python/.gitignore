@@ -17,3 +17,5 @@ docs/_build/
 # IDE
 .vscode/
 .idea/
+
+.coverage
