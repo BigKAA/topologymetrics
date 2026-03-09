@@ -8,7 +8,7 @@ dephealth Go SDK provides dependency health monitoring for Go
 microservices via Prometheus metrics. It supports selective imports
 for minimal binary size and custom checker implementations.
 
-**Current version:** 0.8.0 | **Go:** 1.22+
+**Current version:** 0.8.1 | **Go:** 1.22+
 
 ## Documentation
 

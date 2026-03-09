@@ -41,7 +41,7 @@
         <dependency>
             <groupId>biz.kryukov.dev</groupId>
             <artifactId>dephealth-spring-boot-starter</artifactId>
-            <version>0.8.0</version>
+            <version>0.8.1</version>
         </dependency>
 
         <!-- Drivers for the dependencies you monitor -->

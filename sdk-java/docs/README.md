@@ -8,7 +8,7 @@ dephealth Java SDK provides dependency health monitoring for Java
 microservices via Prometheus metrics. It supports both programmatic API
 and Spring Boot auto-configuration.
 
-**Current version:** 0.8.0 | **Java:** 21 LTS | **Spring Boot:** 3.x
+**Current version:** 0.8.1 | **Java:** 21 LTS | **Spring Boot:** 3.x
 
 ## Documentation
 

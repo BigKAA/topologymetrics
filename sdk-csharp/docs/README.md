@@ -8,7 +8,7 @@ dephealth C# SDK provides dependency health monitoring for .NET
 microservices via Prometheus metrics. It supports both programmatic API
 and ASP.NET Core integration with Entity Framework support.
 
-**Current version:** 0.8.0 | **.NET:** 8 LTS | **ASP.NET Core:** 8.x
+**Current version:** 0.8.1 | **.NET:** 8 LTS | **ASP.NET Core:** 8.x
 
 ## Documentation
 

@@ -8,7 +8,7 @@ dephealth Python SDK provides dependency health monitoring for Python
 microservices via Prometheus metrics. It supports async and threading modes,
 with first-class FastAPI integration.
 
-**Current version:** 0.8.0 | **Python:** 3.11+ | **FastAPI:** 0.110+
+**Current version:** 0.8.1 | **Python:** 3.11+ | **FastAPI:** 0.110+
 
 ## Documentation
 

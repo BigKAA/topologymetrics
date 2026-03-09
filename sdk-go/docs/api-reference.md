@@ -15,7 +15,7 @@ The core package providing dependency health monitoring with Prometheus metrics.
 #### Version
 
 ```go
-const Version = "0.8.0"
+const Version = "0.8.1"
 ```
 
 SDK version used in User-Agent headers.

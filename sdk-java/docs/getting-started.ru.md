@@ -21,7 +21,7 @@ Core-модуль (программный API):
 <dependency>
     <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-core</artifactId>
-    <version>0.8.0</version>
+    <version>0.8.1</version>
 </dependency>
 ```
 
@@ -31,7 +31,7 @@ Spring Boot Starter (включает core):
 <dependency>
     <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-spring-boot-starter</artifactId>
-    <version>0.8.0</version>
+    <version>0.8.1</version>
 </dependency>
 ```
 
@@ -39,10 +39,10 @@ Spring Boot Starter (включает core):
 
 ```groovy
 // Core-модуль
-implementation 'biz.kryukov.dev:dephealth-core:0.8.0'
+implementation 'biz.kryukov.dev:dephealth-core:0.8.1'
 
 // Или Spring Boot Starter
-implementation 'biz.kryukov.dev:dephealth-spring-boot-starter:0.8.0'
+implementation 'biz.kryukov.dev:dephealth-spring-boot-starter:0.8.1'
 ```
 
 ## Минимальный пример
