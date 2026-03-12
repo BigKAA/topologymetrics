@@ -46,4 +46,40 @@ internal static class AuthValidation
                 $"conflicting auth methods: specify only one of bearerToken, basicAuth, or {authKeyName} {context}");
         }
     }
+
+    /// <summary>
+    /// Validates that hostHeader does not conflict with a Host entry in custom headers.
+    /// </summary>
+    internal static void ValidateHostHeaderConflict(
+        IDictionary<string, string>? headers, string? hostHeader)
+    {
+        if (string.IsNullOrEmpty(hostHeader) || headers is null)
+        {
+            return;
+        }
+
+        if (headers.Keys.Any(key => key.Equals("Host", StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new ValidationException(
+                "conflicting Host header: hostHeader and headers both set Host");
+        }
+    }
+
+    /// <summary>
+    /// Validates that grpcAuthority does not conflict with an :authority entry in metadata.
+    /// </summary>
+    internal static void ValidateGrpcAuthorityConflict(
+        IDictionary<string, string>? metadata, string? authority)
+    {
+        if (string.IsNullOrEmpty(authority) || metadata is null)
+        {
+            return;
+        }
+
+        if (metadata.ContainsKey(":authority"))
+        {
+            throw new ValidationException(
+                "conflicting authority: grpcAuthority and metadata both set :authority");
+        }
+    }
 }

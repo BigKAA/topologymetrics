@@ -304,4 +304,5 @@ public class HttpAuthIntegrationTests : IDisposable
         Assert.Equal("unhealthy", ex.ExceptionStatusCategory);
         Assert.Equal("http_500", ex.ExceptionStatusDetail);
     }
+
 }

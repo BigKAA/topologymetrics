@@ -17,6 +17,7 @@ public sealed class HttpChecker : IHealthChecker, IDisposable
 
     private readonly string _healthPath;
     private readonly bool _tlsEnabled;
+    private readonly string? _hostHeader;
     private readonly HttpClient _client;
 
     /// <summary>Gets the dependency type for this checker.</summary>
@@ -30,6 +31,7 @@ public sealed class HttpChecker : IHealthChecker, IDisposable
     /// <param name="bearerToken">Optional Bearer token for authentication.</param>
     /// <param name="basicAuthUsername">Optional username for HTTP Basic authentication.</param>
     /// <param name="basicAuthPassword">Optional password for HTTP Basic authentication.</param>
+    /// <param name="hostHeader">Optional Host header override for routing through ingress/gateway.</param>
     public HttpChecker(
         string healthPath = DefaultHealthPath,
         bool tlsEnabled = false,
@@ -37,26 +39,38 @@ public sealed class HttpChecker : IHealthChecker, IDisposable
         IDictionary<string, string>? headers = null,
         string? bearerToken = null,
         string? basicAuthUsername = null,
-        string? basicAuthPassword = null)
+        string? basicAuthPassword = null,
+        string? hostHeader = null)
     {
         AuthValidation.ValidateNoConflicts(headers, "Authorization",
             bearerToken, basicAuthUsername, basicAuthPassword);
+        AuthValidation.ValidateHostHeaderConflict(headers, hostHeader);
         _healthPath = healthPath;
         _tlsEnabled = tlsEnabled;
+        _hostHeader = hostHeader;
 
         var handler = new SocketsHttpHandler
         {
             PooledConnectionLifetime = TimeSpan.FromMinutes(2)
         };
 
-        if (tlsEnabled && tlsSkipVerify)
+        if (tlsEnabled && (tlsSkipVerify || !string.IsNullOrEmpty(hostHeader)))
         {
-#pragma warning disable CA5359 // Intentional: user explicitly opted into skipping TLS verification
-            handler.SslOptions = new SslClientAuthenticationOptions
+            var sslOptions = new SslClientAuthenticationOptions();
+
+            if (tlsSkipVerify)
             {
-                RemoteCertificateValidationCallback = (_, _, _, _) => true
-            };
+#pragma warning disable CA5359 // Intentional: user explicitly opted into skipping TLS verification
+                sslOptions.RemoteCertificateValidationCallback = (_, _, _, _) => true;
 #pragma warning restore CA5359
+            }
+
+            if (!string.IsNullOrEmpty(hostHeader))
+            {
+                sslOptions.TargetHost = hostHeader;
+            }
+
+            handler.SslOptions = sslOptions;
         }
 
         _client = new HttpClient(handler)
@@ -83,7 +97,13 @@ public sealed class HttpChecker : IHealthChecker, IDisposable
         var host = endpoint.Host.Contains(':', StringComparison.Ordinal) ? $"[{endpoint.Host}]" : endpoint.Host;
         var uri = new Uri($"{scheme}://{host}:{endpoint.Port}{_healthPath}");
 
-        using var response = await _client.GetAsync(uri, ct).ConfigureAwait(false);
+        using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+        if (_hostHeader is not null)
+        {
+            request.Headers.Host = _hostHeader;
+        }
+
+        using var response = await _client.SendAsync(request, ct).ConfigureAwait(false);
 
         if (!response.IsSuccessStatusCode)
         {

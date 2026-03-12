@@ -210,13 +210,15 @@ public sealed partial class DepHealthMonitor : IDisposable
         /// <param name="bearerToken">Bearer token for authentication.</param>
         /// <param name="basicAuthUsername">Basic auth username.</param>
         /// <param name="basicAuthPassword">Basic auth password.</param>
+        /// <param name="hostHeader">Host header override for routing through ingress/gateway.</param>
         public Builder AddHttp(string name, string url,
             string healthPath = "/health", bool? critical = null,
             Dictionary<string, string>? labels = null,
             Dictionary<string, string>? headers = null,
             string? bearerToken = null,
             string? basicAuthUsername = null,
-            string? basicAuthPassword = null)
+            string? basicAuthPassword = null,
+            string? hostHeader = null)
         {
             var parsed = ConfigParser.ParseUrl(url);
             var checker = new HttpChecker(
@@ -225,7 +227,8 @@ public sealed partial class DepHealthMonitor : IDisposable
                 headers: headers,
                 bearerToken: bearerToken,
                 basicAuthUsername: basicAuthUsername,
-                basicAuthPassword: basicAuthPassword);
+                basicAuthPassword: basicAuthPassword,
+                hostHeader: hostHeader);
 
             return AddDependency(name, DependencyType.Http, parsed, checker, critical, labels);
         }
@@ -241,13 +244,15 @@ public sealed partial class DepHealthMonitor : IDisposable
         /// <param name="bearerToken">Bearer token for authentication.</param>
         /// <param name="basicAuthUsername">Basic auth username.</param>
         /// <param name="basicAuthPassword">Basic auth password.</param>
+        /// <param name="grpcAuthority">:authority override for routing through ingress/gateway.</param>
         public Builder AddGrpc(string name, string host, string port,
             bool tlsEnabled = false, bool? critical = null,
             Dictionary<string, string>? labels = null,
             Dictionary<string, string>? metadata = null,
             string? bearerToken = null,
             string? basicAuthUsername = null,
-            string? basicAuthPassword = null)
+            string? basicAuthPassword = null,
+            string? grpcAuthority = null)
         {
             var ep = ConfigParser.ParseParams(host, port);
             var checker = new GrpcChecker(
@@ -255,7 +260,8 @@ public sealed partial class DepHealthMonitor : IDisposable
                 metadata: metadata,
                 bearerToken: bearerToken,
                 basicAuthUsername: basicAuthUsername,
-                basicAuthPassword: basicAuthPassword);
+                basicAuthPassword: basicAuthPassword,
+                authority: grpcAuthority);
 
             return AddDependency(name, DependencyType.Grpc,
                 [new ParsedConnection(ep.Host, ep.Port, DependencyType.Grpc)],

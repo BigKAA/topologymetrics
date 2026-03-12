@@ -1,4 +1,5 @@
 using System.Net.Http;
+using System.Net.Security;
 using Grpc.Core;
 using Grpc.Health.V1;
 using Grpc.Net.Client;
@@ -12,7 +13,7 @@ public sealed class GrpcChecker : IHealthChecker, IDisposable
 {
     private readonly bool _tlsEnabled;
     private readonly Metadata? _metadata;
-    private readonly SocketsHttpHandler _handler;
+    private readonly HttpMessageHandler _handler;
 
     /// <summary>Gets the dependency type for this checker.</summary>
     public DependencyType Type => DependencyType.Grpc;
@@ -23,22 +24,38 @@ public sealed class GrpcChecker : IHealthChecker, IDisposable
     /// <param name="bearerToken">Optional Bearer token for authentication.</param>
     /// <param name="basicAuthUsername">Optional username for Basic authentication.</param>
     /// <param name="basicAuthPassword">Optional password for Basic authentication.</param>
+    /// <param name="authority">Optional :authority override for routing through ingress/gateway.</param>
     public GrpcChecker(
         bool tlsEnabled = false,
         IDictionary<string, string>? metadata = null,
         string? bearerToken = null,
         string? basicAuthUsername = null,
-        string? basicAuthPassword = null)
+        string? basicAuthPassword = null,
+        string? authority = null)
     {
         AuthValidation.ValidateNoConflicts(metadata, "authorization",
             bearerToken, basicAuthUsername, basicAuthPassword, "metadata");
+        AuthValidation.ValidateGrpcAuthorityConflict(metadata, authority);
         _tlsEnabled = tlsEnabled;
         _metadata = BuildResolvedMetadata(metadata, bearerToken, basicAuthUsername, basicAuthPassword);
-        _handler = new SocketsHttpHandler
+
+        var socketsHandler = new SocketsHttpHandler
         {
             EnableMultipleHttp2Connections = true,
             PooledConnectionLifetime = TimeSpan.FromMinutes(2)
         };
+
+        if (tlsEnabled && !string.IsNullOrEmpty(authority))
+        {
+            socketsHandler.SslOptions = new SslClientAuthenticationOptions
+            {
+                TargetHost = authority
+            };
+        }
+
+        _handler = !string.IsNullOrEmpty(authority)
+            ? new AuthorityOverrideHandler(authority, socketsHandler)
+            : socketsHandler;
     }
 
     /// <inheritdoc />
@@ -84,6 +101,20 @@ public sealed class GrpcChecker : IHealthChecker, IDisposable
                 : "grpc_unknown";
             throw new Exceptions.UnhealthyException(
                 $"gRPC health check returned: {response.Status}", detail);
+        }
+    }
+
+    /// <summary>
+    /// Delegating handler that overrides the Host header (mapped to :authority in HTTP/2).
+    /// </summary>
+    private sealed class AuthorityOverrideHandler(string authority, HttpMessageHandler inner)
+        : DelegatingHandler(inner)
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            request.Headers.Host = authority;
+            return base.SendAsync(request, cancellationToken);
         }
     }
 

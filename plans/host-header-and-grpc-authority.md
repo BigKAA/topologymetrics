@@ -17,10 +17,10 @@
 
 ## 📍 Текущий статус
 
-- **Активная фаза**: Phase 5
-- **Активный подпункт**: 5.1
+- **Активная фаза**: Phase 6
+- **Активный подпункт**: 6.1
 - **Последнее обновление**: 2026-03-12
-- **Примечание**: Phase 1, Phase 2, Phase 3, Phase 4 завершены
+- **Примечание**: Phase 1, Phase 2, Phase 3, Phase 4, Phase 5 завершены
 
 ---
 
@@ -30,7 +30,7 @@
 - [x] [Phase 2: Conformance Tests](#phase-2-conformance-tests)
 - [x] [Phase 3: Go SDK](#phase-3-go-sdk)
 - [x] [Phase 4: Java SDK](#phase-4-java-sdk)
-- [ ] [Phase 5: C# SDK](#phase-5-c-sdk)
+- [x] [Phase 5: C# SDK](#phase-5-c-sdk)
 - [ ] [Phase 6: Python SDK](#phase-6-python-sdk)
 - [ ] [Phase 7: Documentation](#phase-7-documentation)
 
@@ -302,7 +302,7 @@ gRPC-Java поддерживает `overrideAuthority()` нативно.
 ## Phase 5: C# SDK
 
 **Dependencies**: Phase 1
-**Status**: Pending
+**Status**: Done
 
 ### Описание
 
@@ -313,7 +313,7 @@ TLS SNI задаётся через `SslClientAuthenticationOptions.TargetHost`.
 
 ### Подпункты
 
-- [ ] **5.1 Configuration options**
+- [x] **5.1 Configuration options**
   - **Dependencies**: None
   - **Description**: Добавить опции `HttpHostHeader` и `GrpcAuthority`
     в конфигурацию dependency
@@ -321,7 +321,7 @@ TLS SNI задаётся через `SslClientAuthenticationOptions.TargetHost`.
     - Changes in configuration classes under `sdk-csharp/DepHealth.Core/`
   - **Links**: N/A
 
-- [ ] **5.2 HTTP checker — Host header и SNI**
+- [x] **5.2 HTTP checker — Host header и SNI**
   - **Dependencies**: 5.1
   - **Description**: В `HttpChecker`:
     - Сохранить поле `hostHeader`
@@ -332,7 +332,7 @@ TLS SNI задаётся через `SslClientAuthenticationOptions.TargetHost`.
   - **Links**:
     - [HttpRequestHeaders.Host](https://learn.microsoft.com/en-us/dotnet/api/system.net.http.headers.httprequestheaders.host)
 
-- [ ] **5.3 gRPC checker — authority и SNI**
+- [x] **5.3 gRPC checker — authority и SNI**
   - **Dependencies**: 5.1
   - **Description**: В `GrpcChecker`:
     - Сохранить поле `authority`
@@ -343,7 +343,7 @@ TLS SNI задаётся через `SslClientAuthenticationOptions.TargetHost`.
   - **Links**:
     - [GrpcChannelOptions](https://learn.microsoft.com/en-us/dotnet/api/grpc.net.client.grpcchanneloptions)
 
-- [ ] **5.4 Валидация конфликтов**
+- [x] **5.4 Валидация конфликтов**
   - **Dependencies**: 5.1
   - **Description**: Добавить валидацию в `AuthValidation`:
     - `hostHeader` set AND `headers` содержит `Host` → error
@@ -352,7 +352,7 @@ TLS SNI задаётся через `SslClientAuthenticationOptions.TargetHost`.
     - Changes in `sdk-csharp/DepHealth.Core/AuthValidation.cs`
   - **Links**: N/A
 
-- [ ] **5.5 Unit tests**
+- [x] **5.5 Unit tests**
   - **Dependencies**: 5.2, 5.3, 5.4
   - **Description**: Тесты: Host header per-request, authority, SNI, конфликты.
     Сборка и тестирование через Docker:
@@ -363,12 +363,12 @@ TLS SNI задаётся через `SslClientAuthenticationOptions.TargetHost`.
 
 ### ✅ Критерии завершения Phase 5
 
-- [ ] Все подпункты завершены (5.1, 5.2, 5.3, 5.4, 5.5)
-- [ ] `dotnet test` проходит без ошибок (через Docker)
-- [ ] Host header устанавливается per-request (не через DefaultRequestHeaders)
-- [ ] gRPC authority корректно override-ится
-- [ ] TLS SNI (`TargetHost`) устанавливается при включённом TLS
-- [ ] Конфликты валидируются
+- [x] Все подпункты завершены (5.1, 5.2, 5.3, 5.4, 5.5)
+- [x] `dotnet test` проходит без ошибок (через Docker)
+- [x] Host header устанавливается per-request (не через DefaultRequestHeaders)
+- [x] gRPC authority корректно override-ится
+- [x] TLS SNI (`TargetHost`) устанавливается при включённом TLS
+- [x] Конфликты валидируются
 
 ---
 
