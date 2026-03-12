@@ -17,17 +17,17 @@
 
 ## 📍 Текущий статус
 
-- **Активная фаза**: Phase 1
-- **Активный подпункт**: 1.1
+- **Активная фаза**: Phase 3
+- **Активный подпункт**: 3.1
 - **Последнее обновление**: 2026-03-12
-- **Примечание**: План создан, ожидает начала выполнения
+- **Примечание**: Phase 1, Phase 2 завершены
 
 ---
 
 ## 📑 Оглавление
 
-- [ ] [Phase 1: Specification Update](#phase-1-specification-update)
-- [ ] [Phase 2: Conformance Tests](#phase-2-conformance-tests)
+- [x] [Phase 1: Specification Update](#phase-1-specification-update)
+- [x] [Phase 2: Conformance Tests](#phase-2-conformance-tests)
 - [ ] [Phase 3: Go SDK](#phase-3-go-sdk)
 - [ ] [Phase 4: Java SDK](#phase-4-java-sdk)
 - [ ] [Phase 5: C# SDK](#phase-5-c-sdk)
@@ -39,7 +39,7 @@
 ## Phase 1: Specification Update
 
 **Dependencies**: None
-**Status**: Pending
+**Status**: Done
 
 ### Описание
 
@@ -51,7 +51,7 @@
 
 ### Подпункты
 
-- [ ] **1.1 config-contract.md (EN)**
+- [x] **1.1 config-contract.md (EN)**
   - **Dependencies**: None
   - **Description**: Добавить опции `hostHeader` и `grpcAuthority` в спецификацию конфигурации:
     - Section 7.3 (Dependency Options): добавить `WithHTTPHostHeader(string)`,
@@ -65,14 +65,14 @@
     - Changes in `spec/config-contract.md`
   - **Links**: N/A
 
-- [ ] **1.2 config-contract.ru.md (RU)**
+- [x] **1.2 config-contract.ru.md (RU)**
   - **Dependencies**: 1.1
   - **Description**: Те же изменения в русской версии спецификации конфигурации
   - **Creates**:
     - Changes in `spec/config-contract.ru.md`
   - **Links**: N/A
 
-- [ ] **1.3 check-behavior.md (EN)**
+- [x] **1.3 check-behavior.md (EN)**
   - **Dependencies**: None
   - **Description**: Обновить секции HTTP (4.1) и gRPC (4.2):
     - Добавить `hostHeader` / `grpcAuthority` в таблицы параметров
@@ -83,7 +83,7 @@
     - Changes in `spec/check-behavior.md`
   - **Links**: N/A
 
-- [ ] **1.4 check-behavior.ru.md (RU)**
+- [x] **1.4 check-behavior.ru.md (RU)**
   - **Dependencies**: 1.3
   - **Description**: Те же изменения в русской версии спецификации поведения
   - **Creates**:
@@ -92,19 +92,19 @@
 
 ### ✅ Критерии завершения Phase 1
 
-- [ ] Все подпункты завершены (1.1, 1.2, 1.3, 1.4)
-- [ ] Обе опции (`hostHeader`, `grpcAuthority`) задокументированы в config-contract
-- [ ] Поведение (Host override, SNI override) задокументировано в check-behavior
-- [ ] Правила валидации конфликтов задокументированы
-- [ ] Переменные окружения задокументированы
-- [ ] markdownlint проходит без ошибок
+- [x] Все подпункты завершены (1.1, 1.2, 1.3, 1.4)
+- [x] Обе опции (`hostHeader`, `grpcAuthority`) задокументированы в config-contract
+- [x] Поведение (Host override, SNI override) задокументировано в check-behavior
+- [x] Правила валидации конфликтов задокументированы
+- [x] Переменные окружения задокументированы
+- [x] markdownlint проходит без ошибок
 
 ---
 
 ## Phase 2: Conformance Tests
 
 **Dependencies**: Phase 1
-**Status**: Pending
+**Status**: Done
 
 ### Описание
 
@@ -113,7 +113,7 @@
 
 ### Подпункты
 
-- [ ] **2.1 HTTP Host header conformance test**
+- [x] **2.1 HTTP Host header conformance test**
   - **Dependencies**: None
   - **Description**: Создать сценарий тестирования HTTP Host header override:
     - Настроить HTTP stub для требования определённого Host header при маршрутизации
@@ -124,7 +124,7 @@
   - **Links**:
     - [Existing scenario example](conformance/scenarios/auth-http-header.yml)
 
-- [ ] **2.2 gRPC authority conformance test**
+- [x] **2.2 gRPC authority conformance test**
   - **Dependencies**: None
   - **Description**: Создать сценарий тестирования gRPC authority override:
     - Настроить gRPC stub для проверки `:authority` pseudo-header
@@ -135,7 +135,7 @@
   - **Links**:
     - [Existing gRPC scenario](conformance/scenarios/auth-grpc.yml)
 
-- [ ] **2.3 Update stub services**
+- [x] **2.3 Update stub services**
   - **Dependencies**: None
   - **Description**: Обновить HTTP/gRPC stub-сервисы для поддержки Host/authority-based
     routing (если текущие stub-ы не поддерживают эту функциональность)
@@ -145,10 +145,10 @@
 
 ### ✅ Критерии завершения Phase 2
 
-- [ ] Все подпункты завершены (2.1, 2.2, 2.3)
-- [ ] Сценарии корректно описывают ожидаемое поведение
-- [ ] Stub-сервисы поддерживают Host/authority-based routing
-- [ ] YAML-сценарии проходят валидацию
+- [x] Все подпункты завершены (2.1, 2.2, 2.3)
+- [x] Сценарии корректно описывают ожидаемое поведение
+- [x] Stub-сервисы поддерживают Host/authority-based routing
+- [x] YAML-сценарии проходят валидацию
 
 ---
 

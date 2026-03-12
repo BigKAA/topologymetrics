@@ -313,6 +313,12 @@ dephealth.WithHTTPHeaders(map[string]string{"X-API-Key": "my-key"})
 dephealth.WithHTTPBearerToken("eyJhbG...")
 dephealth.WithHTTPBasicAuth("admin", "secret")
 
+// Override HTTP Host заголовка (для маршрутизации через ingress/gateway по IP)
+dephealth.WithHTTPHostHeader("payment.example.com")
+
+// Override gRPC authority (для маршрутизации через ingress/gateway по IP)
+dephealth.WithGRPCAuthority("payment.example.com")
+
 // Аутентификация gRPC (взаимоисключающие)
 dephealth.WithGRPCMetadata(map[string]string{"x-custom": "value"})
 dephealth.WithGRPCBearerToken("eyJhbG...")
@@ -381,6 +387,8 @@ SDK валидирует конфигурацию при вызове `New()` и
 | Невалидное имя метки | `invalid label name: "..."` |
 | Зарезервированная метка | `reserved label: "..."` |
 | Несколько методов аутентификации | `conflicting auth methods for dependency "..."` |
+| `hostHeader` + `Host` в headers | `conflicting Host header for dependency "...": hostHeader and headers both set Host` |
+| `grpcAuthority` + `:authority` в metadata | `conflicting authority for dependency "...": grpcAuthority and metadata both set :authority` |
 
 ### 7.6. Допустимые конфигурации
 
@@ -444,6 +452,8 @@ DEPHEALTH_<DEPENDENCY_NAME>_<PARAM>=<value>
 | `DEPHEALTH_<NAME>_TIMEOUT` | Таймаут (секунды) | `DEPHEALTH_POSTGRES_MAIN_TIMEOUT=10` |
 | `DEPHEALTH_<NAME>_CRITICAL` | Критичность (`yes` / `no`) | `DEPHEALTH_POSTGRES_MAIN_CRITICAL=yes` |
 | `DEPHEALTH_<NAME>_HEALTH_PATH` | HTTP health path | `DEPHEALTH_PAYMENT_SERVICE_HEALTH_PATH=/ready` |
+| `DEPHEALTH_<NAME>_HOST_HEADER` | Override HTTP Host заголовка | `DEPHEALTH_PAYMENT_SERVICE_HOST_HEADER=payment.example.com` |
+| `DEPHEALTH_<NAME>_GRPC_AUTHORITY` | Override gRPC authority | `DEPHEALTH_PAYMENT_SERVICE_GRPC_AUTHORITY=payment.example.com` |
 | `DEPHEALTH_<NAME>_BEARER_TOKEN` | Bearer token (HTTP/gRPC) | `DEPHEALTH_PAYMENT_SERVICE_BEARER_TOKEN=eyJhbG...` |
 | `DEPHEALTH_<NAME>_BASIC_USERNAME` | Имя пользователя Basic Auth (HTTP/gRPC) | `DEPHEALTH_PAYMENT_SERVICE_BASIC_USERNAME=admin` |
 | `DEPHEALTH_<NAME>_BASIC_PASSWORD` | Пароль Basic Auth (HTTP/gRPC) | `DEPHEALTH_PAYMENT_SERVICE_BASIC_PASSWORD=secret` |

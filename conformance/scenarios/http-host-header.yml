@@ -1,0 +1,71 @@
+name: "http-host-header"
+description: >
+  HTTP Host header override for ingress/gateway routing.
+  Enables Host-based routing on HTTP stub, verifies:
+  - http-host-header (with hostHeader set) sends correct Host → healthy
+  - http-service (no hostHeader) sends default Host → 404 → unhealthy
+
+pre_actions:
+  - type: http_request
+    method: PUT
+    url: "http://http-stub.dephealth-conformance.svc:8080/admin/routing/host?host=app.example.com"
+  - type: wait
+    seconds: 30
+
+checks:
+  - type: status_health_consistency
+
+  # Correct Host header via hostHeader option → healthy
+  - type: expected_dependencies
+    dependencies:
+      - dependency: http-host-header
+        type: http
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        name: conformance-service
+        critical: "no"
+        value: 1
+
+  - type: expected_status
+    endpoints:
+      - dependency: http-host-header
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        status: ok
+
+  - type: expected_detail
+    endpoints:
+      - dependency: http-host-header
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        detail: ok
+
+  # No hostHeader → default Host (real hostname) → 404 → unhealthy
+  - type: expected_dependencies
+    dependencies:
+      - dependency: http-service
+        type: http
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        name: conformance-service
+        critical: "no"
+        value: 0
+
+  - type: expected_status
+    endpoints:
+      - dependency: http-service
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        status: unhealthy
+
+  - type: expected_detail
+    endpoints:
+      - dependency: http-service
+        host: http-stub.dephealth-conformance.svc
+        port: 8080
+        detail: http_404
+
+post_actions:
+  - type: http_request
+    method: DELETE
+    url: "http://http-stub.dephealth-conformance.svc:8080/admin/routing"

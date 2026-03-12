@@ -32,11 +32,16 @@ type authConfig struct {
 	token string // bearer token
 }
 
+type routingConfig struct {
+	requiredAuthority string // if set, requests with wrong :authority get rejected
+}
+
 type stubState struct {
 	mu           sync.RWMutex
 	healthy      bool
 	healthServer *health.Server
 	auth         authConfig
+	routing      routingConfig
 }
 
 func (s *stubState) setHealthy(v bool) {
@@ -68,23 +73,46 @@ func (s *stubState) getAuth() authConfig {
 	return s.auth
 }
 
-// authInterceptor creates a unary server interceptor that checks metadata
-// for authentication before forwarding to the handler.
-func authInterceptor(state *stubState) grpc.UnaryServerInterceptor {
+func (s *stubState) setRouting(cfg routingConfig) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.routing = cfg
+}
+
+func (s *stubState) getRouting() routingConfig {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.routing
+}
+
+// requestInterceptor creates a unary server interceptor that checks
+// routing (authority) and authentication before forwarding to the handler.
+func requestInterceptor(state *stubState) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req any,
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (any, error) {
-		auth := state.getAuth()
+		md, _ := metadata.FromIncomingContext(ctx)
 
+		// Check authority-based routing (simulates ingress/gateway routing miss)
+		routing := state.getRouting()
+		if routing.requiredAuthority != "" {
+			authorities := md.Get(":authority")
+			if len(authorities) == 0 || !strings.EqualFold(authorities[0], routing.requiredAuthority) {
+				return nil, status.Errorf(codes.Unimplemented,
+					"authority mismatch: required %q", routing.requiredAuthority)
+			}
+		}
+
+		// Check authentication
+		auth := state.getAuth()
 		if auth.mode == authNone {
 			return handler(ctx, req)
 		}
 
-		md, ok := metadata.FromIncomingContext(ctx)
-		if !ok {
+		if md == nil {
 			return nil, status.Error(codes.Unauthenticated, "missing metadata")
 		}
 
@@ -129,7 +157,7 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(authInterceptor(state)),
+		grpc.UnaryInterceptor(requestInterceptor(state)),
 	)
 	healthpb.RegisterHealthServer(grpcServer, healthServer)
 
@@ -188,6 +216,32 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]string{"auth": "bearer"})
 	})
 
+	// Admin: configure authority-based routing (simulates ingress/gateway)
+	mux.HandleFunc("PUT /admin/routing/authority", func(w http.ResponseWriter, r *http.Request) {
+		authority := r.URL.Query().Get("authority")
+		if authority == "" {
+			http.Error(w, "authority parameter required", http.StatusBadRequest)
+			return
+		}
+		state.setRouting(routingConfig{requiredAuthority: authority})
+		logger.Info("set routing", "required_authority", authority)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"routing":            "authority",
+			"required_authority": authority,
+		})
+	})
+
+	// Admin: disable routing
+	mux.HandleFunc("DELETE /admin/routing", func(w http.ResponseWriter, r *http.Request) {
+		state.setRouting(routingConfig{})
+		logger.Info("disabled routing")
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"routing": "none"})
+	})
+
 	// Admin: disable auth
 	mux.HandleFunc("DELETE /admin/auth", func(w http.ResponseWriter, r *http.Request) {
 		state.setAuth(authConfig{mode: authNone})
@@ -203,10 +257,17 @@ func main() {
 		if auth.mode == authBearer {
 			authModeStr = "bearer"
 		}
+		routing := state.getRouting()
+		routingMode := "none"
+		if routing.requiredAuthority != "" {
+			routingMode = "authority"
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{
-			"healthy": state.isHealthy(),
-			"auth":    authModeStr,
+			"healthy":            state.isHealthy(),
+			"auth":               authModeStr,
+			"routing":            routingMode,
+			"required_authority": routing.requiredAuthority,
 		})
 	})
 

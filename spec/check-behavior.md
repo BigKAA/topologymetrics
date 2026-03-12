@@ -181,6 +181,7 @@ Metric:  1    0     1    0     1
 | `method` | HTTP method | `GET` |
 | `expectedStatuses` | Expected HTTP status codes | `200-299` (any 2xx) |
 | `tlsSkipVerify` | Skip TLS certificate verification | `false` |
+| `hostHeader` | Override `Host` header (for ingress/gateway routing) | `""` (disabled) |
 | `headers` | Custom HTTP headers added to every request | `{}` (empty) |
 | `bearerToken` | Adds `Authorization: Bearer <token>` header | `""` (disabled) |
 | `basicAuth` | Adds `Authorization: Basic <base64(user:pass)>` header | not set |
@@ -188,10 +189,11 @@ Metric:  1    0     1    0     1
 **Algorithm**:
 
 1. Send `GET` (or configured method) to `http(s)://{host}:{port}{healthPath}`.
-2. Add configured headers (custom headers, bearer token, or basic auth) to the request.
-3. Wait for response within `timeout`.
-4. If response status is in the `expectedStatuses` range — **success**.
-5. Otherwise — **failure**.
+2. If `hostHeader` is set, override the `Host` header with the specified value.
+3. Add configured headers (custom headers, bearer token, or basic auth) to the request.
+4. Wait for response within `timeout`.
+5. If response status is in the `expectedStatuses` range — **success**.
+6. Otherwise — **failure**.
 
 **Authentication**:
 
@@ -214,6 +216,21 @@ Metric:  1    0     1    0     1
 - `User-Agent: dephealth/<version>` header is set. A custom `User-Agent` in `headers` overrides it.
 - HTTP 401 and 403 responses are classified as `auth_error` (see section 6.2.3).
 
+**Host header override** (`hostHeader`):
+
+- When `hostHeader` is set, the HTTP `Host` header is overridden with the specified value.
+  This is required when connecting to a dependency by IP address through an
+  ingress controller or gateway API that performs Host-based routing.
+- When TLS is enabled (`https://`) and `hostHeader` is set, TLS SNI (Server Name Indication)
+  is also set to the `hostHeader` value. This ensures the TLS handshake succeeds
+  when connecting by IP to a server with a domain-based certificate.
+- `hostHeader` does **not** affect the `host` metric label — the label always reflects
+  the actual endpoint address (IP or hostname from configuration).
+- `hostHeader` is independent of authentication — it can be combined with
+  `bearerToken`, `basicAuth`, or custom `headers`.
+- If both `hostHeader` is set and `headers` contains a `Host` key (case-insensitive),
+  the SDK must return a **validation error** during initialization.
+
 ### 4.2. gRPC (`type: grpc`)
 
 **Protocol**: [gRPC Health Checking Protocol](https://github.com/grpc/grpc/blob/master/doc/health-checking.md)
@@ -224,6 +241,7 @@ Metric:  1    0     1    0     1
 | `serviceName` | Service name for Health Check | `""` (empty string — overall status) |
 | `tlsEnabled` | Use TLS | `false` |
 | `tlsSkipVerify` | Skip TLS certificate verification | `false` |
+| `grpcAuthority` | Override `:authority` pseudo-header (for ingress/gateway routing) | `""` (disabled) |
 | `metadata` | Custom gRPC metadata added to every Health/Check call | `{}` (empty) |
 | `bearerToken` | Adds `authorization: Bearer <token>` metadata | `""` (disabled) |
 | `basicAuth` | Adds `authorization: Basic <base64(user:pass)>` metadata | not set |
@@ -231,10 +249,11 @@ Metric:  1    0     1    0     1
 **Algorithm**:
 
 1. Establish gRPC connection to `{host}:{port}`.
-2. Add configured metadata (custom metadata, bearer token, or basic auth) to the call.
-3. Call `grpc.health.v1.Health/Check` with the specified `serviceName`.
-4. If response is `SERVING` — **success**.
-5. Other statuses (`NOT_SERVING`, `UNKNOWN`, `SERVICE_UNKNOWN`) — **failure**.
+2. If `grpcAuthority` is set, override the `:authority` pseudo-header with the specified value.
+3. Add configured metadata (custom metadata, bearer token, or basic auth) to the call.
+4. Call `grpc.health.v1.Health/Check` with the specified `serviceName`.
+5. If response is `SERVING` — **success**.
+6. Other statuses (`NOT_SERVING`, `UNKNOWN`, `SERVICE_UNKNOWN`) — **failure**.
 
 **Authentication**:
 
@@ -247,6 +266,22 @@ Metric:  1    0     1    0     1
   results in a **validation error**.
 - gRPC status `UNAUTHENTICATED` and `PERMISSION_DENIED` are classified as `auth_error`
   (see section 6.2.3).
+
+**Authority override** (`grpcAuthority`):
+
+- When `grpcAuthority` is set, the `:authority` pseudo-header is overridden
+  with the specified value. This is required when connecting to a dependency
+  by IP address through an ingress controller or gateway API that performs
+  authority-based routing.
+- When TLS is enabled and `grpcAuthority` is set, TLS SNI (Server Name Indication)
+  is also set to the `grpcAuthority` value. This ensures the TLS handshake succeeds
+  when connecting by IP to a server with a domain-based certificate.
+- `grpcAuthority` does **not** affect the `host` metric label — the label always reflects
+  the actual endpoint address (IP or hostname from configuration).
+- `grpcAuthority` is independent of authentication — it can be combined with
+  `bearerToken`, `basicAuth`, or custom `metadata`.
+- If both `grpcAuthority` is set and `metadata` contains an `:authority` key,
+  the SDK must return a **validation error** during initialization.
 
 **Specifics**:
 

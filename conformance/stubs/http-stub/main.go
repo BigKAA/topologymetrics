@@ -32,11 +32,16 @@ type authConfig struct {
 	headerValue string // required header value
 }
 
+type routingConfig struct {
+	requiredHost string // if set, requests with wrong Host header get 404
+}
+
 type stubState struct {
 	mu      sync.RWMutex
 	healthy bool
 	delay   time.Duration
 	auth    authConfig
+	routing routingConfig
 }
 
 func (s *stubState) isHealthy() (bool, time.Duration) {
@@ -67,6 +72,34 @@ func (s *stubState) getAuth() authConfig {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.auth
+}
+
+func (s *stubState) setRouting(cfg routingConfig) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.routing = cfg
+}
+
+func (s *stubState) getRouting() routingConfig {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.routing
+}
+
+// checkRouting validates the Host header against the routing config.
+// Returns true if routing passes (no requirement or Host matches).
+func (s *stubState) checkRouting(r *http.Request) bool {
+	routing := s.getRouting()
+	if routing.requiredHost == "" {
+		return true
+	}
+	// r.Host contains the Host header value (or host:port from URL)
+	host := r.Host
+	// Strip port if present for comparison
+	if idx := strings.LastIndex(host, ":"); idx != -1 {
+		host = host[:idx]
+	}
+	return strings.EqualFold(host, routing.requiredHost)
 }
 
 // checkAuth validates the request against the current auth config.
@@ -128,9 +161,16 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	// Health endpoint with auth checking
+	// Health endpoint with routing and auth checking
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
-		// Check authentication first
+		// Check Host-based routing first (simulates ingress/gateway routing miss)
+		if !state.checkRouting(r) {
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprint(w, `{"error":"not found","code":404}`)
+			return
+		}
+
+		// Check authentication
 		if code := state.checkAuth(r); code != 0 {
 			w.WriteHeader(code)
 			fmt.Fprintf(w, `{"error":"unauthorized","code":%d}`, code)
@@ -239,6 +279,29 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]string{"auth": "header", "header_name": name})
 	})
 
+	// Admin: configure Host-based routing (simulates ingress/gateway)
+	mux.HandleFunc("PUT /admin/routing/host", func(w http.ResponseWriter, r *http.Request) {
+		host := r.URL.Query().Get("host")
+		if host == "" {
+			http.Error(w, "host parameter required", http.StatusBadRequest)
+			return
+		}
+		state.setRouting(routingConfig{requiredHost: host})
+		logger.Info("set routing", "required_host", host)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"routing": "host", "required_host": host})
+	})
+
+	// Admin: disable routing
+	mux.HandleFunc("DELETE /admin/routing", func(w http.ResponseWriter, r *http.Request) {
+		state.setRouting(routingConfig{})
+		logger.Info("disabled routing")
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"routing": "none"})
+	})
+
 	// Admin: disable auth
 	mux.HandleFunc("DELETE /admin/auth", func(w http.ResponseWriter, r *http.Request) {
 		state.setAuth(authConfig{mode: authNone})
@@ -261,11 +324,18 @@ func main() {
 		case authHeader:
 			authMode = "header"
 		}
+		routing := state.getRouting()
+		routingMode := "none"
+		if routing.requiredHost != "" {
+			routingMode = "host"
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{
-			"healthy":  healthy,
-			"delay_ms": delay.Milliseconds(),
-			"auth":     authMode,
+			"healthy":       healthy,
+			"delay_ms":      delay.Milliseconds(),
+			"auth":          authMode,
+			"routing":       routingMode,
+			"required_host": routing.requiredHost,
 		})
 	})
 

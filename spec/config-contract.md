@@ -313,6 +313,12 @@ dephealth.WithHTTPHeaders(map[string]string{"X-API-Key": "my-key"})
 dephealth.WithHTTPBearerToken("eyJhbG...")
 dephealth.WithHTTPBasicAuth("admin", "secret")
 
+// HTTP Host header override (for routing through ingress/gateway by IP)
+dephealth.WithHTTPHostHeader("payment.example.com")
+
+// gRPC authority override (for routing through ingress/gateway by IP)
+dephealth.WithGRPCAuthority("payment.example.com")
+
 // gRPC authentication (mutually exclusive)
 dephealth.WithGRPCMetadata(map[string]string{"x-custom": "value"})
 dephealth.WithGRPCBearerToken("eyJhbG...")
@@ -381,6 +387,8 @@ SDK validates configuration on `New()` call and returns error for:
 | Invalid label name | `invalid label name: "..."` |
 | Reserved label | `reserved label: "..."` |
 | Multiple auth methods | `conflicting auth methods for dependency "..."` |
+| `hostHeader` + `Host` in headers | `conflicting Host header for dependency "...": hostHeader and headers both set Host` |
+| `grpcAuthority` + `:authority` in metadata | `conflicting authority for dependency "...": grpcAuthority and metadata both set :authority` |
 
 ### 7.6. Valid Configurations
 
@@ -444,6 +452,8 @@ For example: `CHECK_INTERVAL=30`, `TIMEOUT=5`. SDK converts the number to native
 | `DEPHEALTH_<NAME>_TIMEOUT` | Timeout (seconds) | `DEPHEALTH_POSTGRES_MAIN_TIMEOUT=10` |
 | `DEPHEALTH_<NAME>_CRITICAL` | Criticality (`yes` / `no`) | `DEPHEALTH_POSTGRES_MAIN_CRITICAL=yes` |
 | `DEPHEALTH_<NAME>_HEALTH_PATH` | HTTP health path | `DEPHEALTH_PAYMENT_SERVICE_HEALTH_PATH=/ready` |
+| `DEPHEALTH_<NAME>_HOST_HEADER` | HTTP Host header override | `DEPHEALTH_PAYMENT_SERVICE_HOST_HEADER=payment.example.com` |
+| `DEPHEALTH_<NAME>_GRPC_AUTHORITY` | gRPC authority override | `DEPHEALTH_PAYMENT_SERVICE_GRPC_AUTHORITY=payment.example.com` |
 | `DEPHEALTH_<NAME>_BEARER_TOKEN` | Bearer token (HTTP/gRPC) | `DEPHEALTH_PAYMENT_SERVICE_BEARER_TOKEN=eyJhbG...` |
 | `DEPHEALTH_<NAME>_BASIC_USERNAME` | Basic Auth username (HTTP/gRPC) | `DEPHEALTH_PAYMENT_SERVICE_BASIC_USERNAME=admin` |
 | `DEPHEALTH_<NAME>_BASIC_PASSWORD` | Basic Auth password (HTTP/gRPC) | `DEPHEALTH_PAYMENT_SERVICE_BASIC_PASSWORD=secret` |

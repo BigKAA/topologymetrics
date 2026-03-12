@@ -181,6 +181,7 @@ successThreshold = 2
 | `method` | HTTP-метод | `GET` |
 | `expectedStatuses` | Ожидаемые HTTP-статусы | `200-299` (любой 2xx) |
 | `tlsSkipVerify` | Пропуск проверки TLS-сертификата | `false` |
+| `hostHeader` | Override заголовка `Host` (для маршрутизации через ingress/gateway) | `""` (отключено) |
 | `headers` | Произвольные HTTP-заголовки, добавляемые к каждому запросу | `{}` (пусто) |
 | `bearerToken` | Добавляет заголовок `Authorization: Bearer <token>` | `""` (отключено) |
 | `basicAuth` | Добавляет заголовок `Authorization: Basic <base64(user:pass)>` | не задано |
@@ -188,10 +189,11 @@ successThreshold = 2
 **Алгоритм**:
 
 1. Отправить `GET` (или настроенный метод) на `http(s)://{host}:{port}{healthPath}`.
-2. Добавить настроенные заголовки (custom headers, bearer token или basic auth) к запросу.
-3. Ожидать ответ в пределах `timeout`.
-4. Если статус ответа в диапазоне `expectedStatuses` — **успех**.
-5. Иначе — **неудача**.
+2. Если задан `hostHeader`, переопределить заголовок `Host` указанным значением.
+3. Добавить настроенные заголовки (custom headers, bearer token или basic auth) к запросу.
+4. Ожидать ответ в пределах `timeout`.
+5. Если статус ответа в диапазоне `expectedStatuses` — **успех**.
+6. Иначе — **неудача**.
 
 **Аутентификация**:
 
@@ -214,6 +216,21 @@ successThreshold = 2
 - Заголовок `User-Agent: dephealth/<version>`. Пользовательский `User-Agent` в `headers` переопределяет его.
 - HTTP-ответы 401 и 403 классифицируются как `auth_error` (см. раздел 6.2.3).
 
+**Override заголовка Host** (`hostHeader`):
+
+- Когда задан `hostHeader`, HTTP-заголовок `Host` переопределяется указанным значением.
+  Это необходимо при подключении к зависимости по IP-адресу через ingress controller
+  или gateway API, выполняющий маршрутизацию на основе Host.
+- При включённом TLS (`https://`) и заданном `hostHeader` также устанавливается
+  TLS SNI (Server Name Indication) равным значению `hostHeader`. Это обеспечивает
+  успешное TLS-рукопожатие при подключении по IP к серверу с доменным сертификатом.
+- `hostHeader` **не влияет** на метку `host` в метрике — метка всегда отражает
+  реальный адрес endpoint-а (IP или hostname из конфигурации).
+- `hostHeader` не зависит от аутентификации — может комбинироваться с
+  `bearerToken`, `basicAuth` или произвольными `headers`.
+- Если одновременно задан `hostHeader` и `headers` содержит ключ `Host`
+  (case-insensitive), SDK должен вернуть **ошибку валидации** при инициализации.
+
 ### 4.2. gRPC (`type: grpc`)
 
 **Протокол**: [gRPC Health Checking Protocol](https://github.com/grpc/grpc/blob/master/doc/health-checking.md)
@@ -224,6 +241,7 @@ successThreshold = 2
 | `serviceName` | Имя сервиса для Health Check | `""` (пустая строка — общий статус) |
 | `tlsEnabled` | Использовать TLS | `false` |
 | `tlsSkipVerify` | Пропуск проверки TLS-сертификата | `false` |
+| `grpcAuthority` | Override pseudo-header `:authority` (для маршрутизации через ingress/gateway) | `""` (отключено) |
 | `metadata` | Произвольные gRPC-метаданные, добавляемые к каждому вызову Health/Check | `{}` (пусто) |
 | `bearerToken` | Добавляет метаданные `authorization: Bearer <token>` | `""` (отключено) |
 | `basicAuth` | Добавляет метаданные `authorization: Basic <base64(user:pass)>` | не задано |
@@ -231,10 +249,11 @@ successThreshold = 2
 **Алгоритм**:
 
 1. Установить gRPC-соединение с `{host}:{port}`.
-2. Добавить настроенные метаданные (custom metadata, bearer token или basic auth) к вызову.
-3. Вызвать `grpc.health.v1.Health/Check` с указанным `serviceName`.
-4. Если ответ `SERVING` — **успех**.
-5. Иные статусы (`NOT_SERVING`, `UNKNOWN`, `SERVICE_UNKNOWN`) — **неудача**.
+2. Если задан `grpcAuthority`, переопределить pseudo-header `:authority` указанным значением.
+3. Добавить настроенные метаданные (custom metadata, bearer token или basic auth) к вызову.
+4. Вызвать `grpc.health.v1.Health/Check` с указанным `serviceName`.
+5. Если ответ `SERVING` — **успех**.
+6. Иные статусы (`NOT_SERVING`, `UNKNOWN`, `SERVICE_UNKNOWN`) — **неудача**.
 
 **Аутентификация**:
 
@@ -248,6 +267,22 @@ successThreshold = 2
   `authorization` в metadata приводит к **ошибке валидации**.
 - gRPC-статусы `UNAUTHENTICATED` и `PERMISSION_DENIED` классифицируются как `auth_error`
   (см. раздел 6.2.3).
+
+**Override authority** (`grpcAuthority`):
+
+- Когда задан `grpcAuthority`, pseudo-header `:authority` переопределяется
+  указанным значением. Это необходимо при подключении к зависимости по IP-адресу
+  через ingress controller или gateway API, выполняющий маршрутизацию
+  на основе authority.
+- При включённом TLS и заданном `grpcAuthority` также устанавливается
+  TLS SNI (Server Name Indication) равным значению `grpcAuthority`. Это обеспечивает
+  успешное TLS-рукопожатие при подключении по IP к серверу с доменным сертификатом.
+- `grpcAuthority` **не влияет** на метку `host` в метрике — метка всегда отражает
+  реальный адрес endpoint-а (IP или hostname из конфигурации).
+- `grpcAuthority` не зависит от аутентификации — может комбинироваться с
+  `bearerToken`, `basicAuth` или произвольными `metadata`.
+- Если одновременно задан `grpcAuthority` и `metadata` содержит ключ `:authority`,
+  SDK должен вернуть **ошибку валидации** при инициализации.
 
 **Особенности**:
 

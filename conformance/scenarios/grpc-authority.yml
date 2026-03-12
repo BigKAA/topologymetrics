@@ -1,0 +1,71 @@
+name: "grpc-authority"
+description: >
+  gRPC :authority pseudo-header override for ingress/gateway routing.
+  Enables authority-based routing on gRPC stub, verifies:
+  - grpc-authority (with grpcAuthority set) sends correct :authority → healthy
+  - grpc-service (no grpcAuthority) sends default :authority → UNIMPLEMENTED → unhealthy
+
+pre_actions:
+  - type: http_request
+    method: PUT
+    url: "http://grpc-stub.dephealth-conformance.svc:8080/admin/routing/authority?authority=app.example.com"
+  - type: wait
+    seconds: 30
+
+checks:
+  - type: status_health_consistency
+
+  # Correct :authority via grpcAuthority option → healthy
+  - type: expected_dependencies
+    dependencies:
+      - dependency: grpc-authority
+        type: grpc
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        name: conformance-service
+        critical: "no"
+        value: 1
+
+  - type: expected_status
+    endpoints:
+      - dependency: grpc-authority
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        status: ok
+
+  - type: expected_detail
+    endpoints:
+      - dependency: grpc-authority
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        detail: ok
+
+  # No grpcAuthority → default :authority (real hostname) → UNIMPLEMENTED → error
+  - type: expected_dependencies
+    dependencies:
+      - dependency: grpc-service
+        type: grpc
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        name: conformance-service
+        critical: "no"
+        value: 0
+
+  - type: expected_status
+    endpoints:
+      - dependency: grpc-service
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        status: error
+
+  - type: expected_detail
+    endpoints:
+      - dependency: grpc-service
+        host: grpc-stub.dephealth-conformance.svc
+        port: 9090
+        detail: error
+
+post_actions:
+  - type: http_request
+    method: DELETE
+    url: "http://grpc-stub.dephealth-conformance.svc:8080/admin/routing"
