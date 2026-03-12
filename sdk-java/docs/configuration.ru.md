@@ -126,6 +126,7 @@ DepHealth dh = DepHealth.builder("my-service", "my-team", meterRegistry)
 | `httpHeaders(Map<String, String>)` | -- | Пользовательские HTTP-заголовки |
 | `httpBearerToken(String)` | -- | Аутентификация Bearer-токеном |
 | `httpBasicAuth(String, String)` | -- | Basic-аутентификация (логин, пароль) |
+| `httpHostHeader(String)` | -- | Переопределить заголовок Host и TLS SNI |
 
 ### gRPC
 
@@ -136,6 +137,7 @@ DepHealth dh = DepHealth.builder("my-service", "my-team", meterRegistry)
 | `grpcMetadata(Map<String, String>)` | -- | Пользовательские gRPC-метаданные |
 | `grpcBearerToken(String)` | -- | Аутентификация Bearer-токеном |
 | `grpcBasicAuth(String, String)` | -- | Basic-аутентификация (логин, пароль) |
+| `grpcAuthority(String)` | -- | Переопределить :authority и TLS SNI |
 
 ### PostgreSQL
 
@@ -200,6 +202,8 @@ DepHealth dh = DepHealth.builder("my-service", "my-team", meterRegistry)
 | `DEPHEALTH_GROUP` | Логическая группа (fallback, если аргумент API пуст) | `my-team` |
 | `DEPHEALTH_<DEP>_CRITICAL` | Критичность зависимости (`yes`/`no`) | `yes` |
 | `DEPHEALTH_<DEP>_LABEL_<KEY>` | Значение пользовательской метки | `primary` |
+| `DEPHEALTH_<DEP>_HOST_HEADER` | Переопределение HTTP-заголовка Host | `api.example.com` |
+| `DEPHEALTH_<DEP>_GRPC_AUTHORITY` | Переопределение gRPC authority | `api.example.com` |
 
 `<DEP>` -- имя зависимости в формате UPPER_SNAKE_CASE:
 дефисы заменяются на подчёркивания, всё в верхнем регистре.
@@ -285,6 +289,8 @@ DepHealth dh = DepHealth.builder("", "", meterRegistry)
 | LDAP simple_bind без credentials | `LDAP simple_bind requires bindDN and bindPassword` |
 | LDAP search без baseDN | `LDAP search requires baseDN` |
 | LDAP startTLS + ldaps | `startTLS and ldaps:// are incompatible` |
+| Конфликт заголовка Host | `conflicting Host header: specify only one of httpHostHeader or Host in httpHeaders` |
+| Конфликт gRPC authority | `conflicting :authority: specify only one of grpcAuthority or :authority in grpcMetadata` |
 
 ## См. также
 

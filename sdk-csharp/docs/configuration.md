@@ -136,6 +136,7 @@ builder.AddHttp(
 | `bearerToken` | -- | Bearer token authentication |
 | `basicAuthUsername` | -- | Basic authentication username |
 | `basicAuthPassword` | -- | Basic authentication password |
+| `httpHostHeader` | -- | Override Host header and TLS SNI |
 
 TLS is enabled automatically for `https://` URLs. Only one authentication
 method (`bearerToken`, `basicAuth`, or `Authorization` header) may be
@@ -161,6 +162,7 @@ builder.AddGrpc(
 | `bearerToken` | -- | Bearer token authentication |
 | `basicAuthUsername` | -- | Basic authentication username |
 | `basicAuthPassword` | -- | Basic authentication password |
+| `grpcAuthority` | -- | Override :authority and TLS SNI |
 
 The gRPC checker uses the standard
 [gRPC Health Checking Protocol](https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
@@ -294,6 +296,8 @@ a raw TCP connection. The Kafka checker connects to each broker individually.
 | `DEPHEALTH_GROUP` | Logical group (fallback if API arg is empty) | `my-team` |
 | `DEPHEALTH_<DEP>_CRITICAL` | Dependency criticality (`yes`/`no`, `true`/`false`) | `yes` |
 | `DEPHEALTH_<DEP>_LABEL_<KEY>` | Custom label value | `primary` |
+| `DEPHEALTH_<DEP>_HOST_HEADER` | HTTP Host header override | `api.example.com` |
+| `DEPHEALTH_<DEP>_GRPC_AUTHORITY` | gRPC authority override | `api.example.com` |
 
 `<DEP>` is the dependency name converted to UPPER_SNAKE_CASE:
 hyphens to underscores, all uppercase.
@@ -389,6 +393,8 @@ or `ConfigurationException` if any rule is violated:
 | LDAP SimpleBind without credentials | `LDAP simple_bind requires bindDN and bindPassword` |
 | LDAP Search without baseDN | `LDAP search requires baseDN` |
 | LDAP startTLS + useTls | `startTLS and ldaps:// are incompatible` |
+| Conflicting Host header | `conflicting Host header: specify only one of httpHostHeader or Host in headers` |
+| Conflicting gRPC authority | `conflicting :authority: specify only one of grpcAuthority or :authority in metadata` |
 
 ## See Also
 

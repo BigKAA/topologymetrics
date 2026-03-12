@@ -172,6 +172,7 @@ Create an HTTP health check.
 | `headers` | `dict[str, str] \| None` | `None` | Custom HTTP headers |
 | `bearer_token` | `str \| None` | `None` | Bearer token |
 | `basic_auth` | `tuple[str, str] \| None` | `None` | Basic auth `(user, pass)` |
+| `http_host_header` | `str \| None` | `None` | Override HTTP `Host` header and TLS SNI |
 | `critical` | `bool` | — | Whether the dependency is critical |
 | `timeout` | `timedelta \| None` | global | Per-dependency timeout |
 | `interval` | `timedelta \| None` | global | Per-dependency interval |
@@ -180,6 +181,24 @@ Create an HTTP health check.
 ### `grpc_check(name, *, critical, ...)`
 
 Create a gRPC health check.
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `name` | `str` | — | Dependency name |
+| `url` | `str` | `""` | gRPC URL (parsed for host/port) |
+| `host` | `str` | `""` | Host (if `url` not provided) |
+| `port` | `str` | `"50051"` | Port |
+| `service_name` | `str` | `""` | Service name (empty = overall server) |
+| `tls` | `bool` | `False` | Enable TLS |
+| `tls_skip_verify` | `bool` | `False` | Skip TLS verification |
+| `metadata` | `dict[str, str] \| None` | `None` | Custom gRPC metadata |
+| `bearer_token` | `str \| None` | `None` | Bearer token |
+| `basic_auth` | `tuple[str, str] \| None` | `None` | Basic auth `(user, pass)` |
+| `grpc_authority` | `str \| None` | `None` | Override `:authority` pseudo-header and TLS SNI |
+| `critical` | `bool` | — | Whether the dependency is critical |
+| `timeout` | `timedelta \| None` | global | Per-dependency timeout |
+| `interval` | `timedelta \| None` | global | Per-dependency interval |
+| `labels` | `dict[str, str] \| None` | `None` | Custom labels |
 
 ### `tcp_check(name, *, host, port, critical, ...)`
 
@@ -260,6 +279,30 @@ class HealthChecker(ABC):
     async def check(self, endpoint: Endpoint) -> None:
         """Raise CheckError on failure; return None on success."""
 ```
+
+### `HTTPChecker`
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `health_path` | `str` | Health endpoint path |
+| `tls` | `bool` | TLS enabled |
+| `tls_skip_verify` | `bool` | Skip TLS verification |
+| `headers` | `dict[str, str] \| None` | Custom HTTP headers |
+| `bearer_token` | `str \| None` | Bearer token |
+| `basic_auth` | `tuple[str, str] \| None` | Basic auth credentials |
+| `host_header` | `str \| None` | Override HTTP `Host` header and TLS SNI |
+
+### `GRPCChecker`
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `service_name` | `str` | gRPC service name |
+| `tls` | `bool` | TLS enabled |
+| `tls_skip_verify` | `bool` | Skip TLS verification |
+| `metadata` | `dict[str, str] \| None` | Custom gRPC metadata |
+| `bearer_token` | `str \| None` | Bearer token |
+| `basic_auth` | `tuple[str, str] \| None` | Basic auth credentials |
+| `authority` | `str \| None` | Override `:authority` pseudo-header and TLS SNI |
 
 ---
 

@@ -30,6 +30,7 @@ var dh = DepHealthMonitor.CreateBuilder("my-service", "my-team")
 | `bearerToken` | `null` | Set `Authorization: Bearer <token>` header |
 | `basicAuthUsername` | `null` | Username for HTTP Basic authentication |
 | `basicAuthPassword` | `null` | Password for HTTP Basic authentication |
+| `httpHostHeader` | `null` | Override HTTP `Host` header and TLS SNI (for ingress/gateway routing by IP) |
 
 TLS is detected automatically from `https://` in the URL.
 
@@ -77,7 +78,8 @@ var checker = new HttpChecker(
     healthPath: "/healthz",
     tlsEnabled: true,
     tlsSkipVerify: false,
-    bearerToken: "my-token");
+    bearerToken: "my-token",
+    hostHeader: "api.example.com");
 
 // Use with AddCustom:
 var dh = DepHealthMonitor.CreateBuilder("my-service", "my-team")
@@ -120,6 +122,7 @@ var dh = DepHealthMonitor.CreateBuilder("my-service", "my-team")
 | `bearerToken` | `null` | Set `authorization: Bearer <token>` metadata |
 | `basicAuthUsername` | `null` | Username for Basic authentication metadata |
 | `basicAuthPassword` | `null` | Password for Basic authentication metadata |
+| `grpcAuthority` | `null` | Override `:authority` pseudo-header and TLS SNI (for ingress/gateway routing by IP) |
 
 ### Full Example
 
@@ -162,7 +165,8 @@ using DepHealth.Checks;
 
 var checker = new GrpcChecker(
     tlsEnabled: true,
-    bearerToken: "my-token");
+    bearerToken: "my-token",
+    authority: "api.example.com");
 
 var dh = DepHealthMonitor.CreateBuilder("my-service", "my-team")
     .AddCustom("user-service", DependencyType.Grpc, "user.svc", "9090", checker,

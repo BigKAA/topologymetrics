@@ -171,6 +171,7 @@ HTTP-проверка.
 | `headers` | `dict[str, str] \| None` | `None` | Кастомные HTTP-заголовки |
 | `bearer_token` | `str \| None` | `None` | Bearer-токен |
 | `basic_auth` | `tuple[str, str] \| None` | `None` | Basic auth `(user, pass)` |
+| `http_host_header` | `str \| None` | `None` | Переопределить HTTP-заголовок `Host` и TLS SNI |
 | `critical` | `bool` | — | Критичность зависимости |
 | `timeout` | `timedelta \| None` | global | Тайм-аут для зависимости |
 | `interval` | `timedelta \| None` | global | Интервал для зависимости |
@@ -179,6 +180,24 @@ HTTP-проверка.
 ### `grpc_check(name, *, critical, ...)`
 
 gRPC-проверка.
+
+| Параметр | Тип | По умолчанию | Описание |
+| --- | --- | --- | --- |
+| `name` | `str` | — | Имя зависимости |
+| `url` | `str` | `""` | gRPC URL (host/port извлекаются автоматически) |
+| `host` | `str` | `""` | Хост (если `url` не указан) |
+| `port` | `str` | `"50051"` | Порт |
+| `service_name` | `str` | `""` | Имя сервиса (пусто = общее состояние) |
+| `tls` | `bool` | `False` | Включить TLS |
+| `tls_skip_verify` | `bool` | `False` | Пропустить проверку TLS-сертификата |
+| `metadata` | `dict[str, str] \| None` | `None` | Кастомные gRPC-метаданные |
+| `bearer_token` | `str \| None` | `None` | Bearer-токен |
+| `basic_auth` | `tuple[str, str] \| None` | `None` | Basic auth `(user, pass)` |
+| `grpc_authority` | `str \| None` | `None` | Переопределить pseudo-header `:authority` и TLS SNI |
+| `critical` | `bool` | — | Критичность зависимости |
+| `timeout` | `timedelta \| None` | global | Тайм-аут для зависимости |
+| `interval` | `timedelta \| None` | global | Интервал для зависимости |
+| `labels` | `dict[str, str] \| None` | `None` | Кастомные метки |
 
 ### `tcp_check(name, *, host, port, critical, ...)`
 
@@ -259,6 +278,30 @@ class HealthChecker(ABC):
     async def check(self, endpoint: Endpoint) -> None:
         """Бросить CheckError при ошибке; вернуть None при успехе."""
 ```
+
+### `HTTPChecker`
+
+| Поле | Тип | Описание |
+| --- | --- | --- |
+| `health_path` | `str` | Путь эндпоинта проверки |
+| `tls` | `bool` | TLS включён |
+| `tls_skip_verify` | `bool` | Пропустить проверку TLS-сертификата |
+| `headers` | `dict[str, str] \| None` | Кастомные HTTP-заголовки |
+| `bearer_token` | `str \| None` | Bearer-токен |
+| `basic_auth` | `tuple[str, str] \| None` | Данные Basic auth |
+| `host_header` | `str \| None` | Переопределить HTTP-заголовок `Host` и TLS SNI |
+
+### `GRPCChecker`
+
+| Поле | Тип | Описание |
+| --- | --- | --- |
+| `service_name` | `str` | Имя gRPC-сервиса |
+| `tls` | `bool` | TLS включён |
+| `tls_skip_verify` | `bool` | Пропустить проверку TLS-сертификата |
+| `metadata` | `dict[str, str] \| None` | Кастомные gRPC-метаданные |
+| `bearer_token` | `str \| None` | Bearer-токен |
+| `basic_auth` | `tuple[str, str] \| None` | Данные Basic auth |
+| `authority` | `str \| None` | Переопределить pseudo-header `:authority` и TLS SNI |
 
 ---
 

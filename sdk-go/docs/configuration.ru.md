@@ -110,6 +110,7 @@ dephealth.Postgres("postgres-main",
 | `WithHTTPHeaders(headers)` | — | Пользовательские HTTP-заголовки |
 | `WithHTTPBearerToken(token)` | — | Аутентификация Bearer-токеном |
 | `WithHTTPBasicAuth(user, pass)` | — | Basic-аутентификация |
+| `WithHTTPHostHeader(host)` | — | Переопределить заголовок Host и TLS SNI |
 
 ### gRPC
 
@@ -121,6 +122,7 @@ dephealth.Postgres("postgres-main",
 | `WithGRPCMetadata(md)` | — | Пользовательские gRPC-метаданные |
 | `WithGRPCBearerToken(token)` | — | Аутентификация Bearer-токеном |
 | `WithGRPCBasicAuth(user, pass)` | — | Basic-аутентификация |
+| `WithGRPCAuthority(authority)` | — | Переопределить :authority и TLS SNI |
 
 ### PostgreSQL
 
@@ -159,6 +161,8 @@ dephealth.Postgres("postgres-main",
 | `DEPHEALTH_GROUP` | Логическая группа (fallback, если аргумент API пуст) | `my-team` |
 | `DEPHEALTH_<DEP>_CRITICAL` | Критичность зависимости (`yes`/`no`) | `yes` |
 | `DEPHEALTH_<DEP>_LABEL_<KEY>` | Значение пользовательской метки | `primary` |
+| `DEPHEALTH_<DEP>_HOST_HEADER` | Переопределение HTTP-заголовка Host | `api.example.com` |
+| `DEPHEALTH_<DEP>_GRPC_AUTHORITY` | Переопределение gRPC authority | `api.example.com` |
 
 `<DEP>` — имя зависимости в формате UPPER_SNAKE_CASE:
 дефисы → подчёркивания, всё в верхнем регистре.
@@ -240,6 +244,8 @@ dh, err := dephealth.New("", "",
 | Зарезервированное имя метки | `reserved label: ...` |
 | Конфликт методов авторизации | `conflicting auth methods: specify only one of ...` |
 | Не зарегистрирована фабрика чекера | `no checker factory registered for type "..."` |
+| Конфликт заголовка Host | `conflicting Host header: specify only one of WithHTTPHostHeader or Host in WithHTTPHeaders` |
+| Конфликт gRPC authority | `conflicting :authority: specify only one of WithGRPCAuthority or :authority in WithGRPCMetadata` |
 
 ## См. также
 

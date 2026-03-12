@@ -123,6 +123,7 @@ postgres_check("postgres-main",
 | `headers` | `None` | Кастомные HTTP-заголовки |
 | `bearer_token` | `None` | Bearer-токен |
 | `basic_auth` | `None` | Basic auth `(user, password)` |
+| `http_host_header` | `None` | Переопределить заголовок Host и TLS SNI |
 
 ### gRPC
 
@@ -134,6 +135,7 @@ postgres_check("postgres-main",
 | `metadata` | `None` | Кастомные gRPC-метаданные |
 | `bearer_token` | `None` | Bearer-токен |
 | `basic_auth` | `None` | Basic auth `(user, password)` |
+| `grpc_authority` | `None` | Переопределить :authority и TLS SNI |
 
 ### PostgreSQL
 
@@ -191,6 +193,8 @@ postgres_check("postgres-main",
 | `DEPHEALTH_GROUP` | Логическая группа (fallback) | `my-team` |
 | `DEPHEALTH_<DEP>_CRITICAL` | Критичность зависимости (`yes`/`no`) | `yes` |
 | `DEPHEALTH_<DEP>_LABEL_<KEY>` | Значение пользовательской метки | `primary` |
+| `DEPHEALTH_<DEP>_HOST_HEADER` | Переопределение HTTP Host header | `api.example.com` |
+| `DEPHEALTH_<DEP>_GRPC_AUTHORITY` | Переопределение gRPC authority | `api.example.com` |
 
 `<DEP>` — имя зависимости в UPPER_SNAKE_CASE:
 дефисы заменяются подчёркиваниями, всё в верхнем регистре.
@@ -276,6 +280,8 @@ dh = DependencyHealth("", "",
 | LDAP simple_bind без credentials | `LDAP simple_bind requires bind_dn and bind_password` |
 | LDAP search без base_dn | `LDAP search requires base_dn` |
 | LDAP start_tls + ldaps | `start_tls and ldaps:// are incompatible` |
+| Конфликт Host header | `conflicting Host header: specify only one of http_host_header or Host in headers` |
+| Конфликт gRPC authority | `conflicting :authority: specify only one of grpc_authority or :authority in metadata` |
 
 ## См. также
 

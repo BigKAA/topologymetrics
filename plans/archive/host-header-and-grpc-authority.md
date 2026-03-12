@@ -5,7 +5,7 @@
 - **Версия плана**: 1.0.0
 - **Дата создания**: 2026-03-12
 - **Последнее обновление**: 2026-03-12
-- **Статус**: Pending
+- **Статус**: Done
 
 ---
 
@@ -17,10 +17,10 @@
 
 ## 📍 Текущий статус
 
-- **Активная фаза**: Phase 7
-- **Активный подпункт**: 7.1
+- **Активная фаза**: Все фазы завершены
+- **Активный подпункт**: —
 - **Последнее обновление**: 2026-03-12
-- **Примечание**: Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6 завершены
+- **Примечание**: Все фазы (1–7) завершены. План готов к архивации.
 
 ---
 
@@ -32,7 +32,7 @@
 - [x] [Phase 4: Java SDK](#phase-4-java-sdk)
 - [x] [Phase 5: C# SDK](#phase-5-c-sdk)
 - [x] [Phase 6: Python SDK](#phase-6-python-sdk)
-- [ ] [Phase 7: Documentation](#phase-7-documentation)
+- [x] [Phase 7: Documentation](#phase-7-documentation)
 
 ---
 
@@ -444,7 +444,7 @@ grpcio поддерживает authority через channel option `grpc.defaul
 ## Phase 7: Documentation
 
 **Dependencies**: Phase 3, Phase 4, Phase 5, Phase 6
-**Status**: Pending
+**Status**: Done
 
 ### Описание
 
@@ -453,7 +453,7 @@ grpcio поддерживает authority через channel option `grpc.defaul
 
 ### Подпункты
 
-- [ ] **7.1 Go SDK documentation**
+- [x] **7.1 Go SDK documentation**
   - **Dependencies**: None
   - **Description**: Обновить документацию Go SDK: добавить `WithHTTPHostHeader`,
     `WithGRPCAuthority` в checker docs, примеры использования
@@ -461,28 +461,28 @@ grpcio поддерживает authority через channel option `grpc.defaul
     - Changes in `sdk-go/docs/`
   - **Links**: N/A
 
-- [ ] **7.2 Java SDK documentation**
+- [x] **7.2 Java SDK documentation**
   - **Dependencies**: None
   - **Description**: Обновить документацию Java SDK
   - **Creates**:
     - Changes in `sdk-java/docs/`
   - **Links**: N/A
 
-- [ ] **7.3 C# SDK documentation**
+- [x] **7.3 C# SDK documentation**
   - **Dependencies**: None
   - **Description**: Обновить документацию C# SDK
   - **Creates**:
     - Changes in `sdk-csharp/docs/`
   - **Links**: N/A
 
-- [ ] **7.4 Python SDK documentation**
+- [x] **7.4 Python SDK documentation**
   - **Dependencies**: None
   - **Description**: Обновить документацию Python SDK
   - **Creates**:
     - Changes in `sdk-python/docs/`
   - **Links**: N/A
 
-- [ ] **7.5 Use-case example: ingress/gateway**
+- [x] **7.5 Use-case example: ingress/gateway**
   - **Dependencies**: None
   - **Description**: Добавить пример использования health check через
     ingress controller / gateway API по IP с подстановкой Host header.
@@ -493,11 +493,11 @@ grpcio поддерживает authority через channel option `grpc.defaul
 
 ### ✅ Критерии завершения Phase 7
 
-- [ ] Все подпункты завершены (7.1, 7.2, 7.3, 7.4, 7.5)
-- [ ] Все новые опции задокументированы во всех SDK
-- [ ] Пример ingress/gateway use-case добавлен
-- [ ] markdownlint проходит без ошибок
-- [ ] Документация на EN и RU (где применимо)
+- [x] Все подпункты завершены (7.1, 7.2, 7.3, 7.4, 7.5)
+- [x] Все новые опции задокументированы во всех SDK
+- [x] Пример ingress/gateway use-case добавлен
+- [x] markdownlint проходит без ошибок
+- [x] Документация на EN и RU (где применимо)
 
 ---
 

@@ -253,6 +253,7 @@ type DependencyConfig struct {
     HTTPBearerToken   string
     HTTPBasicUser     string
     HTTPBasicPass     string
+    HTTPHostHeader    string // переопределяет заголовок Host (и TLS SNI при HTTPS)
 
     // gRPC-опции
     GRPCServiceName   string
@@ -262,6 +263,7 @@ type DependencyConfig struct {
     GRPCBearerToken   string
     GRPCBasicUser     string
     GRPCBasicPass     string
+    GRPCAuthority     string // переопределяет pseudo-header :authority (и TLS SNI при TLS)
 
     // Опции баз данных
     PostgresQuery     string
@@ -496,6 +498,7 @@ type CheckerFactory func(dc *DependencyConfig) HealthChecker
 | `WithHTTPHeaders` | `(headers map[string]string) DependencyOption` | Пользовательские HTTP-заголовки |
 | `WithHTTPBearerToken` | `(token string) DependencyOption` | Bearer-токен |
 | `WithHTTPBasicAuth` | `(username, password string) DependencyOption` | Basic-аутентификация |
+| `WithHTTPHostHeader` | `(host string) DependencyOption` | Переопределить заголовок Host и TLS SNI |
 
 #### gRPC
 
@@ -507,6 +510,7 @@ type CheckerFactory func(dc *DependencyConfig) HealthChecker
 | `WithGRPCMetadata` | `(metadata map[string]string) DependencyOption` | Пользовательские метаданные gRPC |
 | `WithGRPCBearerToken` | `(token string) DependencyOption` | Bearer-токен |
 | `WithGRPCBasicAuth` | `(username, password string) DependencyOption` | Basic-аутентификация |
+| `WithGRPCAuthority` | `(authority string) DependencyOption` | Переопределить :authority и TLS SNI |
 
 #### PostgreSQL
 
@@ -652,6 +656,7 @@ func (c *Checker) Type() string  // возвращает "http"
 | `WithHeaders` | `(headers map[string]string) Option` | Пользовательские HTTP-заголовки |
 | `WithBearerToken` | `(token string) Option` | Bearer-токен |
 | `WithBasicAuth` | `(username, password string) Option` | Basic-аутентификация |
+| `WithHostHeader` | `(host string) Option` | Переопределить HTTP-заголовок Host и TLS SNI |
 
 **Классификация ошибок:**
 
@@ -687,6 +692,7 @@ func (c *Checker) Type() string  // возвращает "grpc"
 | `WithMetadata` | `(md map[string]string) Option` | Пользовательские метаданные gRPC |
 | `WithBearerToken` | `(token string) Option` | Bearer-токен |
 | `WithBasicAuth` | `(username, password string) Option` | Basic-аутентификация |
+| `WithAuthority` | `(authority string) Option` | Переопределить pseudo-header :authority и TLS SNI |
 
 **Классификация ошибок:**
 

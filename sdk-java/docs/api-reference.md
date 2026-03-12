@@ -97,6 +97,7 @@ in `Builder.dependency()`.
 | `httpHeaders` | `DependencyBuilder httpHeaders(Map<String, String> headers)` | Custom HTTP headers |
 | `httpBearerToken` | `DependencyBuilder httpBearerToken(String token)` | Bearer token authentication |
 | `httpBasicAuth` | `DependencyBuilder httpBasicAuth(String username, String password)` | Basic authentication |
+| `httpHostHeader` | `DependencyBuilder httpHostHeader(String hostHeader)` | Override Host header and TLS SNI |
 
 #### gRPC Options
 
@@ -108,6 +109,7 @@ in `Builder.dependency()`.
 | `grpcMetadata` | `DependencyBuilder grpcMetadata(Map<String, String> metadata)` | Custom gRPC metadata |
 | `grpcBearerToken` | `DependencyBuilder grpcBearerToken(String token)` | Bearer token authentication |
 | `grpcBasicAuth` | `DependencyBuilder grpcBasicAuth(String username, String password)` | Basic authentication |
+| `grpcAuthority` | `DependencyBuilder grpcAuthority(String authority)` | Override :authority and TLS SNI |
 
 #### Database Options
 
@@ -312,6 +314,36 @@ the dependency is healthy, or throws an exception describing the failure.
 | `AmqpHealthChecker` | `AMQP` | -- |
 | `KafkaHealthChecker` | `KAFKA` | -- |
 | `LdapHealthChecker` | `LDAP` | -- |
+
+### HttpHealthChecker.Builder
+
+Created via `HttpHealthChecker.builder()`.
+
+| Method | Signature | Description |
+| --- | --- | --- |
+| `healthPath` | `Builder healthPath(String path)` | Health check path (default `/health`) |
+| `tlsEnabled` | `Builder tlsEnabled(boolean enabled)` | Enable HTTPS |
+| `tlsSkipVerify` | `Builder tlsSkipVerify(boolean skip)` | Skip TLS certificate verification |
+| `headers` | `Builder headers(Map<String, String> headers)` | Custom HTTP headers |
+| `bearerToken` | `Builder bearerToken(String token)` | Bearer token authentication |
+| `basicAuth` | `Builder basicAuth(String username, String password)` | Basic authentication |
+| `hostHeader` | `Builder hostHeader(String hostHeader)` | Override Host header and TLS SNI |
+| `build` | `HttpHealthChecker build()` | Build the checker |
+
+### GrpcHealthChecker.Builder
+
+Created via `GrpcHealthChecker.builder()`.
+
+| Method | Signature | Description |
+| --- | --- | --- |
+| `serviceName` | `Builder serviceName(String name)` | Service name (empty = server health) |
+| `tlsEnabled` | `Builder tlsEnabled(boolean enabled)` | Enable TLS |
+| `tlsSkipVerify` | `Builder tlsSkipVerify(boolean skip)` | Skip TLS certificate verification |
+| `metadata` | `Builder metadata(Map<String, String> metadata)` | Custom gRPC metadata |
+| `bearerToken` | `Builder bearerToken(String token)` | Bearer token authentication |
+| `basicAuth` | `Builder basicAuth(String username, String password)` | Basic authentication |
+| `authority` | `Builder authority(String authority)` | Override :authority and TLS SNI |
+| `build` | `GrpcHealthChecker build()` | Build the checker |
 
 ---
 

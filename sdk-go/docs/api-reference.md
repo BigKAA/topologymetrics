@@ -253,6 +253,7 @@ type DependencyConfig struct {
     HTTPBearerToken   string
     HTTPBasicUser     string
     HTTPBasicPass     string
+    HTTPHostHeader    string // overrides Host header (and TLS SNI when HTTPS)
 
     // gRPC options
     GRPCServiceName   string
@@ -262,6 +263,7 @@ type DependencyConfig struct {
     GRPCBearerToken   string
     GRPCBasicUser     string
     GRPCBasicPass     string
+    GRPCAuthority     string // overrides :authority pseudo-header (and TLS SNI when TLS)
 
     // Database options
     PostgresQuery     string
@@ -495,6 +497,7 @@ Passed to `New()`, apply to all dependencies unless overridden per-dependency.
 | `WithHTTPHeaders` | `(headers map[string]string) DependencyOption` | Custom HTTP headers |
 | `WithHTTPBearerToken` | `(token string) DependencyOption` | Bearer token auth |
 | `WithHTTPBasicAuth` | `(username, password string) DependencyOption` | Basic auth |
+| `WithHTTPHostHeader` | `(host string) DependencyOption` | Override Host header and TLS SNI |
 
 #### gRPC
 
@@ -506,6 +509,7 @@ Passed to `New()`, apply to all dependencies unless overridden per-dependency.
 | `WithGRPCMetadata` | `(metadata map[string]string) DependencyOption` | Custom gRPC metadata |
 | `WithGRPCBearerToken` | `(token string) DependencyOption` | Bearer token auth |
 | `WithGRPCBasicAuth` | `(username, password string) DependencyOption` | Basic auth |
+| `WithGRPCAuthority` | `(authority string) DependencyOption` | Override :authority and TLS SNI |
 
 #### PostgreSQL
 
@@ -651,6 +655,7 @@ func (c *Checker) Type() string  // returns "http"
 | `WithHeaders` | `(headers map[string]string) Option` | Custom HTTP headers |
 | `WithBearerToken` | `(token string) Option` | Bearer token auth |
 | `WithBasicAuth` | `(username, password string) Option` | Basic auth |
+| `WithHostHeader` | `(host string) Option` | Override HTTP Host header and TLS SNI |
 
 **Error classification:**
 
@@ -685,6 +690,7 @@ func (c *Checker) Type() string  // returns "grpc"
 | `WithMetadata` | `(md map[string]string) Option` | Custom gRPC metadata |
 | `WithBearerToken` | `(token string) Option` | Bearer token auth |
 | `WithBasicAuth` | `(username, password string) Option` | Basic auth |
+| `WithAuthority` | `(authority string) Option` | Override :authority pseudo-header and TLS SNI |
 
 **Error classification:**
 

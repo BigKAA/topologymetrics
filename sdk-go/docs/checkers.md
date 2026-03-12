@@ -29,6 +29,7 @@ dephealth.HTTP("payment-api",
 | `WithHTTPHeaders(headers)` | — | Custom HTTP headers (map[string]string) |
 | `WithHTTPBearerToken(token)` | — | Set `Authorization: Bearer <token>` header |
 | `WithHTTPBasicAuth(user, pass)` | — | Set `Authorization: Basic <base64>` header |
+| `WithHTTPHostHeader(host)` | — | Override HTTP `Host` header and TLS SNI (for ingress/gateway routing by IP) |
 
 ### Full Example
 
@@ -129,6 +130,7 @@ dephealth.GRPC("user-service",
 | `WithGRPCMetadata(md)` | — | Custom gRPC metadata (map[string]string) |
 | `WithGRPCBearerToken(token)` | — | Set `authorization: Bearer <token>` metadata |
 | `WithGRPCBasicAuth(user, pass)` | — | Set `authorization: Basic <base64>` metadata |
+| `WithGRPCAuthority(authority)` | — | Override `:authority` pseudo-header and TLS SNI (for ingress/gateway routing by IP) |
 
 ### Full Example
 

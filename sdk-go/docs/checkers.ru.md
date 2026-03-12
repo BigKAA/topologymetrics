@@ -30,6 +30,7 @@ dephealth.HTTP("payment-api",
 | `WithHTTPHeaders(headers)` | — | Пользовательские HTTP-заголовки (map[string]string) |
 | `WithHTTPBearerToken(token)` | — | Установить заголовок `Authorization: Bearer <token>` |
 | `WithHTTPBasicAuth(user, pass)` | — | Установить заголовок `Authorization: Basic <base64>` |
+| `WithHTTPHostHeader(host)` | — | Переопределить HTTP-заголовок `Host` и TLS SNI (для маршрутизации через ingress/gateway по IP) |
 
 ### Полный пример
 
@@ -130,6 +131,7 @@ dephealth.GRPC("user-service",
 | `WithGRPCMetadata(md)` | — | Пользовательские метаданные gRPC (map[string]string) |
 | `WithGRPCBearerToken(token)` | — | Установить метаданные `authorization: Bearer <token>` |
 | `WithGRPCBasicAuth(user, pass)` | — | Установить метаданные `authorization: Basic <base64>` |
+| `WithGRPCAuthority(authority)` | — | Переопределить pseudo-header `:authority` и TLS SNI (для маршрутизации через ingress/gateway по IP) |
 
 ### Полный пример
 

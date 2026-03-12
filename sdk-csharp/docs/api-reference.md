@@ -34,10 +34,12 @@ builder.WithLogger(ILogger logger)
 
 ```csharp
 builder.AddHttp(name, url, healthPath: "/health", critical: null, labels: null,
-    headers: null, bearerToken: null, basicAuthUsername: null, basicAuthPassword: null)
+    headers: null, bearerToken: null, basicAuthUsername: null, basicAuthPassword: null,
+    httpHostHeader: null)
 
 builder.AddGrpc(name, host, port, tlsEnabled: false, critical: null, labels: null,
-    metadata: null, bearerToken: null, basicAuthUsername: null, basicAuthPassword: null)
+    metadata: null, bearerToken: null, basicAuthUsername: null, basicAuthPassword: null,
+    grpcAuthority: null)
 
 builder.AddTcp(name, host, port, critical: null, labels: null)
 

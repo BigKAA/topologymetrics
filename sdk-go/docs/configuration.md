@@ -111,6 +111,7 @@ Label name validation:
 | `WithHTTPHeaders(headers)` | — | Custom HTTP headers |
 | `WithHTTPBearerToken(token)` | — | Bearer token authentication |
 | `WithHTTPBasicAuth(user, pass)` | — | Basic authentication |
+| `WithHTTPHostHeader(host)` | — | Override Host header and TLS SNI |
 
 ### gRPC
 
@@ -122,6 +123,7 @@ Label name validation:
 | `WithGRPCMetadata(md)` | — | Custom gRPC metadata |
 | `WithGRPCBearerToken(token)` | — | Bearer token authentication |
 | `WithGRPCBasicAuth(user, pass)` | — | Basic authentication |
+| `WithGRPCAuthority(authority)` | — | Override :authority and TLS SNI |
 
 ### PostgreSQL
 
@@ -160,6 +162,8 @@ No checker-specific options.
 | `DEPHEALTH_GROUP` | Logical group (fallback if API arg is empty) | `my-team` |
 | `DEPHEALTH_<DEP>_CRITICAL` | Dependency criticality (`yes`/`no`) | `yes` |
 | `DEPHEALTH_<DEP>_LABEL_<KEY>` | Custom label value | `primary` |
+| `DEPHEALTH_<DEP>_HOST_HEADER` | HTTP Host header override | `api.example.com` |
+| `DEPHEALTH_<DEP>_GRPC_AUTHORITY` | gRPC authority override | `api.example.com` |
 
 `<DEP>` is the dependency name converted to UPPER_SNAKE_CASE:
 hyphens → underscores, all uppercase.
@@ -241,6 +245,8 @@ is violated:
 | Reserved label name | `reserved label: ...` |
 | Conflicting auth methods | `conflicting auth methods: specify only one of ...` |
 | No checker factory registered | `no checker factory registered for type "..."` |
+| Conflicting Host header | `conflicting Host header: specify only one of WithHTTPHostHeader or Host in WithHTTPHeaders` |
+| Conflicting gRPC authority | `conflicting :authority: specify only one of WithGRPCAuthority or :authority in WithGRPCMetadata` |
 
 ## See Also
 

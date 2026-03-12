@@ -97,6 +97,7 @@ biz.kryukov.dev.dephealth.spring    -- Интеграция со Spring Boot
 | `httpHeaders` | `DependencyBuilder httpHeaders(Map<String, String> headers)` | Пользовательские HTTP-заголовки |
 | `httpBearerToken` | `DependencyBuilder httpBearerToken(String token)` | Bearer-токен |
 | `httpBasicAuth` | `DependencyBuilder httpBasicAuth(String username, String password)` | Basic-аутентификация |
+| `httpHostHeader` | `DependencyBuilder httpHostHeader(String hostHeader)` | Переопределить заголовок Host и TLS SNI |
 
 #### gRPC-опции
 
@@ -108,6 +109,7 @@ biz.kryukov.dev.dephealth.spring    -- Интеграция со Spring Boot
 | `grpcMetadata` | `DependencyBuilder grpcMetadata(Map<String, String> metadata)` | Пользовательские метаданные gRPC |
 | `grpcBearerToken` | `DependencyBuilder grpcBearerToken(String token)` | Bearer-токен |
 | `grpcBasicAuth` | `DependencyBuilder grpcBasicAuth(String username, String password)` | Basic-аутентификация |
+| `grpcAuthority` | `DependencyBuilder grpcAuthority(String authority)` | Переопределить :authority и TLS SNI |
 
 #### Опции баз данных
 
@@ -312,6 +314,36 @@ public interface HealthChecker {
 | `AmqpHealthChecker` | `AMQP` | -- |
 | `KafkaHealthChecker` | `KAFKA` | -- |
 | `LdapHealthChecker` | `LDAP` | -- |
+
+### HttpHealthChecker.Builder
+
+Создаётся через `HttpHealthChecker.builder()`.
+
+| Метод | Сигнатура | Описание |
+| --- | --- | --- |
+| `healthPath` | `Builder healthPath(String path)` | Путь проверки (по умолчанию `/health`) |
+| `tlsEnabled` | `Builder tlsEnabled(boolean enabled)` | Включить HTTPS |
+| `tlsSkipVerify` | `Builder tlsSkipVerify(boolean skip)` | Пропустить проверку TLS-сертификата |
+| `headers` | `Builder headers(Map<String, String> headers)` | Пользовательские HTTP-заголовки |
+| `bearerToken` | `Builder bearerToken(String token)` | Bearer-токен |
+| `basicAuth` | `Builder basicAuth(String username, String password)` | Basic-аутентификация |
+| `hostHeader` | `Builder hostHeader(String hostHeader)` | Переопределить заголовок Host и TLS SNI |
+| `build` | `HttpHealthChecker build()` | Собрать чекер |
+
+### GrpcHealthChecker.Builder
+
+Создаётся через `GrpcHealthChecker.builder()`.
+
+| Метод | Сигнатура | Описание |
+| --- | --- | --- |
+| `serviceName` | `Builder serviceName(String name)` | Имя сервиса (пустая строка = здоровье сервера) |
+| `tlsEnabled` | `Builder tlsEnabled(boolean enabled)` | Включить TLS |
+| `tlsSkipVerify` | `Builder tlsSkipVerify(boolean skip)` | Пропустить проверку TLS-сертификата |
+| `metadata` | `Builder metadata(Map<String, String> metadata)` | Пользовательские метаданные gRPC |
+| `bearerToken` | `Builder bearerToken(String token)` | Bearer-токен |
+| `basicAuth` | `Builder basicAuth(String username, String password)` | Basic-аутентификация |
+| `authority` | `Builder authority(String authority)` | Переопределить :authority и TLS SNI |
+| `build` | `GrpcHealthChecker build()` | Собрать чекер |
 
 ---
 

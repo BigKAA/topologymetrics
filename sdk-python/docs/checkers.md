@@ -35,6 +35,7 @@ Performs an HTTP GET request to the configured health path.
 | `headers` | `None` | Custom HTTP headers |
 | `bearer_token` | `None` | Bearer token for Authorization header |
 | `basic_auth` | `None` | Basic auth `(user, password)` tuple |
+| `http_host_header` | `None` | Override HTTP `Host` header and TLS SNI (for ingress/gateway routing by IP) |
 
 ### Example
 
@@ -92,6 +93,7 @@ Uses the standard gRPC Health Checking Protocol
 | `metadata` | `None` | Custom gRPC metadata |
 | `bearer_token` | `None` | Bearer token |
 | `basic_auth` | `None` | Basic auth `(user, password)` tuple |
+| `grpc_authority` | `None` | Override `:authority` pseudo-header and TLS SNI (for ingress/gateway routing by IP) |
 
 ### Example
 

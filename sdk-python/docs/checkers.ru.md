@@ -35,6 +35,7 @@
 | `headers` | `None` | Кастомные HTTP-заголовки |
 | `bearer_token` | `None` | Bearer-токен для заголовка Authorization |
 | `basic_auth` | `None` | Basic auth `(user, password)` |
+| `http_host_header` | `None` | Переопределить HTTP-заголовок `Host` и TLS SNI (для маршрутизации через ingress/gateway по IP) |
 
 ### Пример
 
@@ -92,6 +93,7 @@ http_check("internal-api",
 | `metadata` | `None` | Кастомные gRPC-метаданные |
 | `bearer_token` | `None` | Bearer-токен |
 | `basic_auth` | `None` | Basic auth `(user, password)` |
+| `grpc_authority` | `None` | Переопределить pseudo-header `:authority` и TLS SNI (для маршрутизации через ingress/gateway по IP) |
 
 ### Пример
 

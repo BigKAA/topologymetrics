@@ -123,6 +123,7 @@ Label name validation:
 | `headers` | `None` | Custom HTTP headers |
 | `bearer_token` | `None` | Bearer token authentication |
 | `basic_auth` | `None` | Basic auth `(user, password)` tuple |
+| `http_host_header` | `None` | Override Host header and TLS SNI |
 
 ### gRPC
 
@@ -134,6 +135,7 @@ Label name validation:
 | `metadata` | `None` | Custom gRPC metadata |
 | `bearer_token` | `None` | Bearer token authentication |
 | `basic_auth` | `None` | Basic auth `(user, password)` tuple |
+| `grpc_authority` | `None` | Override :authority and TLS SNI |
 
 ### PostgreSQL
 
@@ -191,6 +193,8 @@ No checker-specific options beyond `host`/`port`.
 | `DEPHEALTH_GROUP` | Logical group (fallback if API arg is empty) | `my-team` |
 | `DEPHEALTH_<DEP>_CRITICAL` | Dependency criticality (`yes`/`no`) | `yes` |
 | `DEPHEALTH_<DEP>_LABEL_<KEY>` | Custom label value | `primary` |
+| `DEPHEALTH_<DEP>_HOST_HEADER` | HTTP Host header override | `api.example.com` |
+| `DEPHEALTH_<DEP>_GRPC_AUTHORITY` | gRPC authority override | `api.example.com` |
 
 `<DEP>` is the dependency name converted to UPPER_SNAKE_CASE:
 hyphens to underscores, all uppercase.
@@ -277,6 +281,8 @@ if any rule is violated:
 | LDAP simple_bind without credentials | `LDAP simple_bind requires bind_dn and bind_password` |
 | LDAP search without base_dn | `LDAP search requires base_dn` |
 | LDAP start_tls + ldaps | `start_tls and ldaps:// are incompatible` |
+| Conflicting Host header | `conflicting Host header: specify only one of http_host_header or Host in headers` |
+| Conflicting gRPC authority | `conflicting :authority: specify only one of grpc_authority or :authority in metadata` |
 
 ## See Also
 

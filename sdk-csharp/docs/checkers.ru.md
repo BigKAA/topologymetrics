@@ -30,6 +30,7 @@ var dh = DepHealthMonitor.CreateBuilder("my-service", "my-team")
 | `bearerToken` | `null` | Установить заголовок `Authorization: Bearer <token>` |
 | `basicAuthUsername` | `null` | Имя пользователя для HTTP Basic-аутентификации |
 | `basicAuthPassword` | `null` | Пароль для HTTP Basic-аутентификации |
+| `httpHostHeader` | `null` | Переопределить HTTP-заголовок `Host` и TLS SNI (для маршрутизации через ingress/gateway по IP) |
 
 TLS определяется автоматически по наличию `https://` в URL.
 
@@ -77,7 +78,8 @@ var checker = new HttpChecker(
     healthPath: "/healthz",
     tlsEnabled: true,
     tlsSkipVerify: false,
-    bearerToken: "my-token");
+    bearerToken: "my-token",
+    hostHeader: "api.example.com");
 
 // Использование через AddCustom:
 var dh = DepHealthMonitor.CreateBuilder("my-service", "my-team")
@@ -121,6 +123,7 @@ var dh = DepHealthMonitor.CreateBuilder("my-service", "my-team")
 | `bearerToken` | `null` | Установить метаданные `authorization: Bearer <token>` |
 | `basicAuthUsername` | `null` | Имя пользователя для Basic-аутентификации |
 | `basicAuthPassword` | `null` | Пароль для Basic-аутентификации |
+| `grpcAuthority` | `null` | Переопределить pseudo-header `:authority` и TLS SNI (для маршрутизации через ingress/gateway по IP) |
 
 ### Полный пример
 
@@ -163,7 +166,8 @@ using DepHealth.Checks;
 
 var checker = new GrpcChecker(
     tlsEnabled: true,
-    bearerToken: "my-token");
+    bearerToken: "my-token",
+    authority: "api.example.com");
 
 var dh = DepHealthMonitor.CreateBuilder("my-service", "my-team")
     .AddCustom("user-service", DependencyType.Grpc, "user.svc", "9090", checker,

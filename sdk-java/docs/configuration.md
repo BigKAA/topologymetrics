@@ -128,6 +128,7 @@ Label name validation:
 | `httpHeaders(Map<String, String>)` | -- | Custom HTTP headers |
 | `httpBearerToken(String)` | -- | Bearer token authentication |
 | `httpBasicAuth(String, String)` | -- | Basic authentication (username, password) |
+| `httpHostHeader(String)` | -- | Override Host header and TLS SNI |
 
 ### gRPC
 
@@ -138,6 +139,7 @@ Label name validation:
 | `grpcMetadata(Map<String, String>)` | -- | Custom gRPC metadata |
 | `grpcBearerToken(String)` | -- | Bearer token authentication |
 | `grpcBasicAuth(String, String)` | -- | Basic authentication (username, password) |
+| `grpcAuthority(String)` | -- | Override :authority and TLS SNI |
 
 ### PostgreSQL
 
@@ -202,6 +204,8 @@ No checker-specific options.
 | `DEPHEALTH_GROUP` | Logical group (fallback if API arg is empty) | `my-team` |
 | `DEPHEALTH_<DEP>_CRITICAL` | Dependency criticality (`yes`/`no`) | `yes` |
 | `DEPHEALTH_<DEP>_LABEL_<KEY>` | Custom label value | `primary` |
+| `DEPHEALTH_<DEP>_HOST_HEADER` | HTTP Host header override | `api.example.com` |
+| `DEPHEALTH_<DEP>_GRPC_AUTHORITY` | gRPC authority override | `api.example.com` |
 
 `<DEP>` is the dependency name converted to UPPER_SNAKE_CASE:
 hyphens to underscores, all uppercase.
@@ -287,6 +291,8 @@ or `ValidationException` if any rule is violated:
 | LDAP simple_bind without credentials | `LDAP simple_bind requires bindDN and bindPassword` |
 | LDAP search without baseDN | `LDAP search requires baseDN` |
 | LDAP startTLS + ldaps | `startTLS and ldaps:// are incompatible` |
+| Conflicting Host header | `conflicting Host header: specify only one of httpHostHeader or Host in httpHeaders` |
+| Conflicting gRPC authority | `conflicting :authority: specify only one of grpcAuthority or :authority in grpcMetadata` |
 
 ## See Also
 

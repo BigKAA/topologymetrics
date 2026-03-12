@@ -29,6 +29,7 @@ Checks HTTP endpoints by sending a GET request and expecting a 2xx response.
 | `.httpHeaders(headers)` | -- | Custom HTTP headers (`Map<String, String>`) |
 | `.httpBearerToken(token)` | -- | Set `Authorization: Bearer <token>` header |
 | `.httpBasicAuth(user, pass)` | -- | Set `Authorization: Basic <base64>` header |
+| `.httpHostHeader(host)` | -- | Override HTTP `Host` header and TLS SNI (for ingress/gateway routing by IP) |
 
 ### Full Example
 
@@ -113,6 +114,7 @@ Checks gRPC services using the
 | `.grpcMetadata(md)` | -- | Custom gRPC metadata (`Map<String, String>`) |
 | `.grpcBearerToken(token)` | -- | Set `authorization: Bearer <token>` metadata |
 | `.grpcBasicAuth(user, pass)` | -- | Set `authorization: Basic <base64>` metadata |
+| `.grpcAuthority(authority)` | -- | Override `:authority` pseudo-header and TLS SNI (for ingress/gateway routing by IP) |
 
 ### Full Example
 
