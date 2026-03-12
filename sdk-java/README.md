@@ -20,7 +20,7 @@ SDK for monitoring microservice dependencies via Prometheus metrics.
 <dependency>
     <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-core</artifactId>
-    <version>0.8.1</version>
+    <version>0.8.2</version>
 </dependency>
 ```
 
@@ -30,7 +30,7 @@ SDK for monitoring microservice dependencies via Prometheus metrics.
 <dependency>
     <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-spring-boot-starter</artifactId>
-    <version>0.8.1</version>
+    <version>0.8.2</version>
 </dependency>
 ```
 

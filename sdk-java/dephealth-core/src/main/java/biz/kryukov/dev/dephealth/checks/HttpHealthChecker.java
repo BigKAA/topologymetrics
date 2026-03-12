@@ -28,7 +28,7 @@ import java.util.Map;
 public final class HttpHealthChecker implements HealthChecker {
 
     private static final String DEFAULT_HEALTH_PATH = "/health";
-    private static final String USER_AGENT = "dephealth/0.8.1";
+    private static final String USER_AGENT = "dephealth/0.8.2";
 
     // Allow setting the Host header via HttpClient.
     // Java HttpClient restricts the Host header by default; this system property

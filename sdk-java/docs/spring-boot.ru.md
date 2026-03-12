@@ -15,14 +15,14 @@
 <dependency>
     <groupId>biz.kryukov.dev</groupId>
     <artifactId>dephealth-spring-boot-starter</artifactId>
-    <version>0.8.1</version>
+    <version>0.8.2</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```groovy
-implementation 'biz.kryukov.dev:dephealth-spring-boot-starter:0.8.1'
+implementation 'biz.kryukov.dev:dephealth-spring-boot-starter:0.8.2'
 ```
 
 Стартер транзитивно подключает `dephealth-core`, поэтому добавлять его
