@@ -17,10 +17,10 @@
 
 ## 📍 Текущий статус
 
-- **Активная фаза**: Phase 3
-- **Активный подпункт**: 3.1
+- **Активная фаза**: Phase 4
+- **Активный подпункт**: 4.1
 - **Последнее обновление**: 2026-03-12
-- **Примечание**: Phase 1, Phase 2 завершены
+- **Примечание**: Phase 1, Phase 2, Phase 3 завершены
 
 ---
 
@@ -28,7 +28,7 @@
 
 - [x] [Phase 1: Specification Update](#phase-1-specification-update)
 - [x] [Phase 2: Conformance Tests](#phase-2-conformance-tests)
-- [ ] [Phase 3: Go SDK](#phase-3-go-sdk)
+- [x] [Phase 3: Go SDK](#phase-3-go-sdk)
 - [ ] [Phase 4: Java SDK](#phase-4-java-sdk)
 - [ ] [Phase 5: C# SDK](#phase-5-c-sdk)
 - [ ] [Phase 6: Python SDK](#phase-6-python-sdk)
@@ -155,7 +155,7 @@
 ## Phase 3: Go SDK
 
 **Dependencies**: Phase 1
-**Status**: Pending
+**Status**: Done
 
 ### Описание
 
@@ -165,7 +165,7 @@ Go требует особой обработки: для Host header нужен
 
 ### Подпункты
 
-- [ ] **3.1 Options и конфигурация**
+- [x] **3.1 Options и конфигурация**
   - **Dependencies**: None
   - **Description**: Добавить option-функции `WithHTTPHostHeader(string)` и
     `WithGRPCAuthority(string)`. Пробросить значения до checker-ов
@@ -174,7 +174,7 @@ Go требует особой обработки: для Host header нужен
     - Changes in dependency/endpoint configuration structs
   - **Links**: N/A
 
-- [ ] **3.2 HTTP checker — Host header и SNI**
+- [x] **3.2 HTTP checker — Host header и SNI**
   - **Dependencies**: 3.1
   - **Description**: В `HttpChecker`:
     - Добавить поле `hostHeader`
@@ -185,7 +185,7 @@ Go требует особой обработки: для Host header нужен
   - **Links**:
     - [Go net/http Request.Host](https://pkg.go.dev/net/http#Request)
 
-- [ ] **3.3 gRPC checker — authority и SNI**
+- [x] **3.3 gRPC checker — authority и SNI**
   - **Dependencies**: 3.1
   - **Description**: В `GrpcChecker`:
     - Добавить поле `authority`
@@ -196,7 +196,7 @@ Go требует особой обработки: для Host header нужен
   - **Links**:
     - [gRPC WithAuthority](https://pkg.go.dev/google.golang.org/grpc#WithAuthority)
 
-- [ ] **3.4 Валидация конфликтов**
+- [x] **3.4 Валидация конфликтов**
   - **Dependencies**: 3.1
   - **Description**: Добавить правила валидации:
     - `hostHeader` set AND `headers` содержит `Host` (case-insensitive) → error
@@ -205,7 +205,7 @@ Go требует особой обработки: для Host header нужен
     - Changes in `sdk-go/dephealth/validation.go`
   - **Links**: N/A
 
-- [ ] **3.5 Unit tests**
+- [x] **3.5 Unit tests**
   - **Dependencies**: 3.2, 3.3, 3.4
   - **Description**: Тесты:
     - HTTP: Host header отправляется, SNI при TLS, ошибка конфликта
@@ -218,13 +218,13 @@ Go требует особой обработки: для Host header нужен
 
 ### ✅ Критерии завершения Phase 3
 
-- [ ] Все подпункты завершены (3.1, 3.2, 3.3, 3.4, 3.5)
-- [ ] `go test ./...` проходит без ошибок
-- [ ] `go vet ./...` без предупреждений
-- [ ] Host header корректно устанавливается через `req.Host`
-- [ ] gRPC authority корректно устанавливается через `grpc.WithAuthority`
-- [ ] TLS SNI устанавливается при включённом TLS
-- [ ] Конфликты валидируются с понятными сообщениями об ошибках
+- [x] Все подпункты завершены (3.1, 3.2, 3.3, 3.4, 3.5)
+- [x] `go test ./...` проходит без ошибок
+- [x] `go vet ./...` без предупреждений
+- [x] Host header корректно устанавливается через `req.Host`
+- [x] gRPC authority корректно устанавливается через `grpc.WithAuthority`
+- [x] TLS SNI устанавливается при включённом TLS
+- [x] Конфликты валидируются с понятными сообщениями об ошибках
 
 ---
 

@@ -304,6 +304,78 @@ func TestChecker_Check_CustomHeaders(t *testing.T) {
 	}
 }
 
+func TestChecker_Check_HostHeader(t *testing.T) {
+	var gotHost string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotHost = r.Host
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
+	ep := dephealth.Endpoint{Host: host, Port: port}
+
+	checker := New(WithHealthPath("/"), WithHostHeader("api.example.com"))
+	if err := checker.Check(context.Background(), ep); err != nil {
+		t.Fatalf("expected success, got error: %v", err)
+	}
+	if gotHost != "api.example.com" {
+		t.Errorf("Host = %q, expected %q", gotHost, "api.example.com")
+	}
+}
+
+func TestChecker_Check_HostHeader_WithTLS_SNI(t *testing.T) {
+	// Use a TLS server and verify that SNI is set to hostHeader value.
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
+	ep := dephealth.Endpoint{Host: host, Port: port}
+
+	// With hostHeader + TLS + skipVerify: the SNI should be set to hostHeader.
+	// We can't easily assert the SNI value from client side, but we verify
+	// that the request succeeds (no crash/panic) and the host header is set.
+	checker := New(
+		WithHealthPath("/"),
+		WithTLSEnabled(true),
+		WithTLSSkipVerify(true),
+		WithHostHeader("api.example.com"),
+	)
+	if err := checker.Check(context.Background(), ep); err != nil {
+		t.Errorf("expected success with hostHeader + TLS + skipVerify, got: %v", err)
+	}
+}
+
+func TestChecker_Check_HostHeader_WithOtherHeaders(t *testing.T) {
+	var gotHost, gotAPIKey string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotHost = r.Host
+		gotAPIKey = r.Header.Get("X-API-Key")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
+	ep := dephealth.Endpoint{Host: host, Port: port}
+
+	checker := New(
+		WithHealthPath("/"),
+		WithHostHeader("api.example.com"),
+		WithHeaders(map[string]string{"X-API-Key": "key123"}),
+	)
+	if err := checker.Check(context.Background(), ep); err != nil {
+		t.Fatalf("expected success, got error: %v", err)
+	}
+	if gotHost != "api.example.com" {
+		t.Errorf("Host = %q, expected %q", gotHost, "api.example.com")
+	}
+	if gotAPIKey != "key123" {
+		t.Errorf("X-API-Key = %q, expected %q", gotAPIKey, "key123")
+	}
+}
+
 func TestChecker_Check_401_AuthError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)

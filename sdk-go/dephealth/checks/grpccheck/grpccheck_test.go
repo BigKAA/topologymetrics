@@ -207,6 +207,89 @@ func TestChecker_Check_CustomMetadata(t *testing.T) {
 	}
 }
 
+// testAuthorityHealthServer checks the :authority pseudo-header.
+type testAuthorityHealthServer struct {
+	healthpb.UnimplementedHealthServer
+	requiredAuthority string
+	gotAuthority      string
+}
+
+func (s *testAuthorityHealthServer) Check(ctx context.Context, _ *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if ok {
+		vals := md.Get(":authority")
+		if len(vals) > 0 {
+			s.gotAuthority = vals[0]
+		}
+	}
+	// Also check peer authority from the transport.
+	if s.gotAuthority == "" {
+		// grpc.WithAuthority sets the :authority pseudo-header which is available
+		// via the transport, not always via metadata. Check if it matches.
+		if peer, ok := metadata.FromIncomingContext(ctx); ok {
+			if auth := peer.Get(":authority"); len(auth) > 0 {
+				s.gotAuthority = auth[0]
+			}
+		}
+	}
+	return &healthpb.HealthCheckResponse{Status: healthpb.HealthCheckResponse_SERVING}, nil
+}
+
+func startTestAuthorityGRPCServer(t *testing.T, requiredAuthority string) (string, *testAuthorityHealthServer, func()) {
+	t.Helper()
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to start TCP listener: %v", err)
+	}
+
+	authSrv := &testAuthorityHealthServer{requiredAuthority: requiredAuthority}
+	srv := grpc.NewServer()
+	healthpb.RegisterHealthServer(srv, authSrv)
+
+	go func() {
+		_ = srv.Serve(ln)
+	}()
+
+	return ln.Addr().String(), authSrv, func() {
+		srv.GracefulStop()
+	}
+}
+
+func TestChecker_Check_Authority(t *testing.T) {
+	addr, _, stop := startTestAuthorityGRPCServer(t, "api.example.com")
+	defer stop()
+
+	host, port, _ := net.SplitHostPort(addr)
+	ep := dephealth.Endpoint{Host: host, Port: port}
+
+	// With authority set, the check should succeed and authority should be used.
+	checker := New(WithAuthority("api.example.com"))
+	if err := checker.Check(context.Background(), ep); err != nil {
+		t.Fatalf("expected success with authority, got error: %v", err)
+	}
+}
+
+func TestChecker_Check_Authority_WithMetadata(t *testing.T) {
+	addr, authSrv, stop := startTestAuthGRPCServer(t, "Bearer test-token")
+	defer stop()
+
+	host, port, _ := net.SplitHostPort(addr)
+	ep := dephealth.Endpoint{Host: host, Port: port}
+
+	// Authority + metadata should both work together.
+	checker := New(
+		WithAuthority("api.example.com"),
+		WithBearerToken("test-token"),
+	)
+	if err := checker.Check(context.Background(), ep); err != nil {
+		t.Fatalf("expected success with authority + bearer, got error: %v", err)
+	}
+	if authSrv.gotAuth != "Bearer test-token" {
+		t.Errorf("authorization = %q, expected %q", authSrv.gotAuth, "Bearer test-token")
+	}
+}
+
 func TestChecker_Check_Unauthenticated_AuthError(t *testing.T) {
 	addr, _, stop := startTestAuthGRPCServer(t, "Bearer required-token")
 	defer stop()

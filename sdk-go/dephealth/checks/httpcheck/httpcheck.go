@@ -38,6 +38,7 @@ type Checker struct {
 	tlsEnabled    bool
 	tlsSkipVerify bool
 	headers       map[string]string
+	hostHeader    string // overrides Host header (and TLS SNI when HTTPS)
 }
 
 // WithHealthPath sets the HTTP path for health checks (default "/health").
@@ -58,6 +59,14 @@ func WithTLSEnabled(enabled bool) Option {
 func WithTLSSkipVerify(skip bool) Option {
 	return func(c *Checker) {
 		c.tlsSkipVerify = skip
+	}
+}
+
+// WithHostHeader sets the HTTP Host header for health check requests.
+// When TLS is enabled, also sets TLS SNI (ServerName) to the same value.
+func WithHostHeader(host string) Option {
+	return func(c *Checker) {
+		c.hostHeader = host
 	}
 }
 
@@ -109,6 +118,9 @@ func NewFromConfig(dc *dephealth.DependencyConfig) dephealth.HealthChecker {
 	if dc.HTTPTLSSkipVerify != nil {
 		opts = append(opts, WithTLSSkipVerify(*dc.HTTPTLSSkipVerify))
 	}
+	if dc.HTTPHostHeader != "" {
+		opts = append(opts, WithHostHeader(dc.HTTPHostHeader))
+	}
 	if len(dc.HTTPHeaders) > 0 {
 		opts = append(opts, WithHeaders(dc.HTTPHeaders))
 	}
@@ -143,16 +155,28 @@ func (c *Checker) Check(ctx context.Context, endpoint dephealth.Endpoint) error 
 		req.Header.Set(k, v)
 	}
 
+	// Override Host header if configured (used for ingress/gateway routing by IP).
+	// req.Host overrides the Host header in the actual HTTP request.
+	if c.hostHeader != "" {
+		req.Host = c.hostHeader
+	}
+
 	if c.tlsSkipVerify {
 		tlsSkipVerifyWarnOnce.Do(func() {
 			slog.Warn("dephealth: HTTP checker has TLS certificate verification disabled (InsecureSkipVerify=true)")
 		})
 	}
 
+	tlsCfg := &tls.Config{
+		InsecureSkipVerify: c.tlsSkipVerify, //nolint:gosec // configurable by user
+	}
+	// Set TLS SNI when hostHeader is configured and TLS is enabled.
+	if c.tlsEnabled && c.hostHeader != "" {
+		tlsCfg.ServerName = c.hostHeader
+	}
+
 	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: c.tlsSkipVerify, //nolint:gosec // configurable by user
-		},
+		TLSClientConfig: tlsCfg,
 	}
 
 	client := &http.Client{

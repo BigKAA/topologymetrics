@@ -45,6 +45,7 @@ type Checker struct {
 	tlsEnabled    bool
 	tlsSkipVerify bool
 	metadata      map[string]string
+	authority     string // overrides :authority pseudo-header (and TLS SNI when TLS)
 }
 
 // WithServiceName sets the gRPC service name for health checks.
@@ -66,6 +67,14 @@ func WithTLS(enabled bool) Option {
 func WithTLSSkipVerify(skip bool) Option {
 	return func(c *Checker) {
 		c.tlsSkipVerify = skip
+	}
+}
+
+// WithAuthority sets the :authority pseudo-header for gRPC health check calls.
+// When TLS is enabled, also sets TLS SNI (ServerName) to the same value.
+func WithAuthority(authority string) Option {
+	return func(c *Checker) {
+		c.authority = authority
 	}
 }
 
@@ -116,6 +125,9 @@ func NewFromConfig(dc *dephealth.DependencyConfig) dephealth.HealthChecker {
 	if dc.GRPCTLSSkipVerify != nil {
 		opts = append(opts, WithTLSSkipVerify(*dc.GRPCTLSSkipVerify))
 	}
+	if dc.GRPCAuthority != "" {
+		opts = append(opts, WithAuthority(dc.GRPCAuthority))
+	}
 	if len(dc.GRPCMetadata) > 0 {
 		opts = append(opts, WithMetadata(dc.GRPCMetadata))
 	}
@@ -134,7 +146,7 @@ func NewFromConfig(dc *dephealth.DependencyConfig) dephealth.HealthChecker {
 func (c *Checker) Check(ctx context.Context, endpoint dephealth.Endpoint) error {
 	addr := net.JoinHostPort(endpoint.Host, endpoint.Port)
 
-	var transportCreds grpc.DialOption
+	var dialOpts []grpc.DialOption
 	if c.tlsEnabled {
 		if c.tlsSkipVerify {
 			tlsSkipVerifyWarnOnce.Do(func() {
@@ -144,12 +156,20 @@ func (c *Checker) Check(ctx context.Context, endpoint dephealth.Endpoint) error 
 		tlsCfg := &tls.Config{
 			InsecureSkipVerify: c.tlsSkipVerify, //nolint:gosec // configurable by user
 		}
-		transportCreds = grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg))
+		// Set TLS SNI when authority is configured.
+		if c.authority != "" {
+			tlsCfg.ServerName = c.authority
+		}
+		dialOpts = append(dialOpts, grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg)))
 	} else {
-		transportCreds = grpc.WithTransportCredentials(insecure.NewCredentials())
+		dialOpts = append(dialOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	}
+	// Override :authority pseudo-header if configured.
+	if c.authority != "" {
+		dialOpts = append(dialOpts, grpc.WithAuthority(c.authority))
 	}
 
-	conn, err := grpc.NewClient("passthrough:///"+addr, transportCreds)
+	conn, err := grpc.NewClient("passthrough:///"+addr, dialOpts...)
 	if err != nil {
 		return fmt.Errorf("grpc new client %s: %w", addr, err)
 	}

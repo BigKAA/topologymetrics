@@ -46,6 +46,8 @@ type DependencyConfig struct {
 	HTTPBasicUser     string
 	HTTPBasicPass     string
 
+	HTTPHostHeader string // overrides Host header (and TLS SNI when HTTPS)
+
 	GRPCServiceName   string
 	GRPCTLS           *bool
 	GRPCTLSSkipVerify *bool
@@ -53,6 +55,7 @@ type DependencyConfig struct {
 	GRPCBearerToken   string
 	GRPCBasicUser     string
 	GRPCBasicPass     string
+	GRPCAuthority     string // overrides :authority pseudo-header (and TLS SNI when TLS)
 
 	PostgresQuery string
 	MySQLQuery    string
@@ -224,6 +227,16 @@ func WithGRPCTLSSkipVerify(skip bool) DependencyOption {
 	}
 }
 
+// WithHTTPHostHeader sets the HTTP Host header for health check requests.
+// Used when connecting by IP through ingress/gateway for Host-based routing.
+// When TLS is enabled, also sets TLS SNI (ServerName) to the same value.
+// Does NOT affect the "host" metric label (which always reflects the real endpoint address).
+func WithHTTPHostHeader(host string) DependencyOption {
+	return func(dc *DependencyConfig) {
+		dc.HTTPHostHeader = host
+	}
+}
+
 // WithHTTPHeaders sets custom HTTP headers for health check requests.
 func WithHTTPHeaders(headers map[string]string) DependencyOption {
 	return func(dc *DependencyConfig) {
@@ -245,6 +258,16 @@ func WithHTTPBasicAuth(username, password string) DependencyOption {
 	return func(dc *DependencyConfig) {
 		dc.HTTPBasicUser = username
 		dc.HTTPBasicPass = password
+	}
+}
+
+// WithGRPCAuthority sets the :authority pseudo-header for gRPC health check calls.
+// Used when connecting by IP through ingress/gateway for authority-based routing.
+// When TLS is enabled, also sets TLS SNI (ServerName) to the same value.
+// Does NOT affect the "host" metric label (which always reflects the real endpoint address).
+func WithGRPCAuthority(authority string) DependencyOption {
+	return func(dc *DependencyConfig) {
+		dc.GRPCAuthority = authority
 	}
 }
 
@@ -380,14 +403,20 @@ func makeDepOption(name string, depType DependencyType, opts []DependencyOption)
 			}
 		}
 
-		// Validate auth configuration: at most one auth method allowed.
+		// Validate configuration: auth conflicts and host/authority conflicts.
 		if depType == TypeHTTP {
 			if err := validateHTTPAuthConfig(dc); err != nil {
+				return fmt.Errorf("dependency %q: %w", name, err)
+			}
+			if err := validateHTTPHostHeaderConfig(dc); err != nil {
 				return fmt.Errorf("dependency %q: %w", name, err)
 			}
 		}
 		if depType == TypeGRPC {
 			if err := validateGRPCAuthConfig(dc); err != nil {
+				return fmt.Errorf("dependency %q: %w", name, err)
+			}
+			if err := validateGRPCAuthorityConfig(dc); err != nil {
 				return fmt.Errorf("dependency %q: %w", name, err)
 			}
 		}
@@ -616,6 +645,19 @@ func buildDependency(name string, depType DependencyType, dc *DependencyConfig, 
 	return dep, nil
 }
 
+// validateHTTPHostHeaderConfig checks that hostHeader does not conflict with Host in headers.
+func validateHTTPHostHeaderConfig(dc *DependencyConfig) error {
+	if dc.HTTPHostHeader == "" {
+		return nil
+	}
+	for k := range dc.HTTPHeaders {
+		if strings.EqualFold(k, "Host") {
+			return fmt.Errorf("conflicting Host header: specify only one of WithHTTPHostHeader or Host in WithHTTPHeaders")
+		}
+	}
+	return nil
+}
+
 // validateHTTPAuthConfig checks that at most one HTTP auth method is configured.
 func validateHTTPAuthConfig(dc *DependencyConfig) error {
 	methods := 0
@@ -675,6 +717,19 @@ func validateLDAPConfig(dc *DependencyConfig) error {
 		}
 	}
 
+	return nil
+}
+
+// validateGRPCAuthorityConfig checks that grpcAuthority does not conflict with :authority in metadata.
+func validateGRPCAuthorityConfig(dc *DependencyConfig) error {
+	if dc.GRPCAuthority == "" {
+		return nil
+	}
+	for k := range dc.GRPCMetadata {
+		if k == ":authority" {
+			return fmt.Errorf("conflicting :authority: specify only one of WithGRPCAuthority or :authority in WithGRPCMetadata")
+		}
+	}
 	return nil
 }
 

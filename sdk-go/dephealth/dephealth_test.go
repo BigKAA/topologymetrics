@@ -630,6 +630,82 @@ func TestNew_GRPCAuthConflict_BearerAndMetadata(t *testing.T) {
 	}
 }
 
+func TestNew_HTTPHostHeaderConflict(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	registerMockFactory(t, TypeHTTP, &mockChecker{})
+
+	_, err := New("test-app", "test-group",
+		WithRegisterer(reg),
+		HTTP("web-api",
+			FromParams("10.0.0.1", "8080"),
+			Critical(true),
+			WithHTTPHostHeader("api.example.com"),
+			WithHTTPHeaders(map[string]string{"Host": "other.example.com"}),
+		),
+	)
+	if err == nil {
+		t.Fatal("expected error for conflicting Host header")
+	}
+	if !strings.Contains(err.Error(), "conflicting Host header") {
+		t.Errorf("expected 'conflicting Host header' in error, got: %v", err)
+	}
+}
+
+func TestNew_HTTPHostHeader_OK(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	registerMockFactory(t, TypeHTTP, &mockChecker{})
+
+	_, err := New("test-app", "test-group",
+		WithRegisterer(reg),
+		HTTP("web-api",
+			FromParams("10.0.0.1", "8080"),
+			Critical(true),
+			WithHTTPHostHeader("api.example.com"),
+		),
+	)
+	if err != nil {
+		t.Fatalf("expected success with hostHeader alone, got: %v", err)
+	}
+}
+
+func TestNew_GRPCAuthorityConflict(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	registerMockFactory(t, TypeGRPC, &mockChecker{})
+
+	_, err := New("test-app", "test-group",
+		WithRegisterer(reg),
+		GRPC("backend",
+			FromParams("10.0.0.1", "9090"),
+			Critical(true),
+			WithGRPCAuthority("api.example.com"),
+			WithGRPCMetadata(map[string]string{":authority": "other.example.com"}),
+		),
+	)
+	if err == nil {
+		t.Fatal("expected error for conflicting :authority")
+	}
+	if !strings.Contains(err.Error(), "conflicting :authority") {
+		t.Errorf("expected 'conflicting :authority' in error, got: %v", err)
+	}
+}
+
+func TestNew_GRPCAuthority_OK(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	registerMockFactory(t, TypeGRPC, &mockChecker{})
+
+	_, err := New("test-app", "test-group",
+		WithRegisterer(reg),
+		GRPC("backend",
+			FromParams("10.0.0.1", "9090"),
+			Critical(true),
+			WithGRPCAuthority("api.example.com"),
+		),
+	)
+	if err != nil {
+		t.Fatalf("expected success with grpcAuthority alone, got: %v", err)
+	}
+}
+
 func TestNew_GRPCAuth_SingleMethod_OK(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	registerMockFactory(t, TypeGRPC, &mockChecker{})
