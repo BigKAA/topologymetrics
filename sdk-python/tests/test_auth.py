@@ -9,8 +9,8 @@ import pytest
 from aiohttp import web
 
 from dephealth.checker import CheckAuthError, UnhealthyError
-from dephealth.checks.grpc import GRPCChecker, _validate_grpc_auth
-from dephealth.checks.http import HTTPChecker, _validate_auth
+from dephealth.checks.grpc import GRPCChecker, _validate_grpc_auth, _validate_grpc_authority
+from dephealth.checks.http import HTTPChecker, _validate_auth, _validate_host_header
 from dephealth.dependency import Endpoint
 
 # ---------------------------------------------------------------------------
@@ -79,6 +79,57 @@ class TestHTTPCheckerConstructor:
 
 
 # ---------------------------------------------------------------------------
+# HTTP host_header validation (sync)
+# ---------------------------------------------------------------------------
+
+
+class TestHTTPHostHeaderValidation:
+    """Test HTTP host_header conflict validation."""
+
+    def test_no_host_header_no_error(self) -> None:
+        _validate_host_header(None, None)
+
+    def test_host_header_without_headers_ok(self) -> None:
+        _validate_host_header(None, "api.example.com")
+
+    def test_host_header_with_non_host_headers_ok(self) -> None:
+        _validate_host_header({"X-Custom": "value"}, "api.example.com")
+
+    def test_conflict_host_header_and_host_in_headers(self) -> None:
+        with pytest.raises(ValueError, match="conflicting Host header"):
+            _validate_host_header({"Host": "other.com"}, "api.example.com")
+
+    def test_conflict_case_insensitive(self) -> None:
+        with pytest.raises(ValueError, match="conflicting Host header"):
+            _validate_host_header({"host": "other.com"}, "api.example.com")
+
+    def test_conflict_mixed_case(self) -> None:
+        with pytest.raises(ValueError, match="conflicting Host header"):
+            _validate_host_header({"HOST": "other.com"}, "api.example.com")
+
+
+class TestHTTPCheckerHostHeader:
+    """Test HTTPChecker construction with host_header."""
+
+    def test_host_header_stored(self) -> None:
+        checker = HTTPChecker(host_header="api.example.com")
+        assert checker._host_header == "api.example.com"
+
+    def test_no_host_header_default_none(self) -> None:
+        checker = HTTPChecker()
+        assert checker._host_header is None
+
+    def test_host_header_with_bearer_ok(self) -> None:
+        checker = HTTPChecker(host_header="api.example.com", bearer_token="tok")
+        assert checker._host_header == "api.example.com"
+        assert checker._headers == {"Authorization": "Bearer tok"}
+
+    def test_host_header_conflict_raises(self) -> None:
+        with pytest.raises(ValueError, match="conflicting Host header"):
+            HTTPChecker(host_header="api.example.com", headers={"Host": "other.com"})
+
+
+# ---------------------------------------------------------------------------
 # gRPC auth validation (sync)
 # ---------------------------------------------------------------------------
 
@@ -141,6 +192,52 @@ class TestGRPCCheckerConstructor:
     def test_conflict_raises_value_error(self) -> None:
         with pytest.raises(ValueError, match="conflicting"):
             GRPCChecker(bearer_token="token", basic_auth=("u", "p"))
+
+
+# ---------------------------------------------------------------------------
+# gRPC authority validation (sync)
+# ---------------------------------------------------------------------------
+
+
+class TestGRPCAuthorityValidation:
+    """Test gRPC authority conflict validation."""
+
+    def test_no_authority_no_error(self) -> None:
+        _validate_grpc_authority(None, None)
+
+    def test_authority_without_metadata_ok(self) -> None:
+        _validate_grpc_authority(None, "api.example.com")
+
+    def test_authority_with_non_authority_metadata_ok(self) -> None:
+        _validate_grpc_authority({"x-custom": "value"}, "api.example.com")
+
+    def test_conflict_authority_and_metadata(self) -> None:
+        with pytest.raises(ValueError, match="conflicting :authority"):
+            _validate_grpc_authority({":authority": "other.com"}, "api.example.com")
+
+    def test_no_conflict_different_keys(self) -> None:
+        _validate_grpc_authority({"authorization": "Bearer tok"}, "api.example.com")
+
+
+class TestGRPCCheckerAuthority:
+    """Test GRPCChecker construction with authority."""
+
+    def test_authority_stored(self) -> None:
+        checker = GRPCChecker(authority="api.example.com")
+        assert checker._authority == "api.example.com"
+
+    def test_no_authority_default_none(self) -> None:
+        checker = GRPCChecker()
+        assert checker._authority is None
+
+    def test_authority_with_bearer_ok(self) -> None:
+        checker = GRPCChecker(authority="api.example.com", bearer_token="tok")
+        assert checker._authority == "api.example.com"
+        assert ("authorization", "Bearer tok") in checker._metadata
+
+    def test_authority_conflict_raises(self) -> None:
+        with pytest.raises(ValueError, match="conflicting :authority"):
+            GRPCChecker(authority="api.example.com", metadata={":authority": "other.com"})
 
 
 # ---------------------------------------------------------------------------
@@ -278,3 +375,42 @@ async def test_http_500_raises_unhealthy_not_auth(http_server_factory: ...) -> N
         await checker.check(ep)
     assert exc_info.value.status_category == "unhealthy"
     assert exc_info.value.status_detail == "http_500"
+
+
+# ---------------------------------------------------------------------------
+# HTTP host_header integration tests (async, with aiohttp test server)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio()
+async def test_http_host_header_sent(http_server_factory: ...) -> None:  # type: ignore[type-arg]
+    """host_header overrides the Host header in the HTTP request."""
+
+    async def handler(request: web.Request) -> web.Response:
+        if request.headers.get("Host") == "api.example.com":
+            return web.Response(status=200)
+        return web.Response(status=404)
+
+    _, port = await http_server_factory(handler)  # type: ignore[misc]
+
+    checker = HTTPChecker(host_header="api.example.com")
+    ep = Endpoint(host="127.0.0.1", port=str(port))
+    await checker.check(ep)  # should not raise
+
+
+@pytest.mark.asyncio()
+async def test_http_without_host_header_uses_default(http_server_factory: ...) -> None:  # type: ignore[type-arg]
+    """Without host_header the default Host header (from URL) is used."""
+
+    async def handler(request: web.Request) -> web.Response:
+        host = request.headers.get("Host", "")
+        if "api.example.com" in host:
+            return web.Response(status=200)
+        return web.Response(status=404)
+
+    _, port = await http_server_factory(handler)  # type: ignore[misc]
+
+    checker = HTTPChecker()
+    ep = Endpoint(host="127.0.0.1", port=str(port))
+    with pytest.raises(UnhealthyError):
+        await checker.check(ep)

@@ -43,6 +43,22 @@ def _validate_auth(
         raise ValueError(msg)
 
 
+def _validate_host_header(
+    headers: dict[str, str] | None,
+    host_header: str | None,
+) -> None:
+    """Validate that host_header does not conflict with Host in headers."""
+    if not host_header or not headers:
+        return
+    for key in headers:
+        if key.lower() == "host":
+            msg = (
+                "conflicting Host header: specify only one of "
+                "host_header or Host in headers"
+            )
+            raise ValueError(msg)
+
+
 def _build_headers(
     headers: dict[str, str] | None,
     bearer_token: str | None,
@@ -75,13 +91,16 @@ class HTTPChecker:
         headers: dict[str, str] | None = None,
         bearer_token: str | None = None,
         basic_auth: tuple[str, str] | None = None,
+        host_header: str | None = None,
     ) -> None:
         _validate_auth(headers, bearer_token, basic_auth)
+        _validate_host_header(headers, host_header)
         self._health_path = health_path
         self._timeout = timeout
         self._tls = tls
         self._tls_skip_verify = tls_skip_verify
         self._headers = _build_headers(headers, bearer_token, basic_auth)
+        self._host_header = host_header
 
     async def check(self, endpoint: Endpoint) -> None:
         """Perform an HTTP GET and verify a 2xx response."""
@@ -89,16 +108,25 @@ class HTTPChecker:
         url = f"{scheme}://{endpoint.host}:{endpoint.port}{self._health_path}"
 
         connector_kwargs: dict[str, Any] = {}
-        if self._tls_skip_verify:
+        need_custom_ssl = self._tls and (self._tls_skip_verify or self._host_header)
+        if need_custom_ssl:
             import ssl
 
             ctx = ssl.create_default_context()
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
+            if self._tls_skip_verify:
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+            elif self._host_header:
+                # Disable hostname check: URL contains IP but cert is
+                # issued for the domain specified in host_header.
+                # Certificate chain validation remains active.
+                ctx.check_hostname = False
             connector_kwargs["ssl"] = ctx
 
         request_headers = {"User-Agent": _USER_AGENT}
         request_headers.update(self._headers)
+        if self._host_header:
+            request_headers["Host"] = self._host_header
 
         timeout = aiohttp.ClientTimeout(total=self._timeout)
         try:

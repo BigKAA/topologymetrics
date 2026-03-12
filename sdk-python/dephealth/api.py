@@ -329,6 +329,7 @@ def http_check(
     headers: dict[str, str] | None = None,
     bearer_token: str | None = None,
     basic_auth: tuple[str, str] | None = None,
+    host_header: str | None = None,
     critical: bool,
     timeout: timedelta | None = None,
     interval: timedelta | None = None,
@@ -343,6 +344,7 @@ def http_check(
         headers=headers,
         bearer_token=bearer_token,
         basic_auth=basic_auth,
+        host_header=host_header,
         timeout=timeout.total_seconds() if timeout else 5.0,
     )
     return _DependencySpec(
@@ -369,6 +371,7 @@ def grpc_check(
     metadata: dict[str, str] | None = None,
     bearer_token: str | None = None,
     basic_auth: tuple[str, str] | None = None,
+    authority: str | None = None,
     critical: bool,
     timeout: timedelta | None = None,
     interval: timedelta | None = None,
@@ -383,6 +386,7 @@ def grpc_check(
         metadata=metadata,
         bearer_token=bearer_token,
         basic_auth=basic_auth,
+        authority=authority,
         timeout=timeout.total_seconds() if timeout else 5.0,
     )
     return _DependencySpec(

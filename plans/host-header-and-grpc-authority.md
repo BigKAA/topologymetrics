@@ -17,10 +17,10 @@
 
 ## 📍 Текущий статус
 
-- **Активная фаза**: Phase 6
-- **Активный подпункт**: 6.1
+- **Активная фаза**: Phase 7
+- **Активный подпункт**: 7.1
 - **Последнее обновление**: 2026-03-12
-- **Примечание**: Phase 1, Phase 2, Phase 3, Phase 4, Phase 5 завершены
+- **Примечание**: Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6 завершены
 
 ---
 
@@ -31,7 +31,7 @@
 - [x] [Phase 3: Go SDK](#phase-3-go-sdk)
 - [x] [Phase 4: Java SDK](#phase-4-java-sdk)
 - [x] [Phase 5: C# SDK](#phase-5-c-sdk)
-- [ ] [Phase 6: Python SDK](#phase-6-python-sdk)
+- [x] [Phase 6: Python SDK](#phase-6-python-sdk)
 - [ ] [Phase 7: Documentation](#phase-7-documentation)
 
 ---
@@ -375,7 +375,7 @@ TLS SNI задаётся через `SslClientAuthenticationOptions.TargetHost`.
 ## Phase 6: Python SDK
 
 **Dependencies**: Phase 1
-**Status**: Pending
+**Status**: Done
 
 ### Описание
 
@@ -385,7 +385,7 @@ grpcio поддерживает authority через channel option `grpc.defaul
 
 ### Подпункты
 
-- [ ] **6.1 Options и конфигурация**
+- [x] **6.1 Options и конфигурация**
   - **Dependencies**: None
   - **Description**: Добавить опции `http_host_header` и `grpc_authority`
     в конфигурацию dependency
@@ -393,7 +393,7 @@ grpcio поддерживает authority через channel option `grpc.defaul
     - Changes in configuration modules under `sdk-python/dephealth/`
   - **Links**: N/A
 
-- [ ] **6.2 HTTP checker — Host header и SNI**
+- [x] **6.2 HTTP checker — Host header и SNI**
   - **Dependencies**: 6.1
   - **Description**: В HTTP checker:
     - Сохранить поле `host_header`
@@ -405,7 +405,7 @@ grpcio поддерживает authority через channel option `grpc.defaul
   - **Links**:
     - [aiohttp ClientSession](https://docs.aiohttp.org/en/stable/client_reference.html)
 
-- [ ] **6.3 gRPC checker — authority и SNI**
+- [x] **6.3 gRPC checker — authority и SNI**
   - **Dependencies**: 6.1
   - **Description**: В gRPC checker:
     - Сохранить поле `authority`
@@ -416,14 +416,14 @@ grpcio поддерживает authority через channel option `grpc.defaul
   - **Links**:
     - [gRPC Python channel options](https://grpc.github.io/grpc/python/glossary.html#term-channel_arguments)
 
-- [ ] **6.4 Валидация конфликтов**
+- [x] **6.4 Валидация конфликтов**
   - **Dependencies**: 6.1
   - **Description**: Добавить валидацию конфликтов по аналогии с другими SDK
   - **Creates**:
     - Changes in validation module
   - **Links**: N/A
 
-- [ ] **6.5 Unit tests**
+- [x] **6.5 Unit tests**
   - **Dependencies**: 6.2, 6.3, 6.4
   - **Description**: Тесты: Host header, authority, SNI, конфликты
   - **Creates**:
@@ -432,12 +432,12 @@ grpcio поддерживает authority через channel option `grpc.defaul
 
 ### ✅ Критерии завершения Phase 6
 
-- [ ] Все подпункты завершены (6.1, 6.2, 6.3, 6.4, 6.5)
-- [ ] `pytest` проходит без ошибок
-- [ ] Host header корректно устанавливается через aiohttp
-- [ ] gRPC authority работает через `grpc.default_authority`
-- [ ] TLS SNI устанавливается при включённом TLS
-- [ ] Конфликты валидируются
+- [x] Все подпункты завершены (6.1, 6.2, 6.3, 6.4, 6.5)
+- [x] `pytest` проходит без ошибок
+- [x] Host header корректно устанавливается через aiohttp
+- [x] gRPC authority работает через `grpc.default_authority`
+- [x] TLS SNI устанавливается при включённом TLS
+- [x] Конфликты валидируются
 
 ---
 

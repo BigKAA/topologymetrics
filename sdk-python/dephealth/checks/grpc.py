@@ -37,6 +37,21 @@ def _validate_grpc_auth(
         raise ValueError(msg)
 
 
+def _validate_grpc_authority(
+    metadata: dict[str, str] | None,
+    authority: str | None,
+) -> None:
+    """Validate that authority does not conflict with :authority in metadata."""
+    if not authority or not metadata:
+        return
+    if ":authority" in metadata:
+        msg = (
+            "conflicting :authority: specify only one of "
+            "authority or :authority in metadata"
+        )
+        raise ValueError(msg)
+
+
 def _build_metadata(
     metadata: dict[str, str] | None,
     bearer_token: str | None,
@@ -69,13 +84,16 @@ class GRPCChecker:
         metadata: dict[str, str] | None = None,
         bearer_token: str | None = None,
         basic_auth: tuple[str, str] | None = None,
+        authority: str | None = None,
     ) -> None:
         _validate_grpc_auth(metadata, bearer_token, basic_auth)
+        _validate_grpc_authority(metadata, authority)
         self._service_name = service_name
         self._timeout = timeout
         self._tls = tls
         self._tls_skip_verify = tls_skip_verify
         self._metadata = _build_metadata(metadata, bearer_token, basic_auth)
+        self._authority = authority
 
     async def check(self, endpoint: Endpoint) -> None:
         """Call grpc.health.v1.Health/Check."""
@@ -88,17 +106,28 @@ class GRPCChecker:
 
         target = f"{endpoint.host}:{endpoint.port}"
 
+        options: list[tuple[str, str]] = []
+        if self._authority:
+            options.append(("grpc.default_authority", self._authority))
+
         if self._tls:
             if self._tls_skip_verify:
                 channel_creds = grpc.ssl_channel_credentials(
                     root_certificates=None,
                 )
-                channel = grpc.aio.secure_channel(target, channel_creds)
             else:
                 channel_creds = grpc.ssl_channel_credentials()
-                channel = grpc.aio.secure_channel(target, channel_creds)
+            if self._authority:
+                options.append(
+                    ("grpc.ssl_target_name_override", self._authority),
+                )
+            channel = grpc.aio.secure_channel(
+                target, channel_creds, options=options or None,
+            )
         else:
-            channel = grpc.aio.insecure_channel(target)
+            channel = grpc.aio.insecure_channel(
+                target, options=options or None,
+            )
 
         try:
             stub = health_pb2_grpc.HealthStub(channel)
