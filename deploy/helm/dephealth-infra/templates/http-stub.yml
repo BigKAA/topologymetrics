@@ -20,6 +20,7 @@ spec:
       containers:
         - name: http-stub
           image: {{ include "dephealth-infra.customImage" (dict "registry" .Values.global.pushRegistry "image" .Values.stubs.httpStub.image "tag" .Values.stubs.httpStub.tag) }}
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
               name: http

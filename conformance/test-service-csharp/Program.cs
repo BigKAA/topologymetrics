@@ -50,7 +50,11 @@ builder.Services.AddDepHealth("conformance-service", "conformance-test", dh =>
         critical: false);
     dh.AddHttp("http-auth-wrong", httpStubUrl, healthPath: "/health",
         bearerToken: "wrong-token", critical: false);
+    dh.AddHttp("http-host-header", httpStubUrl, healthPath: "/health",
+        hostHeader: "app.example.com", critical: false);
     dh.AddGrpc("grpc-service", grpcStubHost, grpcStubPort, critical: false);
+    dh.AddGrpc("grpc-authority", grpcStubHost, grpcStubPort,
+        grpcAuthority: "app.example.com", critical: false);
     dh.AddGrpc("grpc-auth-bearer", grpcStubHost, grpcStubPort,
         bearerToken: "test-token-123", critical: false);
     dh.AddLdap("ldap-rootdse", ldapHost, ldapPort,

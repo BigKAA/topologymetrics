@@ -95,8 +95,14 @@ public class DepHealthProperties {
         private String httpBasicUsername;
         private String httpBasicPassword;
 
+        // HTTP Host header override (ingress/gateway routing)
+        private String httpHostHeader;
+
         // gRPC
         private String serviceName;
+
+        // gRPC :authority override (ingress/gateway routing)
+        private String grpcAuthority;
 
         // gRPC auth
         private Map<String, String> grpcMetadata;
@@ -250,12 +256,28 @@ public class DepHealthProperties {
             this.httpBasicPassword = httpBasicPassword;
         }
 
+        public String getHttpHostHeader() {
+            return httpHostHeader;
+        }
+
+        public void setHttpHostHeader(String httpHostHeader) {
+            this.httpHostHeader = httpHostHeader;
+        }
+
         public String getServiceName() {
             return serviceName;
         }
 
         public void setServiceName(String serviceName) {
             this.serviceName = serviceName;
+        }
+
+        public String getGrpcAuthority() {
+            return grpcAuthority;
+        }
+
+        public void setGrpcAuthority(String grpcAuthority) {
+            this.grpcAuthority = grpcAuthority;
         }
 
         public Map<String, String> getGrpcMetadata() {

@@ -7,6 +7,7 @@ import base64
 from dephealth.checker import (
     CheckAuthError,
     CheckConnectionRefusedError,
+    CheckError,
     CheckTimeoutError,
     UnhealthyError,
 )
@@ -152,7 +153,7 @@ class GRPCChecker:
                     msg = f"gRPC connection to {target} unavailable: {e.details()}"
                     raise CheckConnectionRefusedError(msg) from e
                 msg = f"gRPC health check to {target} failed: {e.details()}"
-                raise CheckConnectionRefusedError(msg) from e
+                raise CheckError(msg) from e
 
             serving = health_pb2.HealthCheckResponse.SERVING
             unknown = health_pb2.HealthCheckResponse.UNKNOWN

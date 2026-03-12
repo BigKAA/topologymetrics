@@ -8,6 +8,7 @@ FROM ${MCR_REGISTRY}/dotnet/sdk:8.0 AS builder
 WORKDIR /workspace
 
 # Копируем файлы проектов для кэширования restore
+COPY sdk-csharp/.editorconfig sdk-csharp/
 COPY sdk-csharp/Directory.Build.props sdk-csharp/
 COPY sdk-csharp/DepHealth.Core/DepHealth.Core.csproj sdk-csharp/DepHealth.Core/
 COPY sdk-csharp/DepHealth.AspNetCore/DepHealth.AspNetCore.csproj sdk-csharp/DepHealth.AspNetCore/

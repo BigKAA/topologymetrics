@@ -47,6 +47,7 @@ spec:
       containers:
         - name: {{ $svc.name }}
           image: {{ if $registry }}{{ $registry }}/{{ $svc.image }}:{{ $svc.tag }}{{ else }}{{ $svc.image }}:{{ $svc.tag }}{{ end }}
+          imagePullPolicy: Always
           ports:
             - containerPort: {{ $svc.port }}
               name: http

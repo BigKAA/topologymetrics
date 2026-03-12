@@ -198,9 +198,24 @@ func initDepHealth(cfg *Config, primaryDB, replicaDB *sql.DB, rdb *redis.Client,
 			dephealth.Critical(false),
 		),
 
+		// HTTP Host header override for ingress/gateway routing
+		dephealth.HTTP("http-host-header",
+			dephealth.FromURL(cfg.HTTPStubURL),
+			dephealth.WithHTTPHealthPath("/health"),
+			dephealth.WithHTTPHostHeader("app.example.com"),
+			dephealth.Critical(false),
+		),
+
 		// gRPC stub — standalone
 		dephealth.GRPC("grpc-service",
 			dephealth.FromParams(cfg.GRPCStubHost, cfg.GRPCStubPort),
+			dephealth.Critical(false),
+		),
+
+		// gRPC :authority override for ingress/gateway routing
+		dephealth.GRPC("grpc-authority",
+			dephealth.FromParams(cfg.GRPCStubHost, cfg.GRPCStubPort),
+			dephealth.WithGRPCAuthority("app.example.com"),
 			dephealth.Critical(false),
 		),
 

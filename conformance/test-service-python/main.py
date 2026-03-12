@@ -107,8 +107,18 @@ app = FastAPI(
             "http-auth-wrong", url=HTTP_STUB_URL, health_path="/health",
             bearer_token="wrong-token", critical=False,
         ),
+        # HTTP Host header override for ingress/gateway routing
+        http_check(
+            "http-host-header", url=HTTP_STUB_URL, health_path="/health",
+            host_header="app.example.com", critical=False,
+        ),
         # gRPC stub
         grpc_check("grpc-service", host=GRPC_STUB_HOST, port=GRPC_STUB_PORT, critical=False),
+        # gRPC :authority override for ingress/gateway routing
+        grpc_check(
+            "grpc-authority", host=GRPC_STUB_HOST, port=GRPC_STUB_PORT,
+            authority="app.example.com", critical=False,
+        ),
         # gRPC auth: bearer token
         grpc_check(
             "grpc-auth-bearer", host=GRPC_STUB_HOST, port=GRPC_STUB_PORT,

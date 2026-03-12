@@ -109,6 +109,10 @@ public class DepHealthAutoConfiguration {
             d.httpTlsSkipVerify(props.getTlsSkipVerify());
         }
 
+        if (props.getHttpHostHeader() != null) {
+            d.httpHostHeader(props.getHttpHostHeader());
+        }
+
         // HTTP auth
         if (props.getHttpHeaders() != null) {
             d.httpHeaders(props.getHttpHeaders());
@@ -126,6 +130,10 @@ public class DepHealthAutoConfiguration {
         }
         if (props.getTls() != null) {
             d.grpcTls(props.getTls());
+        }
+
+        if (props.getGrpcAuthority() != null) {
+            d.grpcAuthority(props.getGrpcAuthority());
         }
 
         // gRPC auth
