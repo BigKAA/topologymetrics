@@ -266,6 +266,98 @@ class HttpHealthCheckerTest {
                         .build());
     }
 
+    // --- Host header tests ---
+
+    @Test
+    void hostHeaderSent() throws Exception {
+        server.createContext("/health", exchange -> {
+            String host = exchange.getRequestHeaders().getFirst("Host");
+            if ("api.example.com".equals(host)) {
+                exchange.sendResponseHeaders(200, -1);
+            } else {
+                exchange.sendResponseHeaders(400, -1);
+            }
+            exchange.close();
+        });
+        server.start();
+
+        HttpHealthChecker checker = HttpHealthChecker.builder()
+                .hostHeader("api.example.com")
+                .build();
+        Endpoint ep = new Endpoint("localhost", String.valueOf(port));
+        assertDoesNotThrow(() -> checker.check(ep, Duration.ofSeconds(5)));
+    }
+
+    @Test
+    void hostHeaderWithOtherHeaders() throws Exception {
+        server.createContext("/health", exchange -> {
+            String host = exchange.getRequestHeaders().getFirst("Host");
+            String apiKey = exchange.getRequestHeaders().getFirst("X-API-Key");
+            if ("api.example.com".equals(host) && "key123".equals(apiKey)) {
+                exchange.sendResponseHeaders(200, -1);
+            } else {
+                exchange.sendResponseHeaders(400, -1);
+            }
+            exchange.close();
+        });
+        server.start();
+
+        HttpHealthChecker checker = HttpHealthChecker.builder()
+                .hostHeader("api.example.com")
+                .headers(Map.of("X-API-Key", "key123"))
+                .build();
+        Endpoint ep = new Endpoint("localhost", String.valueOf(port));
+        assertDoesNotThrow(() -> checker.check(ep, Duration.ofSeconds(5)));
+    }
+
+    @Test
+    void hostHeaderConflictWithHostInHeaders() {
+        assertThrows(ValidationException.class, () ->
+                HttpHealthChecker.builder()
+                        .hostHeader("api.example.com")
+                        .headers(Map.of("Host", "other.example.com"))
+                        .build());
+    }
+
+    @Test
+    void hostHeaderConflictCaseInsensitive() {
+        assertThrows(ValidationException.class, () ->
+                HttpHealthChecker.builder()
+                        .hostHeader("api.example.com")
+                        .headers(Map.of("host", "other.example.com"))
+                        .build());
+    }
+
+    @Test
+    void noConflictHostHeaderAlone() {
+        assertDoesNotThrow(() ->
+                HttpHealthChecker.builder()
+                        .hostHeader("api.example.com")
+                        .build());
+    }
+
+    @Test
+    void hostHeaderWithBearerToken() throws Exception {
+        server.createContext("/health", exchange -> {
+            String host = exchange.getRequestHeaders().getFirst("Host");
+            String auth = exchange.getRequestHeaders().getFirst("Authorization");
+            if ("api.example.com".equals(host) && "Bearer token123".equals(auth)) {
+                exchange.sendResponseHeaders(200, -1);
+            } else {
+                exchange.sendResponseHeaders(401, -1);
+            }
+            exchange.close();
+        });
+        server.start();
+
+        HttpHealthChecker checker = HttpHealthChecker.builder()
+                .hostHeader("api.example.com")
+                .bearerToken("token123")
+                .build();
+        Endpoint ep = new Endpoint("localhost", String.valueOf(port));
+        assertDoesNotThrow(() -> checker.check(ep, Duration.ofSeconds(5)));
+    }
+
     @Test
     void authorizationHeaderCaseInsensitiveConflict() {
         assertThrows(ValidationException.class, () ->

@@ -17,10 +17,10 @@
 
 ## 📍 Текущий статус
 
-- **Активная фаза**: Phase 4
-- **Активный подпункт**: 4.1
+- **Активная фаза**: Phase 5
+- **Активный подпункт**: 5.1
 - **Последнее обновление**: 2026-03-12
-- **Примечание**: Phase 1, Phase 2, Phase 3 завершены
+- **Примечание**: Phase 1, Phase 2, Phase 3, Phase 4 завершены
 
 ---
 
@@ -29,7 +29,7 @@
 - [x] [Phase 1: Specification Update](#phase-1-specification-update)
 - [x] [Phase 2: Conformance Tests](#phase-2-conformance-tests)
 - [x] [Phase 3: Go SDK](#phase-3-go-sdk)
-- [ ] [Phase 4: Java SDK](#phase-4-java-sdk)
+- [x] [Phase 4: Java SDK](#phase-4-java-sdk)
 - [ ] [Phase 5: C# SDK](#phase-5-c-sdk)
 - [ ] [Phase 6: Python SDK](#phase-6-python-sdk)
 - [ ] [Phase 7: Documentation](#phase-7-documentation)
@@ -231,7 +231,7 @@ Go требует особой обработки: для Host header нужен
 ## Phase 4: Java SDK
 
 **Dependencies**: Phase 1
-**Status**: Pending
+**Status**: Done
 
 ### Описание
 
@@ -241,7 +241,7 @@ gRPC-Java поддерживает `overrideAuthority()` нативно.
 
 ### Подпункты
 
-- [ ] **4.1 Builder methods и конфигурация**
+- [x] **4.1 Builder methods и конфигурация**
   - **Dependencies**: None
   - **Description**: Добавить builder-методы `httpHostHeader(String)` и
     `grpcAuthority(String)` в конфигурацию dependency
@@ -250,7 +250,7 @@ gRPC-Java поддерживает `overrideAuthority()` нативно.
       `sdk-java/dephealth-core/src/main/java/biz/kryukov/dev/dephealth/`
   - **Links**: N/A
 
-- [ ] **4.2 HTTP checker — Host header и SNI**
+- [x] **4.2 HTTP checker — Host header и SNI**
   - **Dependencies**: 4.1
   - **Description**: В `HttpHealthChecker`:
     - Сохранить поле `hostHeader`
@@ -263,7 +263,7 @@ gRPC-Java поддерживает `overrideAuthority()` нативно.
   - **Links**:
     - [Java HttpClient restricted headers](https://docs.oracle.com/en/java/javase/11/docs/api/java.net.http/java/net/http/HttpRequest.html)
 
-- [ ] **4.3 gRPC checker — authority и SNI**
+- [x] **4.3 gRPC checker — authority и SNI**
   - **Dependencies**: 4.1
   - **Description**: В `GrpcHealthChecker`:
     - Сохранить поле `authority`
@@ -274,14 +274,14 @@ gRPC-Java поддерживает `overrideAuthority()` нативно.
   - **Links**:
     - [gRPC-Java ManagedChannelBuilder](https://grpc.github.io/grpc-java/javadoc/io/grpc/ManagedChannelBuilder.html)
 
-- [ ] **4.4 Валидация конфликтов**
+- [x] **4.4 Валидация конфликтов**
   - **Dependencies**: 4.1
   - **Description**: Добавить валидацию конфликтов по аналогии с Go SDK
   - **Creates**:
     - Changes in validation classes
   - **Links**: N/A
 
-- [ ] **4.5 Unit tests**
+- [x] **4.5 Unit tests**
   - **Dependencies**: 4.2, 4.3, 4.4
   - **Description**: Тесты: Host header, authority, SNI, конфликты
   - **Creates**:
@@ -290,12 +290,12 @@ gRPC-Java поддерживает `overrideAuthority()` нативно.
 
 ### ✅ Критерии завершения Phase 4
 
-- [ ] Все подпункты завершены (4.1, 4.2, 4.3, 4.4, 4.5)
-- [ ] `mvn test` проходит без ошибок
-- [ ] Host header корректно устанавливается (с учётом restricted headers)
-- [ ] gRPC authority работает через `overrideAuthority`
-- [ ] TLS SNI устанавливается при включённом TLS
-- [ ] Конфликты валидируются
+- [x] Все подпункты завершены (4.1, 4.2, 4.3, 4.4, 4.5)
+- [x] `mvn test` проходит без ошибок
+- [x] Host header корректно устанавливается (с учётом restricted headers)
+- [x] gRPC authority работает через `overrideAuthority`
+- [x] TLS SNI устанавливается при включённом TLS
+- [x] Конфликты валидируются
 
 ---
 

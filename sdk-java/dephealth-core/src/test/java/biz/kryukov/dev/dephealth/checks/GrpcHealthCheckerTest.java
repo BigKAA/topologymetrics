@@ -175,6 +175,43 @@ class GrpcHealthCheckerTest {
                         .build());
     }
 
+    // --- Authority tests ---
+
+    @Test
+    void authorityConflictWithAuthorityInMetadata() {
+        assertThrows(ValidationException.class, () ->
+                GrpcHealthChecker.builder()
+                        .authority("api.example.com")
+                        .metadata(Map.of(":authority", "other.example.com"))
+                        .build());
+    }
+
+    @Test
+    void noConflictAuthorityAlone() {
+        assertDoesNotThrow(() ->
+                GrpcHealthChecker.builder()
+                        .authority("api.example.com")
+                        .build());
+    }
+
+    @Test
+    void noConflictAuthorityWithOtherMetadata() {
+        assertDoesNotThrow(() ->
+                GrpcHealthChecker.builder()
+                        .authority("api.example.com")
+                        .metadata(Map.of("x-custom", "value"))
+                        .build());
+    }
+
+    @Test
+    void authorityWithBearerToken() {
+        assertDoesNotThrow(() ->
+                GrpcHealthChecker.builder()
+                        .authority("api.example.com")
+                        .bearerToken("token123")
+                        .build());
+    }
+
     @Test
     void authorizationMetadataCaseInsensitiveConflict() {
         assertThrows(ValidationException.class, () ->

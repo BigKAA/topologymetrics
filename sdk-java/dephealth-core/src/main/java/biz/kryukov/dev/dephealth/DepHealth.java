@@ -180,6 +180,7 @@ public final class DepHealth {
         private String httpHealthPath;
         private Boolean httpTls;
         private Boolean httpTlsSkipVerify;
+        private String httpHostHeader;
 
         // HTTP auth
         private Map<String, String> httpHeaders;
@@ -190,6 +191,7 @@ public final class DepHealth {
         // gRPC
         private String grpcServiceName;
         private Boolean grpcTls;
+        private String grpcAuthority;
 
         // gRPC auth
         private Map<String, String> grpcMetadata;
@@ -305,6 +307,17 @@ public final class DepHealth {
             return this;
         }
 
+        /**
+         * Sets the HTTP Host header override for health check requests.
+         * Used when connecting by IP through ingress/gateway for Host-based routing.
+         * When TLS is enabled, also sets TLS SNI (ServerName) to the same value.
+         * Does NOT affect the "host" metric label.
+         */
+        public DependencyBuilder httpHostHeader(String hostHeader) {
+            this.httpHostHeader = hostHeader;
+            return this;
+        }
+
         /** Sets custom HTTP headers for health check requests. */
         public DependencyBuilder httpHeaders(Map<String, String> headers) {
             this.httpHeaders = headers;
@@ -333,6 +346,17 @@ public final class DepHealth {
         /** Enables or disables TLS for gRPC checks. */
         public DependencyBuilder grpcTls(boolean tls) {
             this.grpcTls = tls;
+            return this;
+        }
+
+        /**
+         * Sets the :authority pseudo-header override for gRPC health check calls.
+         * Used when connecting by IP through ingress/gateway for authority-based routing.
+         * When TLS is enabled, also sets TLS SNI (ServerName) to the same value.
+         * Does NOT affect the "host" metric label.
+         */
+        public DependencyBuilder grpcAuthority(String authority) {
+            this.grpcAuthority = authority;
             return this;
         }
 
@@ -842,6 +866,9 @@ public final class DepHealth {
                     if (db.httpTlsSkipVerify != null) {
                         b.tlsSkipVerify(db.httpTlsSkipVerify);
                     }
+                    if (db.httpHostHeader != null) {
+                        b.hostHeader(db.httpHostHeader);
+                    }
                     if (db.httpHeaders != null) {
                         b.headers(db.httpHeaders);
                     }
@@ -860,6 +887,9 @@ public final class DepHealth {
                     }
                     if (db.grpcTls != null) {
                         b.tlsEnabled(db.grpcTls);
+                    }
+                    if (db.grpcAuthority != null) {
+                        b.authority(db.grpcAuthority);
                     }
                     if (db.grpcMetadata != null) {
                         b.metadata(db.grpcMetadata);

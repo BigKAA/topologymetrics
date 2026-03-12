@@ -52,6 +52,7 @@ public final class GrpcHealthChecker implements HealthChecker {
     private final String serviceName;
     private final boolean tlsEnabled;
     private final boolean tlsSkipVerify;
+    private final String authority;
     private final Map<String, String> metadata;
     private final ConcurrentHashMap<String, ManagedChannel> channels = new ConcurrentHashMap<>();
 
@@ -59,6 +60,7 @@ public final class GrpcHealthChecker implements HealthChecker {
         this.serviceName = builder.serviceName;
         this.tlsEnabled = builder.tlsEnabled;
         this.tlsSkipVerify = builder.tlsSkipVerify;
+        this.authority = builder.authority;
         this.metadata = Collections.unmodifiableMap(new LinkedHashMap<>(builder.resolvedMetadata));
     }
 
@@ -119,6 +121,12 @@ public final class GrpcHealthChecker implements HealthChecker {
                     .usePlaintext();
         }
 
+        // Override :authority pseudo-header if configured.
+        // This also sets TLS SNI automatically.
+        if (authority != null && !authority.isEmpty()) {
+            channelBuilder.overrideAuthority(authority);
+        }
+
         // Attach metadata interceptor if configured.
         if (!metadata.isEmpty()) {
             channelBuilder.intercept(new MetadataInterceptor(metadata));
@@ -159,6 +167,7 @@ public final class GrpcHealthChecker implements HealthChecker {
         private String serviceName = "";
         private boolean tlsEnabled;
         private boolean tlsSkipVerify;
+        private String authority;
         private Map<String, String> customMetadata = new LinkedHashMap<>();
         private String bearerToken;
         private String basicAuthUsername;
@@ -185,6 +194,17 @@ public final class GrpcHealthChecker implements HealthChecker {
             return this;
         }
 
+        /**
+         * Sets the :authority pseudo-header override for gRPC health check calls.
+         * Used when connecting by IP through ingress/gateway for authority-based routing.
+         * When TLS is enabled, also sets TLS SNI (ServerName) to the same value.
+         * Does NOT affect the "host" metric label.
+         */
+        public Builder authority(String authority) {
+            this.authority = authority;
+            return this;
+        }
+
         /** Sets custom gRPC metadata. */
         public Builder metadata(Map<String, String> metadata) {
             this.customMetadata = new LinkedHashMap<>(metadata);
@@ -204,11 +224,25 @@ public final class GrpcHealthChecker implements HealthChecker {
             return this;
         }
 
-        /** Builds the checker, validating auth configuration. */
+        /** Builds the checker, validating configuration. */
         public GrpcHealthChecker build() {
             validateAuthConflicts();
+            validateAuthorityConflicts();
             buildResolvedMetadata();
             return new GrpcHealthChecker(this);
+        }
+
+        private void validateAuthorityConflicts() {
+            if (authority == null || authority.isEmpty()) {
+                return;
+            }
+            for (String key : customMetadata.keySet()) {
+                if (":authority".equals(key)) {
+                    throw new ValidationException(
+                            "conflicting :authority: specify only one of "
+                                    + "authority or :authority in metadata");
+                }
+            }
         }
 
         private void validateAuthConflicts() {
